@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/button';
 
 const TakeHomeCalculator = () => {
   return (
-    <div className="max-w-md mx-auto p-4 sm:p-8">
+    <div className="max-w-md mx-auto p-4 sm:p-8 bg-white rounded-lg shadow-md">
       <div className="space-y-4">
         <h1 className="font-open-sans text-2xl font-semibold">
-          IR35 Calculator
+          Take Home Calculator
         </h1>
         <p className="text-gray-500 dark:text-gray-400">
           Estimate your take-home pay as an outside IR35 contractor in the UK.
