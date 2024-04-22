@@ -2,6 +2,7 @@ import cn from '@/utils/cn';
 import Link from 'next/link';
 import { MenuIcon } from 'lucide-react';
 import { Button } from '../ui/button';
+import HeaderLogo from '../HeaderLogo/HeaderLogo';
 
 type HeaderProps = {
   className?: string;
@@ -16,9 +17,7 @@ const Header = ({ className }: HeaderProps) => {
     >
       <div className="container mx-auto flex justify-between items-center px-4 sm:px-6 lg:px-8">
         <div className="flex items-center">
-          <Link className="text-xl font-bold" href="/">
-            Outside IR35 Jobs
-          </Link>
+          <HeaderLogo />
         </div>
         <nav className="hidden md:block">
           <ul className="flex space-x-4">
