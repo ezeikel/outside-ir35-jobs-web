@@ -1,7 +1,16 @@
+import type { Viewport } from 'next';
 import PageWrap from '@/components/PageWrap/PageWrap';
 import TakeHomeCalculator from '@/components/TakeHomeCalculator/TakeHomeCalculator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+};
 
 const HomePage = () => {
   return (
