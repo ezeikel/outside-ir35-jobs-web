@@ -38,7 +38,8 @@ model Job {
   keywords           String[]
   description        String
   dayRate            Int[] // e.g. [100, 200] for a range or [100] for a fixed rate
-  contractLength     Int //  in days e.g. 30, 60, 90
+  isRemote           Boolean
+  contractLength     Int? //  in days e.g. 30, 60, 90
   verifiedIR35Status Boolean       @default(false)
   postedBy           User          @relation(fields: [userId], references: [id])
   userId             String
