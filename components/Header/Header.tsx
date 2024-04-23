@@ -23,7 +23,7 @@ const Header = ({ className }: HeaderProps) => (
     <nav className="hidden md:block">
       <ul className="flex space-x-4">
         <li>
-          <Link className="hover:text-gray-600" href="/">
+          <Link className="hover:text-gray-600" href="/jobs">
             Jobs
           </Link>
         </li>
@@ -48,7 +48,7 @@ const Header = ({ className }: HeaderProps) => (
       </Link>
       <Link
         className="inline-flex items-center justify-center rounded-md bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-red-500"
-        href="/"
+        href="/job/post"
       >
         Post a job
       </Link>
