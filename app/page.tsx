@@ -24,8 +24,8 @@ export const viewport: Viewport = {
 
 const HomePage = () => {
   return (
-    <PageWrap className="py-12 gap-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <PageWrap className="pb-12 gap-y-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-image bg-hero bg-cover bg-no-repeat bg-center p-8">
         <div>
           <h1 className="text-4xl font-bold mb-4">
             Find Your Next Outside IR35 Contract Role
@@ -34,9 +34,9 @@ const HomePage = () => {
             Search thousands of contract roles across the UK, with top companies
             and competitive rates.
           </p>
-          <form className="flex">
+          <form className="flex gap-2">
             <Input
-              className="flex-1 mr-2"
+              className="flex-1 max-w-[640px]"
               placeholder="Job title, skills, or company"
               type="text"
             />
@@ -47,28 +47,31 @@ const HomePage = () => {
         </div>
         <TakeHomeCalculator />
       </div>
-      <section className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {DUMMY_JOBS.map((job) => (
-          <Card key={job.id}>
-            <CardHeader>
-              <CardTitle>{job.title}</CardTitle>
-              <CardDescription>Remote · £500 - £600/day</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>
-                {job.description.slice(0, 100)}
-                ...
-              </p>
-              <div className="mt-4 flex items-center gap-2">
-                <MapPinIcon className="size-4" />
-                <span>{job.location}</span>
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button variant="outline">View Details</Button>
-            </CardFooter>
-          </Card>
-        ))}
+      <section className="flex flex-col gap-y-8">
+        <h2 className="font-open-sans text-3xl font-bold">Latest Contracts</h2>
+        <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {DUMMY_JOBS.map((job) => (
+            <Card key={job.id}>
+              <CardHeader>
+                <CardTitle>{job.title}</CardTitle>
+                <CardDescription>Remote · £500 - £600/day</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p>
+                  {job.description.slice(0, 100)}
+                  ...
+                </p>
+                <div className="mt-4 flex items-center gap-2">
+                  <MapPinIcon className="size-4" />
+                  <span>{job.location}</span>
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button variant="outline">View Details</Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
       </section>
     </PageWrap>
   );

@@ -77,6 +77,9 @@ const config = {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
       },
+      backgroundImage: {
+        hero: 'url("/images/pexels-vlada-karpovich-4939643.jpg")',
+      },
     },
   },
   // eslint-disable-next-line import/no-extraneous-dependencies, global-require

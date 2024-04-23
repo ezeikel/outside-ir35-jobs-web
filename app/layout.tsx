@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Analytics } from '@vercel/analytics/react';
 import { Open_Sans, Montserrat } from 'next/font/google';
 import { config } from '@fortawesome/fontawesome-svg-core';
+import PlausibleProvider from 'next-plausible';
 import { Toaster } from '@/components/ui/toaster';
 import '@fortawesome/fontawesome-svg-core/styles.css';
 import cn from '@/utils/cn';
@@ -35,6 +36,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <PlausibleProvider domain="outsideir35jobs.com" />
+      </head>
       <body
         className={cn(
           'font-montserrat antialiased',
