@@ -16,7 +16,14 @@ const PostJob = () => {
       position: '',
       jobDescription: '',
       keywords: '',
-      location: '',
+      location: {
+        address: '',
+        placeId: '',
+        coordinates: {
+          lat: null,
+          lng: null,
+        },
+      },
       companyLogo: '',
       dayRate: [0],
       howToApply: '',

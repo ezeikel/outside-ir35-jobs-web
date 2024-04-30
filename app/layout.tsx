@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import { Analytics } from '@vercel/analytics/react';
 import { Open_Sans, Montserrat } from 'next/font/google';
 import { config } from '@fortawesome/fontawesome-svg-core';
@@ -54,6 +55,10 @@ export default function RootLayout({
         </Providers>
         <Toaster />
         <Analytics />
+        <Script
+          src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBoQvJdpdG_1sXF9e3uaJgbkMkecQIZ_2Q&libraries=places"
+          strategy="beforeInteractive"
+        />
       </body>
     </html>
   );

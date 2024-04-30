@@ -16,6 +16,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { PostJobFormSchema } from '@/types';
 import DayRateInputs from './DayRateInputs';
+import LocationInput from './LocationInput';
 
 type PostJobFormProps = {
   className?: string;
@@ -101,20 +102,7 @@ const PostJobForm = ({ className }: PostJobFormProps) => {
           </FormItem>
         )}
       />
-      <FormField
-        control={control}
-        name="location"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="block mb-1">Location</FormLabel>
-            <FormControl>
-              {/* eslint-disable-next-line react/jsx-props-no-spreading */}
-              <Input placeholder="Enter the job location" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      <LocationInput />
       <FormField
         control={control}
         name="companyLogo"

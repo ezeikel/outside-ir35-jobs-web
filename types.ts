@@ -6,7 +6,14 @@ export const PostJobFormSchema = z.object({
   position: z.string(),
   jobDescription: z.string(),
   keywords: z.string(),
-  location: z.string(),
+  location: z.object({
+    address: z.string(),
+    placeId: z.string(),
+    coordinates: z.object({
+      lat: z.number().nullable(),
+      lng: z.number().nullable(),
+    }),
+  }),
   companyLogo: z.string(),
   dayRate: z.union([
     z.array(z.number()).length(1), // Array with a single number

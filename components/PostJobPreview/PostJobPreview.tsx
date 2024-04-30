@@ -9,7 +9,7 @@ const JobPostPreview = () => {
     jobDescription,
     // TODO:
     // keywords,
-    // location,
+    location,
     // companyLogo,
     // dayRate,
     // howToApply,
@@ -26,9 +26,8 @@ const JobPostPreview = () => {
       <div className="bg-white p-4 rounded-lg shadow-md">
         <h3 className="text-lg font-bold">{position}</h3>
         <p className="text-gray-600 mb-2">{companyName}</p>
-        <p className="text-gray-600 mb-4">San Francisco, CA</p>
+        <p className="text-gray-600 mb-4">{location.address}</p>
         <div>
-          <h4 className="text-md font-bold">Job Description</h4>
           <HTMLViewer html={jobDescription} />
         </div>
         <p className="text-gray-700 mb-4">
