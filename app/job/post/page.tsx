@@ -1,5 +1,14 @@
+import type { Viewport } from 'next';
 import PageWrap from '@/components/PageWrap/PageWrap';
 import PostJob from '@/components/PostJob/PostJob';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+};
 
 const JobPostPage = () => {
   return (

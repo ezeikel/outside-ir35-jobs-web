@@ -56,7 +56,7 @@ export default function RootLayout({
         <Toaster />
         <Analytics />
         <Script
-          src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBoQvJdpdG_1sXF9e3uaJgbkMkecQIZ_2Q&libraries=places"
+          src={`https://maps.googleapis.com/maps/api/js?key=${process.env.GOOGLE_MAPS_API_KEY}&libraries=places`}
           strategy="beforeInteractive"
         />
       </body>

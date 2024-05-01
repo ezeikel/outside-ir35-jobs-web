@@ -1,3 +1,4 @@
+import type { Viewport } from 'next';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,6 +18,14 @@ import {
   Card,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+};
 
 const JobsPage = () => {
   return (
