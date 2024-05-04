@@ -24,30 +24,46 @@ export const viewport: Viewport = {
 
 const HomePage = () => {
   return (
-    <PageWrap className="pb-12 gap-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-image bg-hero bg-cover bg-no-repeat bg-center p-8">
-        <div>
-          <h1 className="text-4xl font-bold mb-4">
-            Find Your Next Outside IR35 Contract Role
-          </h1>
-          <p className="text-gray-600 mb-8">
-            Search thousands of contract roles across the UK, with top companies
-            and competitive rates.
-          </p>
-          <form className="flex gap-2">
-            <Input
-              className="flex-1 max-w-[640px]"
-              placeholder="Job title, skills, or company"
-              type="text"
-            />
-            <Button className="bg-primary hover:bg-primary-600" type="submit">
-              Search
-            </Button>
-          </form>
+    <PageWrap className="pb-12 gap-y-8 p-0">
+      <div className="relative w-screen">
+        <video
+          className="size-full object-cover"
+          autoPlay
+          loop
+          muted
+          playsInline
+          style={{
+            minHeight: 'calc(100vh - 68px)',
+          }}
+        >
+          <source src="/videos/man-using-laptop.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+          <track kind="captions" />
+        </video>
+        <div className="absolute top-0 left-0 right-0 bottom-0 grid grid-cols-1 md:grid-cols-2 gap-8 p-8 bg-[rgba(0,0,0,0.4)]">
+          <div>
+            <h1 className="text-4xl font-bold mb-4 text-white">
+              Find Your Next Outside IR35 Contract Role
+            </h1>
+            <p className="text-gray-100 mb-8">
+              Search thousands of contract roles across the UK, with top
+              companies and competitive rates.
+            </p>
+            <form className="flex gap-2">
+              <Input
+                className="flex-1 max-w-[640px]"
+                placeholder="Job title, skills, or company"
+                type="text"
+              />
+              <Button className="bg-primary hover:bg-primary-600" type="submit">
+                Search
+              </Button>
+            </form>
+          </div>
+          <TakeHomeCalculator className="hidden md:block" />
         </div>
-        <TakeHomeCalculator />
       </div>
-      <section className="flex flex-col gap-y-8">
+      <section className="flex flex-col gap-y-8 p-4">
         <h2 className="font-open-sans text-3xl font-bold">Latest Contracts</h2>
         <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {DUMMY_JOBS.map((job) => (

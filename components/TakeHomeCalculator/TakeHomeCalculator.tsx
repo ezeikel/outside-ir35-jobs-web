@@ -1,10 +1,22 @@
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import cn from '@/utils/cn';
 
-const TakeHomeCalculator = () => {
+type TakeHomeCalculatorProps = {
+  className?: string;
+};
+
+const TakeHomeCalculator = ({ className }: TakeHomeCalculatorProps) => {
   return (
-    <div className="max-w-md mx-auto p-4 sm:p-8 bg-white rounded-lg shadow-md">
+    <div
+      className={cn(
+        'max-w-md mx-auto p-4 sm:p-8 bg-white rounded-lg shadow-md',
+        {
+          [className as string]: !!className,
+        },
+      )}
+    >
       <div className="space-y-4">
         <h1 className="font-open-sans text-2xl font-semibold">
           Take Home Calculator
