@@ -29,7 +29,7 @@ const MenuBar = () => {
   }
 
   return (
-    <div className="flex items-center space-x-2 border-t border-l border-r rounded-t-md bg-white p-2">
+    <div className="flex items-center gap-x-2 border-t border-l border-r rounded-t-md bg-white p-2 overflow-x-auto">
       <Button aria-label="Undo" variant="ghost" type="button">
         <FontAwesomeIcon
           icon={faRotateLeft as IconProp}
