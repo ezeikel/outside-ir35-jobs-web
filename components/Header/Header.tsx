@@ -11,7 +11,7 @@ type HeaderProps = {
 const Header = ({ className }: HeaderProps) => (
   <header
     className={cn(
-      'bg-white text-gray-800 p-4 flex justify-between items-center',
+      'bg-white text-gray-800 p-4 flex justify-between items-center sticky top-0 z-10',
       {
         [className as string]: !!className,
       },
