@@ -28,7 +28,7 @@
   },
   "lint-staged": {
     "*.{ts,tsx}": [
-      "tsc-files --noEmit ./next-env.d.ts ./next-auth.d.ts"
+      "tsc-files --noEmit ./next-env.d.ts ./global.d.ts ./next-auth.d.ts"
     ],
     "**/*.+(js|jsx|json|ts|tsx|html|md)": [
       "prettier --ignore-path .gitignore --write",
@@ -56,6 +56,9 @@
     "@react-pdf/renderer": "^3.4.2",
     "@sentry/nextjs": "^7.105.0",
     "@stripe/stripe-js": "^3.3.0",
+    "@tiptap/core": "^2.3.1",
+    "@tiptap/extension-heading": "^2.3.1",
+    "@tiptap/extension-link": "^2.3.1",
     "@tiptap/extension-placeholder": "^2.3.0",
     "@tiptap/pm": "^2.3.0",
     "@tiptap/react": "^2.3.0",

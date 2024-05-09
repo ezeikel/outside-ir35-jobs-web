@@ -21,7 +21,7 @@ const JobPostPreview = () => {
   } = watch();
 
   return (
-    <div className="bg-gray-100 p-4 rounded-lg">
+    <div className="bg-gray-100 p-4 rounded-lg editor-preview">
       <h2 className="text-xl font-bold mb-4">Job Preview</h2>
       <div className="bg-white p-4 rounded-lg shadow-md">
         <h3 className="text-lg font-bold">{position}</h3>

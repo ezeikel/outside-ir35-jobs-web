@@ -76,10 +76,56 @@
   
 }
 
-.tiptap .is-empty::before {
+.tiptap .is-editor-empty::before {
   @apply text-muted-foreground;
   @apply content-[attr(data-placeholder)];
   @apply float-left;
   @apply pointer-events-none;
   @apply h-0;
+}
+
+.tiptap ul, .editor-preview ul {
+  @apply list-disc;
+  @apply pl-4;
+}
+
+.tiptap ol, .editor-preview ol {
+  @apply list-decimal;
+  @apply pl-4;
+}
+
+.tiptap [data-indent="1"] {
+  @apply pl-4;
+}
+
+.tiptap [data-indent="2"] {
+  @apply pl-8;
+}
+
+.tiptap [data-indent="3"] {
+  @apply pl-12;
+}
+
+.tiptap [data-indent="4"] {
+  @apply pl-16;
+}
+
+.tiptap [data-indent="5"] {
+  @apply pl-20;
+}
+
+.tiptap [data-indent="6"] {
+  @apply pl-24;
+}
+
+.tiptap [data-indent="7"] {
+  @apply pl-28;
+}
+
+.tiptap [data-indent="8"] {
+  @apply pl-32;
+}
+
+.tiptap a, .editor-preview a {
+  @apply underline text-blue-400 mx-0.5 cursor-pointer;
 }
