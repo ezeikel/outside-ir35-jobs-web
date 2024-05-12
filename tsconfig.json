@@ -29,10 +29,10 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "jest.config.ts",
-    "test/jest.common.ts",
+    ".test/jest.common.ts",
     "test/jest.setup.ts",
-    "./test/jest.client.ts",
-    "./test/jest.lint.ts"
+    "test/jest.client.ts",
+    "test/jest.lint.ts"
   ],
   "exclude": ["node_modules"]
 }

@@ -1,4 +1,10 @@
 import { useFormContext } from 'react-hook-form';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faBriefcase,
+  faLocationDot,
+  faSterlingSign,
+} from '@fortawesome/pro-regular-svg-icons';
 import HTMLViewer from '../HTMLViewer/HTMLViewer';
 
 const JobPostPreview = () => {
@@ -11,28 +17,62 @@ const JobPostPreview = () => {
     // keywords,
     location,
     // companyLogo,
-    // dayRate,
+    dayRate,
     // howToApply,
     // applicationEmail,
-    // workMode,
+    workMode,
     // companyTwitter,
     // companyEmail,
     // invoiceAddress,
   } = watch();
 
   return (
-    <div className="bg-gray-100 p-4 rounded-lg editor-preview">
-      <h2 className="text-xl font-bold mb-4">Job Preview</h2>
-      <div className="bg-white p-4 rounded-lg shadow-md">
-        <h3 className="text-lg font-bold">{position}</h3>
-        <p className="text-gray-600 mb-2">{companyName}</p>
-        <p className="text-gray-600 mb-4">{location.address}</p>
-        <div>
-          <HTMLViewer html={jobDescription} />
+    <div className="flex flex-col gap-y-4 bg-gray-100 p-4 rounded-lg editor-preview">
+      <h2 className="text-2xl font-bold">Job Preview</h2>
+      <div className="flex flex-col gap-y-4 bg-white p-4 rounded-lg shadow-md">
+        {position ? <h3 className="text-xl font-bold">{position}</h3> : null}
+        {companyName ? <p className="text-gray-600">{companyName}</p> : null}
+        {location.address ? (
+          <div className="flex items-center gap-x-2">
+            <FontAwesomeIcon
+              icon={faLocationDot}
+              className="text-gray-600"
+              size="lg"
+            />
+
+            <p className="text-gray-600">{location.address}</p>
+          </div>
+        ) : null}
+        <div className="flex gap-x-4">
+          {dayRate[0] ? (
+            <div className="flex items-center gap-x-2">
+              <FontAwesomeIcon
+                icon={faSterlingSign}
+                className="text-gray-600"
+                size="lg"
+              />
+              <p className="text-gray-600">{dayRate} per day</p>
+            </div>
+          ) : null}
+          {workMode ? (
+            <div className="flex items-center gap-x-2">
+              <FontAwesomeIcon
+                icon={faBriefcase}
+                className="text-gray-600"
+                size="lg"
+              />
+              <p className="text-gray-600">
+                {workMode.charAt(0).toUpperCase() + workMode.slice(1)}
+              </p>
+            </div>
+          ) : null}
         </div>
-        <p className="text-gray-700 mb-4">
-          To apply, please send your resume to jobs@acmeinc.com.
-        </p>
+        {jobDescription ? (
+          <div>
+            <h3 className="text-lg font-bold">About the job</h3>
+            <HTMLViewer html={jobDescription} />
+          </div>
+        ) : null}
       </div>
     </div>
   );
