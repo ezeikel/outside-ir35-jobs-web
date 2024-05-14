@@ -14,7 +14,7 @@ const PostJob = () => {
     defaultValues: {
       companyName: '',
       position: '',
-      jobDescription: '',
+      description: '',
       keywords: '',
       location: {
         address: '',
@@ -28,7 +28,7 @@ const PostJob = () => {
       dayRate: [0],
       howToApply: '',
       applicationEmail: '',
-      workMode: '',
+      workMode: undefined,
       companyTwitter: '',
       companyEmail: '',
       invoiceAddress: '',

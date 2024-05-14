@@ -1,11 +1,11 @@
+import { useEffect, useState } from 'react';
 import { useFormContext } from 'react-hook-form';
-import { z } from 'zod';
+import { WorkMode } from '@prisma/client';
 import TipTapEditor from '@/components/TipTapEditor/TipTapEditor';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import cn from '@/utils/cn';
-import { useEffect, useState } from 'react';
 import {
   FormControl,
   FormField,
@@ -14,7 +14,9 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { PostJobFormSchema } from '@/types';
+import { PostJobFormValues } from '@/types';
+import { Textarea } from '@/components/ui/textarea';
+import { createJobPost } from '@/app/actions';
 import DayRateInputs from './DayRateInputs';
 import LocationInput from './LocationInput';
 
@@ -22,21 +24,26 @@ type PostJobFormProps = {
   className?: string;
 };
 
-type FormValues = z.infer<typeof PostJobFormSchema>;
-
 const PostJobForm = ({ className }: PostJobFormProps) => {
-  const [content, setContent] = useState('');
-  const { control, handleSubmit, setValue } = useFormContext<FormValues>();
+  const [descriptionContent, setDescriptionContent] = useState('');
+  const [howToApplyContent, setHowToApplyContent] = useState('');
+  const { control, handleSubmit, setValue } =
+    useFormContext<PostJobFormValues>();
 
-  const onSubmit = (values: FormValues) => {
-    // TODO: handle form submission
+  const onSubmit = async (values: PostJobFormValues) => {
     // eslint-disable-next-line no-console
-    console.log(values);
+    console.log('PostJobForm onSubmit()', values);
+
+    await createJobPost(values);
   };
 
   useEffect(() => {
-    setValue('jobDescription', content);
-  }, [content]);
+    setValue('description', descriptionContent);
+  }, [descriptionContent]);
+
+  useEffect(() => {
+    setValue('howToApply', howToApplyContent);
+  }, [howToApplyContent]);
 
   return (
     <form
@@ -74,14 +81,14 @@ const PostJobForm = ({ className }: PostJobFormProps) => {
         )}
       />
       <div>
-        <Label className="block mb-1" htmlFor="jobDescription">
+        <Label className="block mb-1" htmlFor="description">
           Job Description
         </Label>
         <TipTapEditor
-          content={content}
+          content={descriptionContent}
           placeholder="Enter the job description"
           onChange={(c: string) => {
-            setContent(c);
+            setDescriptionContent(c);
           }}
         />
       </div>
@@ -123,33 +130,30 @@ const PostJobForm = ({ className }: PostJobFormProps) => {
         )}
       />
       <DayRateInputs />
-      <FormField
-        control={control}
-        name="howToApply"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="block mb-1">How to Apply</FormLabel>
-            <FormControl>
-              <Input
-                placeholder="Enter instructions on how to apply for this job"
-                // eslint-disable-next-line react/jsx-props-no-spreading
-                {...field}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      <div>
+        <Label className="block mb-1" htmlFor="howToApply">
+          How to Apply
+        </Label>
+        <TipTapEditor
+          content={howToApplyContent}
+          placeholder="Enter instructions on how to apply for this job"
+          onChange={(c: string) => {
+            setHowToApplyContent(c);
+          }}
+        />
+      </div>
       <FormField
         control={control}
         name="applicationEmail"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className="block mb-1">Application Email</FormLabel>
+            <FormLabel className="block mb-1">
+              Email to get job applications
+            </FormLabel>
             <FormControl>
               <Input
                 type="email"
-                placeholder="Enter instructions on how to apply for this job"
+                placeholder="Apply email address"
                 // eslint-disable-next-line react/jsx-props-no-spreading
                 {...field}
               />
@@ -172,19 +176,19 @@ const PostJobForm = ({ className }: PostJobFormProps) => {
               >
                 <FormItem className="flex items-center gap-2 space-y-0">
                   <FormControl>
-                    <RadioGroupItem value="remote" />
+                    <RadioGroupItem value={WorkMode.REMOTE} />
                   </FormControl>
                   <FormLabel className="mt-0">Remote</FormLabel>
                 </FormItem>
                 <FormItem className="flex items-center gap-2 space-y-0">
                   <FormControl>
-                    <RadioGroupItem value="hybrid" />
+                    <RadioGroupItem value={WorkMode.HYBRID} />
                   </FormControl>
                   <FormLabel>Hybrid</FormLabel>
                 </FormItem>
                 <FormItem className="flex items-center gap-2 space-y-0">
                   <FormControl>
-                    <RadioGroupItem value="on-site" />
+                    <RadioGroupItem value={WorkMode.ON_SITE} />
                   </FormControl>
                   <FormLabel>On-site</FormLabel>
                 </FormItem>
@@ -218,7 +222,9 @@ const PostJobForm = ({ className }: PostJobFormProps) => {
         name="companyEmail"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className="block mb-1">Company Email</FormLabel>
+            <FormLabel className="block mb-1">
+              Company Email (stays private, for invoices)
+            </FormLabel>
             <FormControl>
               <Input
                 type="email"
@@ -238,7 +244,7 @@ const PostJobForm = ({ className }: PostJobFormProps) => {
           <FormItem>
             <FormLabel className="block mb-1">Invoice Address</FormLabel>
             <FormControl>
-              <Input
+              <Textarea
                 placeholder="Enter your invoice address"
                 // eslint-disable-next-line react/jsx-props-no-spreading
                 {...field}

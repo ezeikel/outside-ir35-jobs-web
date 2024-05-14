@@ -1,10 +1,11 @@
 /* eslint-disable import/prefer-default-export */
+import { WorkMode } from '@prisma/client';
 import { z } from 'zod';
 
 export const PostJobFormSchema = z.object({
   companyName: z.string(),
   position: z.string(),
-  jobDescription: z.string(),
+  description: z.string(),
   keywords: z.string(),
   location: z.object({
     address: z.string(),
@@ -21,8 +22,10 @@ export const PostJobFormSchema = z.object({
   ]),
   howToApply: z.string(),
   applicationEmail: z.string(),
-  workMode: z.string(),
+  workMode: z.nativeEnum(WorkMode),
   companyTwitter: z.string(),
   companyEmail: z.string(),
   invoiceAddress: z.string(),
 });
+
+export type PostJobFormValues = z.infer<typeof PostJobFormSchema>;

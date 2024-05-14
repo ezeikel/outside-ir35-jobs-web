@@ -1,6 +1,6 @@
 import type { Viewport } from 'next';
-import JobPosts from '@/components/JobPosts/JobPosts';
 import PageWrap from '@/components/PageWrap/PageWrap';
+import JobPost from '@/components/JobPost/JobPost';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -10,10 +10,16 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
-const JobsPage = () => (
-  <PageWrap className="gap-y-16">
-    <JobPosts />
+type JobPostPageProps = {
+  params: {
+    id: string;
+  };
+};
+
+const JobPostPage = ({ params: { id } }: JobPostPageProps) => (
+  <PageWrap>
+    <JobPost id={id} />
   </PageWrap>
 );
 
-export default JobsPage;
+export default JobPostPage;

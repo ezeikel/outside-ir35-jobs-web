@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useFormContext } from 'react-hook-form';
-import { z } from 'zod';
 import PlacesAutocomplete, {
   geocodeByAddress,
   getLatLng,
@@ -13,16 +12,14 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { PostJobFormSchema } from '@/types';
+import { PostJobFormValues } from '@/types';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSpinnerThird } from '@fortawesome/pro-regular-svg-icons';
 import cn from '@/utils/cn';
 import { faGoogle } from '@fortawesome/free-brands-svg-icons';
 
-type FormValues = z.infer<typeof PostJobFormSchema>;
-
 const LocationInput = () => {
-  const { control, setValue } = useFormContext<FormValues>();
+  const { control, setValue } = useFormContext<PostJobFormValues>();
   const [address, setAddress] = useState('');
 
   const handleSelect = async (addr: string, placeId: string) => {

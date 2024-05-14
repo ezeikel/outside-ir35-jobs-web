@@ -32,17 +32,28 @@ enum SubscriptionType {
   PRO
 }
 
+enum WorkMode {
+  REMOTE
+  HYBRID
+  ON_SITE
+}
+
 model Job {
   id                 String        @id @default(cuid())
-  title              String
-  keywords           String[]
+  companyName        String
+  position           String
   description        String
+  keywords           String[]
+  location           Json
+  companyLogo        String?
   dayRate            Int[] // e.g. [100, 200] for a range or [100] for a fixed rate
-  isRemote           Boolean
+  howToApply         String
+  applicationEmail   String
+  workMode           WorkMode
   contractLength     Int? //  in days e.g. 30, 60, 90
   verifiedIR35Status Boolean       @default(false)
-  postedBy           User          @relation(fields: [userId], references: [id])
-  userId             String
+  // postedBy           User          @relation(fields: [userId], references: [id])
+  // userId             String
   isActive           Boolean       @default(true)
   duration           Int           @default(30) // job post duration in days
   applications       Application[]
@@ -64,7 +75,7 @@ model User {
   subscription     Subscription?
   credits          Int              @default(0)
   applications     Application[]
-  jobs             Job[]
+  // jobs             Job[]
   limitedCompanies LimitedCompany[]
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
