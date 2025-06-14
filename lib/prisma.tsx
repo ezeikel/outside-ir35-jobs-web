@@ -16,7 +16,7 @@ import { Pool } from '@neondatabase/serverless';
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
-const neon = new Pool({ connectionString: process.env.POSTGRES_PRISMA_URL });
+const neon = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaNeon(neon);
 
 const prisma =
