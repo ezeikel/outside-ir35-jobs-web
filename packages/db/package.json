@@ -1,0 +1,29 @@
+{
+  "name": "@outside-ir35/db",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:status": "prisma migrate status",
+    "db:studio": "prisma studio",
+    "db:format": "prisma format"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.9.1",
+    "@prisma/adapter-neon": "^5.13.0",
+    "@prisma/client": "^5.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "dotenv": "^16.4.5",
+    "prisma": "^5.13.0",
+    "typescript": "^5"
+  }
+}

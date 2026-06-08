@@ -1,7 +1,6 @@
 import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
-import { Role } from '@prisma/client';
-import prisma from './lib/prisma';
+import { Role, db as prisma } from '@outside-ir35/db';
 
 export const {
   handlers: { GET, POST },

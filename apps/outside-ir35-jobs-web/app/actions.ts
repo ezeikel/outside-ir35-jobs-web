@@ -2,7 +2,7 @@
 
 'use server';
 
-import prisma from '@/lib/prisma';
+import { db as prisma } from '@outside-ir35/db';
 import { PostJobFormValues } from '@/types';
 import { revalidatePath } from 'next/cache';
 

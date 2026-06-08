@@ -1,0 +1,62 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build", "db:generate"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "env": [
+        "ANTHROPIC_API_KEY",
+        "AUTH_SECRET",
+        "DATABASE_URL",
+        "DATABASE_URL_UNPOOLED",
+        "FONTAWESOME_NPM_AUTH_TOKEN",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "GOOGLE_MAPS_API_KEY",
+        "NEXT_AUTH_SECRET",
+        "NEXTAUTH_URL",
+        "PERPLEXITY_API_KEY",
+        "R2_ACCESS_KEY_ID",
+        "R2_BUCKET",
+        "R2_ENDPOINT",
+        "R2_PUBLIC_URL",
+        "R2_SECRET_ACCESS_KEY",
+        "RESEND_API_KEY",
+        "SENTRY_AUTH_TOKEN",
+        "SENTRY_DSN",
+        "SHADOW_DATABASE_URL"
+      ]
+    },
+    "lint": {
+      "dependsOn": ["^build"]
+    },
+    "check-types": {
+      "dependsOn": ["^build"]
+    },
+    "dev": {
+      "dependsOn": ["^build", "db:generate"],
+      "cache": false,
+      "persistent": true
+    },
+    "test": {
+      "dependsOn": ["db:generate", "^build"],
+      "outputs": ["coverage/**"]
+    },
+    "db:generate": {
+      "inputs": ["packages/db/prisma/schema.prisma"],
+      "outputs": ["node_modules/.prisma/client/**", "packages/db/src/generated/**"]
+    },
+    "db:migrate": {
+      "cache": false,
+      "persistent": true
+    },
+    "db:deploy": {
+      "cache": false
+    },
+    "env:pull": {
+      "cache": false
+    }
+  }
+}
