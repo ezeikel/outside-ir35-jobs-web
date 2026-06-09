@@ -2,10 +2,7 @@ import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import { Role, db as prisma } from '@outside-ir35/db';
 
-export const {
-  handlers: { GET, POST },
-  auth,
-} = NextAuth({
+export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID as string,
@@ -49,6 +46,7 @@ export const {
       return session;
     },
   },
-  // TODO: this wasnt in docs but seems to be required
-  secret: process.env.NEXT_AUTH_SECRET,
+  // Auth.js v5 reads AUTH_SECRET by default; keep NEXT_AUTH_SECRET as a fallback
+  // for the existing env var name.
+  secret: process.env.AUTH_SECRET || process.env.NEXT_AUTH_SECRET,
 });
