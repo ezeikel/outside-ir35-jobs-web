@@ -11,15 +11,19 @@ export const viewport: Viewport = {
 };
 
 type JobPostPageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
-const JobPostPage = ({ params: { id } }: JobPostPageProps) => (
-  <PageWrap>
-    <JobPost id={id} />
-  </PageWrap>
-);
+const JobPostPage = async ({ params }: JobPostPageProps) => {
+  const { id } = await params;
+
+  return (
+    <PageWrap>
+      <JobPost id={id} />
+    </PageWrap>
+  );
+};
 
 export default JobPostPage;

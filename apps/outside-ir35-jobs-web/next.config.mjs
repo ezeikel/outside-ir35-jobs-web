@@ -5,9 +5,8 @@ import { withPlausibleProxy } from 'next-plausible';
 const nextConfig = {
   // Transpile the workspace TS packages (shipped as raw source).
   transpilePackages: ['@outside-ir35/db', '@outside-ir35/storage'],
-  experimental: {
-    serverComponentsExternalPackages: ['@react-pdf/renderer'],
-  },
+  // Renamed from experimental.serverComponentsExternalPackages in Next 15.
+  serverExternalPackages: ['@react-pdf/renderer'],
 };
 
 // Only upload source maps to Sentry when an auth token is present (i.e. in

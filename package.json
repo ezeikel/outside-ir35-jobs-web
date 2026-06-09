@@ -37,8 +37,8 @@
   },
   "pnpm": {
     "overrides": {
-      "@types/react": "^18",
-      "@types/react-dom": "^18"
+      "@types/react": "^19.2.0",
+      "@types/react-dom": "^19.2.0"
     }
   }
 }
