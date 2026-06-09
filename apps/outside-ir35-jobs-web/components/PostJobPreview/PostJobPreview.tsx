@@ -1,5 +1,5 @@
 import { useFormContext } from 'react-hook-form';
-import { WorkMode } from '@outside-ir35/db';
+import { WorkMode } from '@outside-ir35/db/types';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faBriefcase,

@@ -1,13 +1,11 @@
 /* eslint-disable no-param-reassign */
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from './generated/prisma/client';
 import { PrismaNeon } from '@prisma/adapter-neon';
-import { Pool } from '@neondatabase/serverless';
+import { neonConfig } from '@neondatabase/serverless';
+import ws from 'ws';
 
-// PrismaClient is attached to the `global` object in development to prevent
-// exhausting the database connection limit during hot-reload.
-// https://pris.ly/d/help/next-js-best-practices
-
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
+// Configure WebSocket for Neon (required in Node.js environments).
+neonConfig.webSocketConstructor = ws;
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -15,11 +13,11 @@ if (!connectionString) {
   throw new Error('DATABASE_URL is not defined');
 }
 
-const pool = new Pool({ connectionString });
-const adapter = new PrismaNeon(pool);
+const adapter = new PrismaNeon({ connectionString });
 
-export const prisma =
-  globalForPrisma.prisma ||
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
+
+const prismaClientSingleton = () =>
   new PrismaClient({
     adapter,
     log:
@@ -27,5 +25,7 @@ export const prisma =
         ? [{ emit: 'event', level: 'query' }]
         : undefined,
   });
+
+export const prisma = globalForPrisma.prisma || prismaClientSingleton();
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;

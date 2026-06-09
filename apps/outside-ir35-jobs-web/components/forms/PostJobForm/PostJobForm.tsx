@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useFormContext } from 'react-hook-form';
-import { WorkMode } from '@outside-ir35/db';
+import { WorkMode } from '@outside-ir35/db/types';
 import TipTapEditor from '@/components/TipTapEditor/TipTapEditor';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
