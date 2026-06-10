@@ -10,11 +10,11 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
-type JobPostPageProps = {
+interface JobPostPageProps {
   params: Promise<{
     id: string;
   }>;
-};
+}
 
 const JobPostPage = async ({ params }: JobPostPageProps) => {
   const { id } = await params;

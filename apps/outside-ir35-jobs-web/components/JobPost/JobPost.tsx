@@ -2,9 +2,9 @@ import { getJob } from '@/app/actions';
 import PageWrap from '@/components/PageWrap/PageWrap';
 import { Button } from '../ui/button';
 
-type JobPostProps = {
+interface JobPostProps {
   id: string;
-};
+}
 
 const JobPost = async ({ id }: JobPostProps) => {
   const job = await getJob(id);

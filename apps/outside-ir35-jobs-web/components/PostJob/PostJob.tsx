@@ -37,7 +37,7 @@ const PostJob = () => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      {/* eslint-disable-next-line react/jsx-props-no-spreading */}
+      {}
       <Form {...form}>
         <PostJobForm className="space-y-6" />
         <PostJobPreview />

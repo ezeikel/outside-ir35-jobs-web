@@ -29,7 +29,6 @@ export interface BadgeProps
 
 function Badge({ className, variant, ...props }: BadgeProps) {
   return (
-    // eslint-disable-next-line react/jsx-props-no-spreading
     <div className={cn(badgeVariants({ variant }), className)} {...props} />
   );
 }

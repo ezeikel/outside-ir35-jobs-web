@@ -231,11 +231,11 @@ const MenuBar = () => {
   );
 };
 
-type TipTapEditorProps = {
+interface TipTapEditorProps {
   content: string;
   placeholder?: string;
   onChange: (content: string) => void;
-};
+}
 
 const TipTapEditor = ({
   content,
@@ -265,7 +265,7 @@ const TipTapEditor = ({
           `h${level}`,
           // eslint-disable-next-line react/no-this-in-sfc
           mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
-            class: `${classes[level as Levels]}`,
+            class: classes[level as Levels],
           }),
           0,
         ];

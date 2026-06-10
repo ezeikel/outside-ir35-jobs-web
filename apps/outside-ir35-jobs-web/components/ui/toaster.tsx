@@ -1,5 +1,3 @@
-/* eslint-disable import/prefer-default-export */
-
 'use client';
 
 import {
@@ -19,7 +17,6 @@ export function Toaster() {
     <ToastProvider>
       {toasts.map(function ({ id, title, description, action, ...props }) {
         return (
-          // eslint-disable-next-line react/jsx-props-no-spreading
           <Toast key={id} {...props}>
             <div className="grid gap-1">
               {title && <ToastTitle>{title}</ToastTitle>}

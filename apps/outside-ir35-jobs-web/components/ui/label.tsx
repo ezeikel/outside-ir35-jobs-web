@@ -1,5 +1,3 @@
-/* eslint-disable import/prefer-default-export */
-
 'use client';
 
 import * as React from 'react';
@@ -19,7 +17,6 @@ const Label = React.forwardRef<
   <LabelPrimitive.Root
     ref={ref}
     className={cn(labelVariants(), className)}
-    // eslint-disable-next-line react/jsx-props-no-spreading
     {...props}
   />
 ));

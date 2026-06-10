@@ -67,67 +67,62 @@ const LocationInput = () => {
                 suggestions,
                 getSuggestionItemProps,
                 loading,
-              }) => {
-                return (
-                  <div className="relative flex flex-col gap-y-2">
-                    <Input
-                      // eslint-disable-next-line react/jsx-props-no-spreading
-                      {...getInputProps({
-                        placeholder: 'Enter the job location',
-                      })}
-                      // eslint-disable-next-line react/jsx-props-no-spreading
-                      value={address}
-                    />
-                    <div>
-                      {loading ? (
-                        <FontAwesomeIcon
-                          icon={faSpinnerThird}
-                          size="2x"
-                          className="bg-background-contrast-2 animate-spin self-start"
-                        />
-                      ) : null}
-                      <div className="absolute w-full mt-1 rounded-md bg-white shadow-lg">
-                        <ul
-                          className={cn(
-                            'max-h-60 overflow-auto text-base leading-6 rounded-md ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm',
-                            {
-                              hidden: suggestions.length === 0,
-                            },
-                          )}
-                        >
-                          {suggestions.map((suggestion) => {
-                            const { key, ...props } = getSuggestionItemProps(
-                              suggestion,
-                              {},
-                            );
+              }) => (
+                <div className="relative flex flex-col gap-y-2">
+                  <Input
+                    {...getInputProps({
+                      placeholder: 'Enter the job location',
+                    })}
+                    value={address}
+                  />
+                  <div>
+                    {loading ? (
+                      <FontAwesomeIcon
+                        icon={faSpinnerThird}
+                        size="2x"
+                        className="bg-background-contrast-2 animate-spin self-start"
+                      />
+                    ) : null}
+                    <div className="absolute w-full mt-1 rounded-md bg-white shadow-lg">
+                      <ul
+                        className={cn(
+                          'max-h-60 overflow-auto text-base leading-6 rounded-md ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm',
+                          {
+                            hidden: suggestions.length === 0,
+                          },
+                        )}
+                      >
+                        {suggestions.map((suggestion) => {
+                          const { key, ...props } = getSuggestionItemProps(
+                            suggestion,
+                            {},
+                          );
 
-                            return (
-                              <li
-                                key={key}
-                                className="cursor-default select-none relative py-2 pl-3 pr-9 hover:bg-gray-100"
-                                // eslint-disable-next-line react/jsx-props-no-spreading
-                                {...props}
-                              >
-                                {suggestion.description}
-                              </li>
-                            );
-                          })}
-                          <li className="hidden gap-x-2 items-center text-[10px] bg-white p-2 [&:not(:only-child)]:flex pointer-events-none">
-                            <section>
-                              Places by <strong>Google</strong>
-                            </section>
-                            <FontAwesomeIcon
-                              icon={faGoogle}
-                              className="text-[#DB4437]"
-                              size="lg"
-                            />
-                          </li>
-                        </ul>
-                      </div>
+                          return (
+                            <li
+                              key={key}
+                              className="cursor-default select-none relative py-2 pl-3 pr-9 hover:bg-gray-100"
+                              {...props}
+                            >
+                              {suggestion.description}
+                            </li>
+                          );
+                        })}
+                        <li className="hidden gap-x-2 items-center text-[10px] bg-white p-2 [&:not(:only-child)]:flex pointer-events-none">
+                          <section>
+                            Places by <strong>Google</strong>
+                          </section>
+                          <FontAwesomeIcon
+                            icon={faGoogle}
+                            className="text-[#DB4437]"
+                            size="lg"
+                          />
+                        </li>
+                      </ul>
                     </div>
                   </div>
-                );
-              }}
+                </div>
+              )}
             </PlacesAutocomplete>
           </FormControl>
           <FormMessage />

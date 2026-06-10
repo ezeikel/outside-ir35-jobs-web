@@ -14,31 +14,29 @@ import { Label } from '@/components/ui/label';
 
 const Form = FormProvider;
 
-type FormFieldContextValue<
+interface FormFieldContextValue<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
-> = {
+> {
   name: TName;
-};
+}
 
 const FormFieldContext = React.createContext<FormFieldContextValue>(
   {} as FormFieldContextValue,
 );
 
-const FormField = <
+function FormField<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
->({
-  ...props
-}: ControllerProps<TFieldValues, TName>) => {
+>({ ...props }: ControllerProps<TFieldValues, TName>) {
   return (
     // eslint-disable-next-line react/jsx-no-constructed-context-values
     <FormFieldContext.Provider value={{ name: props.name }}>
-      {/* eslint-disable-next-line react/jsx-props-no-spreading */}
+      {}
       <Controller {...props} />
     </FormFieldContext.Provider>
   );
-};
+}
 
 const useFormField = () => {
   const fieldContext = React.useContext(FormFieldContext);
@@ -64,9 +62,9 @@ const useFormField = () => {
   };
 };
 
-type FormItemContextValue = {
+interface FormItemContextValue {
   id: string;
-};
+}
 
 const FormItemContext = React.createContext<FormItemContextValue>(
   {} as FormItemContextValue,
@@ -81,7 +79,7 @@ const FormItem = React.forwardRef<
   return (
     // eslint-disable-next-line react/jsx-no-constructed-context-values
     <FormItemContext.Provider value={{ id }}>
-      {/* eslint-disable-next-line react/jsx-props-no-spreading */}
+      {}
       <div ref={ref} className={cn('space-y-2', className)} {...props} />
     </FormItemContext.Provider>
   );
@@ -99,7 +97,6 @@ const FormLabel = React.forwardRef<
       ref={ref}
       className={cn(error && 'text-destructive', className)}
       htmlFor={formItemId}
-      // eslint-disable-next-line react/jsx-props-no-spreading
       {...props}
     />
   );
@@ -118,12 +115,9 @@ const FormControl = React.forwardRef<
       ref={ref}
       id={formItemId}
       aria-describedby={
-        !error
-          ? `${formDescriptionId}`
-          : `${formDescriptionId} ${formMessageId}`
+        !error ? formDescriptionId : `${formDescriptionId} ${formMessageId}`
       }
       aria-invalid={!!error}
-      // eslint-disable-next-line react/jsx-props-no-spreading
       {...props}
     />
   );
@@ -141,7 +135,6 @@ const FormDescription = React.forwardRef<
       ref={ref}
       id={formDescriptionId}
       className={cn('text-sm text-muted-foreground', className)}
-      // eslint-disable-next-line react/jsx-props-no-spreading
       {...props}
     />
   );
@@ -164,7 +157,6 @@ const FormMessage = React.forwardRef<
       ref={ref}
       id={formMessageId}
       className={cn('text-sm font-medium text-destructive', className)}
-      // eslint-disable-next-line react/jsx-props-no-spreading
       {...props}
     >
       {body}

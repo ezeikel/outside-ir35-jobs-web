@@ -46,7 +46,6 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
-        // eslint-disable-next-line react/jsx-props-no-spreading
         {...props}
       />
     );

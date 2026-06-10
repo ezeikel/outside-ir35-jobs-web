@@ -4,9 +4,9 @@ import { MenuIcon } from 'lucide-react';
 import { Button } from '../ui/button';
 import HeaderLogo from '../HeaderLogo/HeaderLogo';
 
-type HeaderProps = {
+interface HeaderProps {
   className?: string;
-};
+}
 
 const Header = ({ className }: HeaderProps) => (
   <header

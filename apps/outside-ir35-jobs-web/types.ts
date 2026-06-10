@@ -1,4 +1,3 @@
-/* eslint-disable import/prefer-default-export */
 import { WorkMode } from '@outside-ir35/db/types';
 import { z } from 'zod';
 

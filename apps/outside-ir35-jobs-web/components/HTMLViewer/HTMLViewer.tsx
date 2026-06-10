@@ -1,8 +1,8 @@
 import DOMPurify from 'isomorphic-dompurify';
 
-type HTMLViewerProps = {
+interface HTMLViewerProps {
   html: string;
-};
+}
 
 const HTMLViewer = ({ html }: HTMLViewerProps) => {
   const safeHtml = DOMPurify.sanitize(html);

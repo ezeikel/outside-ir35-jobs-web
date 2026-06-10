@@ -1,5 +1,3 @@
-/* eslint-disable import/prefer-default-export */
-
 'use server';
 
 import { db as prisma } from '@outside-ir35/db';
@@ -34,12 +32,9 @@ export const createJobPost = async ({
   return job;
 };
 
-export const getJobs = async () => {
-  return prisma.job.findMany();
-};
+export const getJobs = async () => prisma.job.findMany();
 
-export const getJob = async (id: string) => {
-  return prisma.job.findUnique({
+export const getJob = async (id: string) =>
+  prisma.job.findUnique({
     where: { id },
   });
-};

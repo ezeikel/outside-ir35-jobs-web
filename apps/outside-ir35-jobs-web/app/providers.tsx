@@ -1,7 +1,5 @@
 'use client';
 
-const Providers = ({ children }: { children: React.ReactNode }) => {
-  return children;
-};
+const Providers = ({ children }: { children: React.ReactNode }) => children;
 
 export default Providers;

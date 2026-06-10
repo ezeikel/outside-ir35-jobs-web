@@ -1,9 +1,9 @@
 import cn from '@/utils/cn';
 
-type PageWrapProps = {
+interface PageWrapProps {
   children: React.ReactNode;
   className?: string;
-};
+}
 
 const PageWrap = ({ children, className }: PageWrapProps) => (
   <div

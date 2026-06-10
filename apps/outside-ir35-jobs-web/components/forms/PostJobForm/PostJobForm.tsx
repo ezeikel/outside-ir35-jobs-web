@@ -20,9 +20,9 @@ import { createJobPost } from '@/app/actions';
 import DayRateInputs from './DayRateInputs';
 import LocationInput from './LocationInput';
 
-type PostJobFormProps = {
+interface PostJobFormProps {
   className?: string;
-};
+}
 
 const PostJobForm = ({ className }: PostJobFormProps) => {
   const [descriptionContent, setDescriptionContent] = useState('');
@@ -39,11 +39,11 @@ const PostJobForm = ({ className }: PostJobFormProps) => {
 
   useEffect(() => {
     setValue('description', descriptionContent);
-  }, [descriptionContent]);
+  }, [descriptionContent, setValue]);
 
   useEffect(() => {
     setValue('howToApply', howToApplyContent);
-  }, [howToApplyContent]);
+  }, [howToApplyContent, setValue]);
 
   return (
     <form
@@ -59,7 +59,7 @@ const PostJobForm = ({ className }: PostJobFormProps) => {
           <FormItem>
             <FormLabel className="block mb-1">Company Name</FormLabel>
             <FormControl>
-              {/* eslint-disable-next-line react/jsx-props-no-spreading */}
+              {}
               <Input placeholder="Enter your company name" {...field} />
             </FormControl>
             <FormMessage />
@@ -73,7 +73,7 @@ const PostJobForm = ({ className }: PostJobFormProps) => {
           <FormItem>
             <FormLabel className="block mb-1">Position</FormLabel>
             <FormControl>
-              {/* eslint-disable-next-line react/jsx-props-no-spreading */}
+              {}
               <Input placeholder="Enter the job position" {...field} />
             </FormControl>
             <FormMessage />
@@ -101,7 +101,6 @@ const PostJobForm = ({ className }: PostJobFormProps) => {
             <FormControl>
               <Input
                 placeholder="Enter relevant keywords (e.g. React, Node.js)"
-                // eslint-disable-next-line react/jsx-props-no-spreading
                 {...field}
               />
             </FormControl>
@@ -121,7 +120,6 @@ const PostJobForm = ({ className }: PostJobFormProps) => {
                 accept="image/*"
                 placeholder="Upload your company logo"
                 type="file"
-                // eslint-disable-next-line react/jsx-props-no-spreading
                 {...field}
               />
             </FormControl>
@@ -154,7 +152,6 @@ const PostJobForm = ({ className }: PostJobFormProps) => {
               <Input
                 type="email"
                 placeholder="Apply email address"
-                // eslint-disable-next-line react/jsx-props-no-spreading
                 {...field}
               />
             </FormControl>
@@ -209,7 +206,6 @@ const PostJobForm = ({ className }: PostJobFormProps) => {
             <FormControl>
               <Input
                 placeholder="Enter your company's Twitter handle"
-                // eslint-disable-next-line react/jsx-props-no-spreading
                 {...field}
               />
             </FormControl>
@@ -229,7 +225,6 @@ const PostJobForm = ({ className }: PostJobFormProps) => {
               <Input
                 type="email"
                 placeholder="Enter your company email"
-                // eslint-disable-next-line react/jsx-props-no-spreading
                 {...field}
               />
             </FormControl>
@@ -244,11 +239,7 @@ const PostJobForm = ({ className }: PostJobFormProps) => {
           <FormItem>
             <FormLabel className="block mb-1">Invoice Address</FormLabel>
             <FormControl>
-              <Textarea
-                placeholder="Enter your invoice address"
-                // eslint-disable-next-line react/jsx-props-no-spreading
-                {...field}
-              />
+              <Textarea placeholder="Enter your invoice address" {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>

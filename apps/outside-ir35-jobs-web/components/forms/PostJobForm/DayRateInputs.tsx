@@ -47,13 +47,13 @@ const DayRateInputs = () => {
     } else if (!dayRateMin && dayRateMax) {
       setValue('dayRate', [parseFloat(dayRateMax)]);
     }
-  }, [dayRateSingle, dayRateMin, dayRateMax]);
+  }, [dayRateSingle, dayRateMin, dayRateMax, setValue]);
 
   useEffect(() => {
     if (!dayRateSingle && !dayRateMin && !dayRateMax) {
       setValue('dayRate', [0]);
     }
-  }, [dayRateSingle, dayRateMin, dayRateMax]);
+  }, [dayRateSingle, dayRateMin, dayRateMax, setValue]);
 
   return (
     <FormField

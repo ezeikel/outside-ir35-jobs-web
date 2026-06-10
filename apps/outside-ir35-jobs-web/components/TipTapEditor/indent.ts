@@ -3,11 +3,11 @@
 import { Command, Node } from '@tiptap/core';
 import { AllSelection, TextSelection, Transaction } from '@tiptap/pm/state';
 
-export type IndentOptions = {
+export interface IndentOptions {
   types: string[];
   minLevel: number;
   maxLevel: number;
-};
+}
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -35,11 +35,10 @@ export const Indent = Node.create({
         types: this.options.types,
         attributes: {
           indent: {
-            renderHTML: (attributes) => {
-              return attributes?.indent > this.options.minLevel
+            renderHTML: (attributes) =>
+              attributes?.indent > this.options.minLevel
                 ? { 'data-indent': attributes.indent }
-                : null;
-            },
+                : null,
             parseHTML: (element) => {
               const level = Number(element.getAttribute('data-indent'));
               return level && level > this.options.minLevel ? level : null;
@@ -129,12 +128,8 @@ export const Indent = Node.create({
 
   addKeyboardShortcuts() {
     return {
-      Tab: () => {
-        return this.editor.commands.indent();
-      },
-      'Shift-Tab': () => {
-        return this.editor.commands.outdent();
-      },
+      Tab: () => this.editor.commands.indent(),
+      'Shift-Tab': () => this.editor.commands.outdent(),
     };
   },
 });

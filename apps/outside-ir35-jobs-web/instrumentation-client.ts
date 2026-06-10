@@ -19,5 +19,5 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0,
 });
 
-// eslint-disable-next-line import/prefer-default-export
+// eslint-disable-next-line import-x/prefer-default-export
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
