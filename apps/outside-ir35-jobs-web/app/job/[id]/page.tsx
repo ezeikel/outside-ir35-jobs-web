@@ -1,6 +1,6 @@
 import type { Viewport } from 'next';
-import PageWrap from '@/components/PageWrap/PageWrap';
 import JobPost from '@/components/JobPost/JobPost';
+import PageWrap from '@/components/PageWrap/PageWrap';
 
 export const viewport: Viewport = {
   width: 'device-width',

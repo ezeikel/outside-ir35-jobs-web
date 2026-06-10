@@ -1,8 +1,8 @@
+import { MapPinIcon } from 'lucide-react';
 import type { Viewport } from 'next';
 import PageWrap from '@/components/PageWrap/PageWrap';
 import TakeHomeCalculator from '@/components/TakeHomeCalculator/TakeHomeCalculator';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   Card,
   CardContent,
@@ -11,8 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { DUMMY_JOBS } from '@/constants';
-import { MapPinIcon } from 'lucide-react';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -27,10 +27,10 @@ const HomePage = () => (
     <div className="relative w-screen">
       <video
         className="size-full object-cover"
-        autoPlay
-        loop
-        muted
-        playsInline
+        autoPlay={true}
+        loop={true}
+        muted={true}
+        playsInline={true}
         style={{
           minHeight: 'calc(100vh - 68px)',
         }}

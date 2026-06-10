@@ -1,6 +1,3 @@
-import { useFormContext } from 'react-hook-form';
-import { WorkMode } from '@outside-ir35/db/types';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faBriefcase,
   faBuilding,
@@ -9,6 +6,9 @@ import {
   faSterlingSign,
   faSync,
 } from '@fortawesome/pro-regular-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { WorkMode } from '@outside-ir35/db/types';
+import { useFormContext } from 'react-hook-form';
 import HTMLViewer from '../HTMLViewer/HTMLViewer';
 
 const JobPostPreview = () => {

@@ -1,8 +1,8 @@
-import cn from '@/utils/cn';
-import Link from 'next/link';
 import { MenuIcon } from 'lucide-react';
-import { Button } from '../ui/button';
+import Link from 'next/link';
+import cn from '@/utils/cn';
 import HeaderLogo from '../HeaderLogo/HeaderLogo';
+import { Button } from '../ui/button';
 
 interface HeaderProps {
   className?: string;

@@ -1,6 +1,6 @@
+import { db as prisma, Role } from '@outside-ir35/db';
 import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
-import { Role, db as prisma } from '@outside-ir35/db';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [

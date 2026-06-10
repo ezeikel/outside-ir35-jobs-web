@@ -1,11 +1,11 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { PostJobFormSchema } from '@/types';
-import PostJobPreview from '../PostJobPreview/PostJobPreview';
 import PostJobForm from '../forms/PostJobForm/PostJobForm';
+import PostJobPreview from '../PostJobPreview/PostJobPreview';
 import { Form } from '../ui/form';
 
 const PostJob = () => {

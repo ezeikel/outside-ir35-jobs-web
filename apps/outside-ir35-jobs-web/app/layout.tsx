@@ -1,14 +1,14 @@
-import type { Metadata } from 'next';
-import Script from 'next/script';
-import { Analytics } from '@vercel/analytics/react';
-import { Open_Sans, Montserrat } from 'next/font/google';
 import { config } from '@fortawesome/fontawesome-svg-core';
+import { Analytics } from '@vercel/analytics/react';
+import type { Metadata } from 'next';
+import { Montserrat, Open_Sans } from 'next/font/google';
+import Script from 'next/script';
 import PlausibleProvider from 'next-plausible';
 import { Toaster } from '@/components/ui/toaster';
 import '@fortawesome/fontawesome-svg-core/styles.css';
-import cn from '@/utils/cn';
 import Header from '@/components/Header/Header';
 import LayoutWrap from '@/components/LayoutWrap/LayoutWrap';
+import cn from '@/utils/cn';
 import Providers from './providers';
 import '@/global.css';
 

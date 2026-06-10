@@ -9,7 +9,7 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "check-types": "turbo run check-types",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "format": "biome format --write .",
     "prepare": "husky",
     "postinstall": "prisma generate --schema=packages/db/prisma/schema.prisma"
   },
@@ -17,17 +17,17 @@
     "apps/outside-ir35-jobs-web/**/*.{ts,tsx}": [
       "cd apps/outside-ir35-jobs-web && tsc --noEmit"
     ],
-    "**/*.+(js|jsx|json|ts|tsx|html|md)": [
-      "prettier --ignore-path .gitignore --write"
+    "**/*.{js,jsx,ts,tsx,json,jsonc,css}": [
+      "biome check --write --no-errors-on-unmatched"
     ],
     "**/prisma/schema.prisma": [
       "pnpm exec prisma format --schema"
     ]
   },
   "devDependencies": {
+    "@biomejs/biome": "2.4.16",
     "husky": "^9.0.11",
     "lint-staged": "^15.2.2",
-    "prettier": "^3.2.5",
     "turbo": "^2.5.6",
     "typescript": "~6.0.3"
   },
@@ -39,13 +39,7 @@
     "overrides": {
       "@types/react": "^19.2.0",
       "@types/react-dom": "^19.2.0",
-      "next": "16.1.0",
-      "eslint": "9.34.0",
-      "@typescript-eslint/eslint-plugin": "8.49.0",
-      "@typescript-eslint/parser": "8.49.0",
-      "@typescript-eslint/type-utils": "8.49.0",
-      "@typescript-eslint/utils": "8.49.0",
-      "@typescript-eslint/typescript-estree": "8.49.0"
+      "next": "16.1.0"
     }
   }
 }

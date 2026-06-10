@@ -1,3 +1,6 @@
+import { faGoogle } from '@fortawesome/free-brands-svg-icons';
+import { faSpinnerThird } from '@fortawesome/pro-regular-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useState } from 'react';
 import { useFormContext } from 'react-hook-form';
 import PlacesAutocomplete, {
@@ -13,10 +16,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { PostJobFormValues } from '@/types';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSpinnerThird } from '@fortawesome/pro-regular-svg-icons';
 import cn from '@/utils/cn';
-import { faGoogle } from '@fortawesome/free-brands-svg-icons';
 
 const LocationInput = () => {
   const { control, setValue } = useFormContext<PostJobFormValues>();

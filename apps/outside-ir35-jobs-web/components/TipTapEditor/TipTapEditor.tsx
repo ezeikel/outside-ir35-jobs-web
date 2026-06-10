@@ -1,13 +1,5 @@
 'use client';
 
-import { useCallback } from 'react';
-import { mergeAttributes } from '@tiptap/core';
-import { EditorProvider, useCurrentEditor } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Placeholder from '@tiptap/extension-placeholder';
-import BaseHeading from '@tiptap/extension-heading';
-import Link from '@tiptap/extension-link';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { IconProp } from '@fortawesome/fontawesome-svg-core';
 import {
   faBold,
@@ -22,6 +14,14 @@ import {
   faRotateLeft,
   faRotateRight,
 } from '@fortawesome/pro-regular-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { mergeAttributes } from '@tiptap/core';
+import BaseHeading from '@tiptap/extension-heading';
+import Link from '@tiptap/extension-link';
+import Placeholder from '@tiptap/extension-placeholder';
+import { EditorProvider, useCurrentEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import { useCallback } from 'react';
 import cn from '@/utils/cn';
 import { Button } from '../ui/button';
 import { Indent } from './indent';

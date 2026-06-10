@@ -1,12 +1,12 @@
-@import 'tailwindcss';
-@plugin 'tailwindcss-animate';
+@import "tailwindcss";
+@plugin "tailwindcss-animate";
 
 /* Dark mode driven by a `.dark` class (was darkMode: ['class'] in v3). */
 @custom-variant dark (&:is(.dark *));
 
 /* Content sources (replaces the v3 `content` array). */
-@source './app';
-@source './components';
+@source "./app";
+@source "./components";
 
 @theme inline {
   /* Fonts (CSS vars injected by next/font). */
@@ -50,7 +50,7 @@
   --container-center: true;
 
   /* Background images. */
-  --background-image-hero: url('/images/pexels-vlada-karpovich-4939643.jpg');
+  --background-image-hero: url("/images/pexels-vlada-karpovich-4939643.jpg");
 
   /* Accordion animations (radix). */
   --animate-accordion-down: accordion-down 0.2s ease-out;
@@ -166,35 +166,35 @@
   @apply pl-4;
 }
 
-.tiptap [data-indent='1'] {
+.tiptap [data-indent="1"] {
   @apply pl-4;
 }
 
-.tiptap [data-indent='2'] {
+.tiptap [data-indent="2"] {
   @apply pl-8;
 }
 
-.tiptap [data-indent='3'] {
+.tiptap [data-indent="3"] {
   @apply pl-12;
 }
 
-.tiptap [data-indent='4'] {
+.tiptap [data-indent="4"] {
   @apply pl-16;
 }
 
-.tiptap [data-indent='5'] {
+.tiptap [data-indent="5"] {
   @apply pl-20;
 }
 
-.tiptap [data-indent='6'] {
+.tiptap [data-indent="6"] {
   @apply pl-24;
 }
 
-.tiptap [data-indent='7'] {
+.tiptap [data-indent="7"] {
   @apply pl-28;
 }
 
-.tiptap [data-indent='8'] {
+.tiptap [data-indent="8"] {
   @apply pl-32;
 }
 

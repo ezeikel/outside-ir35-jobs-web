@@ -1,11 +1,9 @@
+import { WorkMode } from '@outside-ir35/db/types';
 import { useEffect, useState } from 'react';
 import { useFormContext } from 'react-hook-form';
-import { WorkMode } from '@outside-ir35/db/types';
+import { createJobPost } from '@/app/actions';
 import TipTapEditor from '@/components/TipTapEditor/TipTapEditor';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import cn from '@/utils/cn';
 import {
   FormControl,
   FormField,
@@ -13,10 +11,12 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { PostJobFormValues } from '@/types';
 import { Textarea } from '@/components/ui/textarea';
-import { createJobPost } from '@/app/actions';
+import { PostJobFormValues } from '@/types';
+import cn from '@/utils/cn';
 import DayRateInputs from './DayRateInputs';
 import LocationInput from './LocationInput';
 
@@ -31,9 +31,6 @@ const PostJobForm = ({ className }: PostJobFormProps) => {
     useFormContext<PostJobFormValues>();
 
   const onSubmit = async (values: PostJobFormValues) => {
-    // eslint-disable-next-line no-console
-    console.log('PostJobForm onSubmit()', values);
-
     await createJobPost(values);
   };
 

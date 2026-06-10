@@ -1,5 +1,6 @@
 import { getJobs } from '@/app/actions';
 import PageWrap from '@/components/PageWrap/PageWrap';
+import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import {
   Card,
@@ -9,8 +10,8 @@ import {
   CardHeader,
   CardTitle,
 } from '../ui/card';
-import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
+import { Label } from '../ui/label';
 import {
   Select,
   SelectContent,
@@ -18,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select';
-import { Label } from '../ui/label';
 
 const JobPosts = async () => {
   const jobPosts = await getJobs();

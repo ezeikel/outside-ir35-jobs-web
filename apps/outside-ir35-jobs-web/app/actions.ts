@@ -1,8 +1,8 @@
 'use server';
 
 import { db as prisma } from '@outside-ir35/db';
-import { PostJobFormValues } from '@/types';
 import { revalidatePath } from 'next/cache';
+import { PostJobFormValues } from '@/types';
 
 export const createJobPost = async ({
   position,
