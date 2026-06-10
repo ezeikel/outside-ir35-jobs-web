@@ -46,7 +46,7 @@
     },
     "db:generate": {
       "inputs": ["packages/db/prisma/schema.prisma"],
-      "outputs": ["node_modules/.prisma/client/**", "packages/db/src/generated/**"]
+      "outputs": ["src/generated/**"]
     },
     "db:migrate": {
       "cache": false,
