@@ -4,7 +4,7 @@ import { withPlausibleProxy } from 'next-plausible';
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Transpile the workspace TS packages (shipped as raw source).
-  transpilePackages: ['@outside-ir35/db', '@outside-ir35/storage'],
+  transpilePackages: ['@outside-ir35-jobs/db', '@outside-ir35-jobs/storage'],
   // Renamed from experimental.serverComponentsExternalPackages in Next 15.
   serverExternalPackages: ['@react-pdf/renderer'],
 };

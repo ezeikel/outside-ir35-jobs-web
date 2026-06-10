@@ -27,7 +27,7 @@ mirroring the conventions of the sister project `chunky-crayon`, and bring
 
 ## Target (chunky-crayon conventions)
 
-- Scope **`@outside-ir35/*`** (cf. `@one-colored-pixel/*`).
+- Scope **`@outside-ir35-jobs/*`** (cf. `@one-colored-pixel/*`).
 - `pnpm-workspace.yaml` → `apps/*`, `packages/*`.
 - `turbo.json` with `build`/`dev`/`lint`/`test`/`db:generate` tasks + a **strict
   `env` allowlist** (turbo fails builds for env vars not listed — port the
@@ -106,7 +106,7 @@ There are no migrations and the DB is live. Running `migrate dev` now could
 ### Steps 4–5 — Rewire imports + add storage
 
 - Repoint `WorkMode`/enum + `prisma` imports across the web app to
-  `@outside-ir35/db`.
+  `@outside-ir35-jobs/db`.
 - Add **`packages/storage`** (R2 via `@aws-sdk/client-s3`); **drop
   `@vercel/blob` and `@vercel/postgres`**.
 

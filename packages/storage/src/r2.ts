@@ -9,12 +9,12 @@
  */
 
 import {
-  S3Client,
-  PutObjectCommand,
   DeleteObjectCommand,
-  ListObjectsV2Command,
   HeadObjectCommand,
-} from "@aws-sdk/client-s3";
+  ListObjectsV2Command,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 
 // Lazy initialization to avoid errors when env vars aren't set
 let r2Client: S3Client | null = null;
@@ -27,12 +27,12 @@ function getR2Client(): S3Client {
 
     if (!endpoint || !accessKeyId || !secretAccessKey) {
       throw new Error(
-        "R2 configuration missing. Required env vars: R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_PUBLIC_URL",
+        'R2 configuration missing. Required env vars: R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_PUBLIC_URL',
       );
     }
 
     r2Client = new S3Client({
-      region: "auto",
+      region: 'auto',
       endpoint,
       credentials: {
         accessKeyId,
@@ -46,7 +46,7 @@ function getR2Client(): S3Client {
 function getBucket(): string {
   const bucket = process.env.R2_BUCKET;
   if (!bucket) {
-    throw new Error("R2_BUCKET environment variable is required");
+    throw new Error('R2_BUCKET environment variable is required');
   }
   return bucket;
 }
@@ -55,15 +55,15 @@ function getPublicUrl(): string {
   const publicUrl = process.env.R2_PUBLIC_URL;
   if (!publicUrl) {
     throw new Error(
-      "R2_PUBLIC_URL environment variable is required (your R2 public bucket URL or custom domain)",
+      'R2_PUBLIC_URL environment variable is required (your R2 public bucket URL or custom domain)',
     );
   }
   // Remove trailing slash if present
-  return publicUrl.replace(/\/$/, "");
+  return publicUrl.replace(/\/$/, '');
 }
 
 export type PutOptions = {
-  access?: "public" | "private";
+  access?: 'public' | 'private';
   contentType?: string;
   allowOverwrite?: boolean;
 };
@@ -114,7 +114,7 @@ export async function put(
   const publicUrl = getPublicUrl();
 
   // Convert string to Buffer if needed
-  const bodyBuffer = typeof body === "string" ? Buffer.from(body) : body;
+  const bodyBuffer = typeof body === 'string' ? Buffer.from(body) : body;
 
   // Infer content type if not provided
   const contentType = options.contentType || inferContentType(pathname);
@@ -152,11 +152,11 @@ export async function del(urlOrPathname: string): Promise<void> {
 
   // Extract pathname from URL if full URL is provided
   let pathname = urlOrPathname;
-  if (urlOrPathname.startsWith("http")) {
+  if (urlOrPathname.startsWith('http')) {
     // Handle both R2 public URLs and legacy Vercel blob URLs
     if (urlOrPathname.includes(publicUrl)) {
-      pathname = urlOrPathname.replace(`${publicUrl}/`, "");
-    } else if (urlOrPathname.includes("blob.vercel-storage.com")) {
+      pathname = urlOrPathname.replace(`${publicUrl}/`, '');
+    } else if (urlOrPathname.includes('blob.vercel-storage.com')) {
       // Extract pathname from Vercel blob URL
       // Format: https://*.blob.vercel-storage.com/pathname
       const url = new URL(urlOrPathname);
@@ -200,7 +200,7 @@ export async function list(options: ListOptions = {}): Promise<ListResult> {
   );
 
   const blobs = (response.Contents || []).map((item) => ({
-    pathname: item.Key || "",
+    pathname: item.Key || '',
     url: `${publicUrl}/${item.Key}`,
     size: item.Size || 0,
     uploadedAt: item.LastModified || new Date(),
@@ -240,37 +240,37 @@ export async function exists(pathname: string): Promise<boolean> {
  * Infer content type from file extension
  */
 function inferContentType(pathname: string): string {
-  const ext = pathname.split(".").pop()?.toLowerCase();
+  const ext = pathname.split('.').pop()?.toLowerCase();
 
   const contentTypes: Record<string, string> = {
     // Images
-    png: "image/png",
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    gif: "image/gif",
-    webp: "image/webp",
-    svg: "image/svg+xml",
-    ico: "image/x-icon",
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    gif: 'image/gif',
+    webp: 'image/webp',
+    svg: 'image/svg+xml',
+    ico: 'image/x-icon',
 
     // Audio
-    mp3: "audio/mpeg",
-    wav: "audio/wav",
-    ogg: "audio/ogg",
+    mp3: 'audio/mpeg',
+    wav: 'audio/wav',
+    ogg: 'audio/ogg',
 
     // Video
-    mp4: "video/mp4",
-    webm: "video/webm",
+    mp4: 'video/mp4',
+    webm: 'video/webm',
 
     // Documents
-    pdf: "application/pdf",
-    json: "application/json",
-    xml: "application/xml",
+    pdf: 'application/pdf',
+    json: 'application/json',
+    xml: 'application/xml',
 
     // Web
-    html: "text/html",
-    css: "text/css",
-    js: "application/javascript",
+    html: 'text/html',
+    css: 'text/css',
+    js: 'application/javascript',
   };
 
-  return contentTypes[ext || ""] || "application/octet-stream";
+  return contentTypes[ext || ''] || 'application/octet-stream';
 }

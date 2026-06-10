@@ -55,10 +55,10 @@ importers:
       '@hookform/resolvers':
         specifier: ^3.3.4
         version: 3.10.0(react-hook-form@7.77.0(react@19.2.7))
-      '@outside-ir35/db':
+      '@outside-ir35-jobs/db':
         specifier: workspace:*
         version: link:../../packages/db
-      '@outside-ir35/storage':
+      '@outside-ir35-jobs/storage':
         specifier: workspace:*
         version: link:../../packages/storage
       '@radix-ui/react-label':

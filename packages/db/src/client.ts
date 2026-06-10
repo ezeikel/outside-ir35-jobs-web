@@ -1,8 +1,9 @@
 /* eslint-disable no-param-reassign */
-import { PrismaClient } from './generated/prisma/client';
-import { PrismaNeon } from '@prisma/adapter-neon';
+
 import { neonConfig } from '@neondatabase/serverless';
+import { PrismaNeon } from '@prisma/adapter-neon';
 import ws from 'ws';
+import { PrismaClient } from './generated/prisma/client';
 
 // Configure WebSocket for Neon (required in Node.js environments).
 neonConfig.webSocketConstructor = ws;

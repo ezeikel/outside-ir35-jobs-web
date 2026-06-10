@@ -3,9 +3,9 @@
   "private": true,
   "scripts": {
     "build": "turbo run build",
-    "build:web": "turbo run build --filter=@outside-ir35/web",
+    "build:web": "turbo run build --filter=@outside-ir35-jobs/web",
     "dev": "turbo run dev",
-    "dev:web": "turbo run dev --filter=@outside-ir35/web",
+    "dev:web": "turbo run dev --filter=@outside-ir35-jobs/web",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "check-types": "turbo run check-types",

@@ -1,6 +1,6 @@
 'use server';
 
-import { db as prisma } from '@outside-ir35/db';
+import { db as prisma } from '@outside-ir35-jobs/db';
 import { revalidatePath } from 'next/cache';
 import { PostJobFormValues } from '@/types';
 

@@ -1,4 +1,4 @@
-import { WorkMode } from '@outside-ir35/db/types';
+import { WorkMode } from '@outside-ir35-jobs/db/types';
 import { useEffect, useState } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { createJobPost } from '@/app/actions';

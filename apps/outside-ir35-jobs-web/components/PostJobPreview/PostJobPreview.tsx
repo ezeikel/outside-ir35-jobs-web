@@ -7,7 +7,7 @@ import {
   faSync,
 } from '@fortawesome/pro-regular-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { WorkMode } from '@outside-ir35/db/types';
+import { WorkMode } from '@outside-ir35-jobs/db/types';
 import { useFormContext } from 'react-hook-form';
 import HTMLViewer from '../HTMLViewer/HTMLViewer';
 

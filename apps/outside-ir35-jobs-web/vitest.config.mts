@@ -3,7 +3,7 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 import { defineConfig } from 'vitest/config';
 
 /**
- * Vitest config for @outside-ir35/web.
+ * Vitest config for @outside-ir35-jobs/web.
  *
  * Scope: pure logic + component tests. We do NOT render React Server
  * Components or exercise Next routing here — that's e2e's job. `@/*` path

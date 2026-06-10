@@ -1,4 +1,4 @@
-import { WorkMode } from '@outside-ir35/db/types';
+import { WorkMode } from '@outside-ir35-jobs/db/types';
 import { z } from 'zod';
 
 export const PostJobFormSchema = z.object({

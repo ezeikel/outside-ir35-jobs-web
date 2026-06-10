@@ -1,5 +1,5 @@
 {
-  "name": "@outside-ir35/storage",
+  "name": "@outside-ir35-jobs/storage",
   "version": "0.1.0",
   "private": true,
   "main": "./src/index.ts",

@@ -5,10 +5,7 @@ import { defineConfig } from 'prisma/config';
 // Load .env.local from the web app for local development.
 // On Vercel, env vars are injected directly into process.env.
 dotenv.config({
-  path: path.resolve(
-    __dirname,
-    '../../apps/outside-ir35-jobs-web/.env.local',
-  ),
+  path: path.resolve(__dirname, '../../apps/outside-ir35-jobs-web/.env.local'),
 });
 
 const databaseUrl =
