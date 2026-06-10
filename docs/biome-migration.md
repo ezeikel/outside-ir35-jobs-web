@@ -21,20 +21,33 @@ rule options).
 
 ## Per-repo steps
 
-Run **per app** (from each `apps/<app>` dir that has an `eslint.config` /
-`.eslintrc`). Biome reads the existing ESLint config as the migration source, so
-do this **before** deleting the ESLint files.
+**One `biome.json` at the repo root** — NOT per-app. Biome 2.x treats the repo
+(via `.git`) as the workspace root, so an app-level `biome.json` is read as a
+second "nested root configuration" and **fails** (`Found a nested root
+configuration, but there's already a root configuration`) — which breaks the
+lint-staged hook that runs from root. A single root config also covers
+`packages/*`. (If you ever genuinely need a nested config, it must set
+`"root": false` — but for these repos, one root config is simplest and correct.)
+
+Migrate from the existing ESLint config first (Biome reads it as the source), so
+do this **before** deleting the ESLint files. The `migrate` command reads the
+nearest ESLint config; run it from the app that has one, then move the result to
+the repo root.
 
 ```bash
+# 1. From an app that has eslint config: init + migrate (carries airbnb-inspired rules)
 cd apps/<app>
-
-# 1. Init + migrate from the existing ESLint config (carries airbnb-inspired rules)
 npx @biomejs/biome init
 npx @biomejs/biome migrate eslint --include-inspired --write
 
-# 2. Apply the tuning below to biome.json (formatter, css, relaxed rules, overrides)
+# 2. Move the generated config to the REPO ROOT (single workspace config)
+cd ../..                       # repo root
+git mv apps/<app>/biome.json biome.json
 
-# 3. Fix findings: auto-fix the safe ones, then handle the rest by hand
+# 3. Apply the tuning below (formatter, css, relaxed rules, overrides). The
+#    files.includes / overrides already use **/ globs so they work repo-wide.
+
+# 4. Fix findings from the repo root: auto-fix safe ones, then green-check
 npx @biomejs/biome check --write .
 npx @biomejs/biome check .          # should be green (warnings ok)
 ```
@@ -95,6 +108,10 @@ which churn vendored/shadcn code. Apply:
    ```
 
 ### package.json — scripts (per app)
+
+Per-app `biome` scripts still work — `biome` searches upward and finds the single
+root `biome.json`, so `biome lint .` from an app dir lints that app against the
+root config.
 
 ```jsonc
 "lint": "biome lint .",
