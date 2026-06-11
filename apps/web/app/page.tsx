@@ -1,16 +1,9 @@
-import { MapPinIcon } from 'lucide-react';
 import type { Viewport } from 'next';
+import Link from 'next/link';
 import PageWrap from '@/components/PageWrap/PageWrap';
 import TakeHomeCalculator from '@/components/TakeHomeCalculator/TakeHomeCalculator';
+import { JobListCard, type JobListCardData } from '@/components/trust';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { DUMMY_JOBS } from '@/constants';
 
@@ -22,8 +15,24 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
+const latestContracts: JobListCardData[] = DUMMY_JOBS.slice(0, 6).map(
+  (job) => ({
+    id: job.id,
+    position: job.title,
+    companyName: 'Confidential client',
+    location: job.location,
+    dayRate: job.dayRate,
+    ir35Signal: 'CLIENT_INTENDS_OUTSIDE',
+    workMode: job.isRemote ? 'REMOTE' : 'ON_SITE',
+    contractLengthDays: 180,
+    source: 'NATIVE',
+    href: `/job/${job.id}`,
+  }),
+);
+
 const HomePage = () => (
-  <PageWrap className="pb-12 gap-y-8 p-0">
+  <PageWrap className="gap-y-12 p-0 pb-16">
+    {/* Hero */}
     <div className="relative w-screen">
       <video
         className="size-full object-cover"
@@ -31,60 +40,50 @@ const HomePage = () => (
         loop={true}
         muted={true}
         playsInline={true}
-        style={{
-          minHeight: 'calc(100vh - 68px)',
-        }}
+        style={{ minHeight: 'calc(100vh - 68px)' }}
       >
         <source src="/videos/man-using-laptop.mp4" type="video/mp4" />
         Your browser does not support the video tag.
         <track kind="captions" />
       </video>
-      <div className="absolute top-0 left-0 right-0 bottom-0 grid grid-cols-1 md:grid-cols-2 gap-8 p-8 bg-[rgba(0,0,0,0.4)]">
-        <div>
-          <h1 className="text-4xl font-bold mb-4 text-white">
-            Find Your Next Outside IR35 Contract Role
+      <div className="absolute inset-0 grid grid-cols-1 items-center gap-8 bg-ink-950/55 p-8 md:grid-cols-2 md:p-16">
+        <div className="max-w-xl">
+          <h1 className="font-display text-5xl leading-[1.05] text-white md:text-6xl">
+            Only outside-IR35 contracts. Nothing else.
           </h1>
-          <p className="text-gray-100 mb-8">
-            Search thousands of contract roles across the UK, with top companies
-            and competitive rates.
+          <p className="mt-4 max-w-md text-lg text-ink-200">
+            Stop filtering LinkedIn. Day rate, work mode and the client’s IR35
+            signal — surfaced up front, on every role.
           </p>
-          <form className="flex gap-2">
+          <form className="mt-8 flex max-w-lg gap-2">
             <Input
-              className="flex-1 max-w-[640px]"
-              placeholder="Job title, skills, or company"
+              className="flex-1 border-transparent bg-white text-foreground placeholder:text-muted-foreground"
+              placeholder="Role, skill or company"
               type="text"
             />
-            <Button className="bg-primary hover:bg-primary-600" type="submit">
-              Search
+            <Button asChild>
+              <Link href="/jobs">Search</Link>
             </Button>
           </form>
         </div>
         <TakeHomeCalculator className="hidden md:block" />
       </div>
     </div>
-    <section className="flex flex-col gap-y-8 p-4">
-      <h2 className="text-3xl">Latest Contracts</h2>
-      <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {DUMMY_JOBS.map((job) => (
-          <Card key={job.id}>
-            <CardHeader>
-              <CardTitle>{job.title}</CardTitle>
-              <CardDescription>Remote · £500 - £600/day</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>
-                {job.description.slice(0, 100)}
-                ...
-              </p>
-              <div className="mt-4 flex items-center gap-2">
-                <MapPinIcon className="size-4" />
-                <span>{job.location}</span>
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button variant="outline">View Details</Button>
-            </CardFooter>
-          </Card>
+
+    {/* Latest contracts */}
+    <section className="mx-auto w-full max-w-3xl px-4">
+      <div className="mb-6 flex items-end justify-between">
+        <h2 className="text-3xl leading-none">Latest contracts</h2>
+        <Link
+          href="/jobs"
+          className="text-sm font-medium text-link hover:underline"
+        >
+          View all →
+        </Link>
+      </div>
+      <div className="space-y-3">
+        {latestContracts.map((job) => (
+          <JobListCard key={job.id} job={job} />
         ))}
       </div>
     </section>

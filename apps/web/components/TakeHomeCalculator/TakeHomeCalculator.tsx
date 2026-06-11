@@ -9,14 +9,17 @@ interface TakeHomeCalculatorProps {
 
 const TakeHomeCalculator = ({ className }: TakeHomeCalculatorProps) => (
   <div
-    className={cn('max-w-md mx-auto p-4 sm:p-8 bg-white rounded-lg shadow-md', {
-      [className as string]: !!className,
-    })}
+    className={cn(
+      'mx-auto max-w-md rounded-lg border border-border bg-card p-4 shadow-sm sm:p-8',
+      {
+        [className as string]: !!className,
+      },
+    )}
   >
-    <div className="space-y-4">
-      <h1 className="text-2xl">Take Home Calculator</h1>
-      <p className="text-gray-500 dark:text-gray-400">
-        Estimate your take-home pay as an outside IR35 contractor in the UK.
+    <div className="space-y-2">
+      <h1 className="text-2xl">Take-home calculator</h1>
+      <p className="text-sm text-muted-foreground">
+        Estimate your take-home pay as an outside-IR35 contractor in the UK.
       </p>
     </div>
     <form className="grid gap-4 mt-6">

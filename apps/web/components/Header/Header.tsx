@@ -11,47 +11,44 @@ interface HeaderProps {
 const Header = ({ className }: HeaderProps) => (
   <header
     className={cn(
-      'bg-white text-gray-800 p-4 flex justify-between items-center sticky top-0 z-10',
+      'sticky top-0 z-10 flex items-center justify-between border-b border-border bg-card/80 px-4 py-3 backdrop-blur-sm sm:px-6',
       {
         [className as string]: !!className,
       },
     )}
   >
-    <div className="flex items-center">
+    <div className="flex items-center gap-8">
       <HeaderLogo />
+      <nav className="hidden md:block">
+        <ul className="flex gap-6 text-sm text-muted-foreground">
+          <li>
+            <Link
+              className="transition-colors hover:text-foreground"
+              href="/jobs"
+            >
+              Jobs
+            </Link>
+          </li>
+          <li>
+            <Link className="transition-colors hover:text-foreground" href="/">
+              Companies
+            </Link>
+          </li>
+          <li>
+            <Link className="transition-colors hover:text-foreground" href="/">
+              Resources
+            </Link>
+          </li>
+        </ul>
+      </nav>
     </div>
-    <nav className="hidden md:block">
-      <ul className="flex space-x-4">
-        <li>
-          <Link className="hover:text-gray-600" href="/jobs">
-            Jobs
-          </Link>
-        </li>
-        <li>
-          <Link className="hover:text-gray-600" href="/">
-            Companies
-          </Link>
-        </li>
-        <li>
-          <Link className="hover:text-gray-600" href="/">
-            Resources
-          </Link>
-        </li>
-      </ul>
-    </nav>
-    <div className="flex items-center space-x-4">
-      <Link
-        className="inline-flex items-center justify-center rounded-md bg-gray-200 px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-gray-800"
-        href="/"
-      >
-        Log in
-      </Link>
-      <Link
-        className="inline-flex items-center justify-center rounded-md bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-red-500"
-        href="/job/post"
-      >
-        Post a job
-      </Link>
+    <div className="hidden items-center gap-2 md:flex">
+      <Button asChild variant="ghost">
+        <Link href="/">Log in</Link>
+      </Button>
+      <Button asChild>
+        <Link href="/job/post">Post a job</Link>
+      </Button>
     </div>
     <div className="md:hidden">
       <Button aria-label="Open menu" variant="ghost">

@@ -1,17 +1,9 @@
 import { getJobs } from '@/app/actions';
 import PageWrap from '@/components/PageWrap/PageWrap';
-import { Badge } from '../ui/badge';
+import { JobListCard } from '@/components/trust';
+import { jobToCard } from '@/utils/jobToCard';
 import { Button } from '../ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '../ui/card';
 import { Input } from '../ui/input';
-import { Label } from '../ui/label';
 import {
   Select,
   SelectContent,
@@ -22,185 +14,98 @@ import {
 
 const JobPosts = async () => {
   const jobPosts = await getJobs();
-
-  if (!jobPosts) {
-    return null;
-  }
-
-  if (!jobPosts.length) {
-    return (
-      <PageWrap className="gap-y-16">
-        <h1 className="font-sans text-4xl font-bold text-center">
-          No jobs found
-        </h1>
-      </PageWrap>
-    );
-  }
+  const jobs = (jobPosts ?? []).map(jobToCard);
 
   return (
-    <PageWrap className="gap-y-16">
-      <div key="1" className="container mx-auto px-4 py-6">
-        <div className="flex flex-col space-y-4">
-          <div className="flex justify-between space-x-4">
+    <PageWrap className="gap-y-8">
+      <div className="mx-auto w-full max-w-3xl px-4 py-8">
+        {/* Masthead */}
+        <header className="mb-6">
+          <h1 className="text-4xl leading-none">Outside-IR35 contracts</h1>
+          <p className="mt-2 text-muted-foreground">
+            {jobs.length > 0
+              ? `${jobs.length} contract${jobs.length === 1 ? '' : 's'} — day rate, mode and IR35 signal up front.`
+              : 'Day rate, work mode and the client’s IR35 signal, up front.'}
+          </p>
+        </header>
+
+        {/* Filter bar */}
+        <div className="rounded-lg border border-border bg-card p-4">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <Input
               aria-label="Search for jobs"
-              className="flex-grow"
-              placeholder="Job title, keywords or company"
+              className="flex-1"
+              placeholder="Role, skill or company"
             />
             <Input
               aria-label="Location"
-              className="flex-grow"
-              placeholder="City, county or postcode"
+              className="flex-1"
+              placeholder="City or postcode"
             />
-            <Button variant="default">Find jobs</Button>
+            <Button type="submit">Search</Button>
           </div>
-          <div className="grid grid-cols-4 gap-4">
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <Select>
-              <SelectTrigger id="date-posted">
-                <SelectValue placeholder="Date posted" />
+              <SelectTrigger aria-label="IR35 signal">
+                <SelectValue placeholder="IR35 signal" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="anytime">Anytime</SelectItem>
-                <SelectItem value="past-week">Past week</SelectItem>
-                <SelectItem value="past-month">Past month</SelectItem>
-                <SelectItem value="past-24-hours">Past 24 hours</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select>
-              <SelectTrigger id="experience-level">
-                <SelectValue placeholder="Experience level" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="entry-level">Entry level</SelectItem>
-                <SelectItem value="associate">Associate</SelectItem>
-                <SelectItem value="mid-senior-level">
-                  Mid-Senior level
+                <SelectItem value="outside-evidenced">
+                  Outside · evidenced
                 </SelectItem>
-                <SelectItem value="director">Director</SelectItem>
-                <SelectItem value="executive">Executive</SelectItem>
+                <SelectItem value="outside-stated">Outside · stated</SelectItem>
+                <SelectItem value="any">Any signal</SelectItem>
               </SelectContent>
             </Select>
             <Select>
-              <SelectTrigger id="company">
-                <SelectValue placeholder="Company" />
+              <SelectTrigger aria-label="Work mode">
+                <SelectValue placeholder="Work mode" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="company-1">Company 1</SelectItem>
-                <SelectItem value="company-2">Company 2</SelectItem>
-                <SelectItem value="company-3">Company 3</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select>
-              <SelectTrigger id="remote">
-                <SelectValue placeholder="Remote" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="hybrid">Hybrid</SelectItem>
                 <SelectItem value="remote">Remote</SelectItem>
+                <SelectItem value="hybrid">Hybrid</SelectItem>
                 <SelectItem value="on-site">On-site</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-          <div className="flex items-center">
-            <Label className="mr-4" htmlFor="distance">
-              Distance:
-            </Label>
-            <input
-              aria-label="Select distance"
-              className="slider w-full"
-              id="distance"
-              max="100"
-              min="0"
-              type="range"
-            />
-          </div>
-        </div>
-        <div className="mt-8">
-          <h2 className="text-2xl font-semibold">Jobs for you</h2>
-          <div className="space-y-4 pt-4">
-            <div className="grid grid-cols-2 gap-4">
-              {jobPosts.map((jobPost) => (
-                <Card className="col-span-1">
-                  <CardHeader>
-                    <CardTitle>{jobPost.position}</CardTitle>
-                    <CardDescription>
-                      <span className="block font-normal mb-2">
-                        {jobPost.companyName}
-                      </span>
-                      <Badge variant="secondary">{jobPost.workMode}</Badge>
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-col space-y-2">
-                      <p>£{jobPost.dayRate} per day</p>
-                      <p>{jobPost.description}</p>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="flex gap-2">
-                    <Button variant="outline">Save</Button>
-                    <Button>Apply now</Button>
-                  </CardFooter>
-                </Card>
-              ))}
-              <Card className="col-span-1">
-                <CardHeader>
-                  <CardTitle>Software Engineer (Full Stack)</CardTitle>
-                  <CardDescription>
-                    <span className="block font-normal mb-2">
-                      Be Amazed Media Ltd
-                    </span>
-                    <Badge variant="secondary">Hybrid work</Badge>
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-col space-y-2">
-                    <p>From £70,000 a year - Full-time</p>
-                    <p>Monday to Friday +3</p>
-                    <p>Easily apply</p>
-                    <p>
-                      These tools integrate with various social media APIs to
-                      help us track and extract data from our content which help
-                      to inform our future content pipeline as well as optimise
-                      our current library.
-                    </p>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex gap-2">
-                  <Button variant="outline">Save</Button>
-                  <Button>Apply now</Button>
-                </CardFooter>
-              </Card>
-              <Card className="col-span-1">
-                <CardHeader>
-                  <CardTitle>Software Engineer (Full Stack)</CardTitle>
-                  <CardDescription>
-                    <span className="block font-normal mb-2">
-                      Be Amazed Media Ltd
-                    </span>
-                    <Badge variant="secondary">Hybrid work</Badge>
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-col space-y-2">
-                    <p>From £70,000 a year - Full-time</p>
-                    <p>Monday to Friday +3</p>
-                    <p>Easily apply</p>
-                    <p>
-                      These tools integrate with various social media APIs to
-                      help us track and extract data from our content which help
-                      to inform our future content pipeline as well as optimise
-                      our current library.
-                    </p>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex gap-2">
-                  <Button variant="outline">Save</Button>
-                  <Button>Apply now</Button>
-                </CardFooter>
-              </Card>
-            </div>
+            <Select>
+              <SelectTrigger aria-label="Day rate">
+                <SelectValue placeholder="Day rate" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="400">£400+</SelectItem>
+                <SelectItem value="500">£500+</SelectItem>
+                <SelectItem value="600">£600+</SelectItem>
+                <SelectItem value="700">£700+</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select>
+              <SelectTrigger aria-label="Posted">
+                <SelectValue placeholder="Posted" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="24h">Past 24 hours</SelectItem>
+                <SelectItem value="week">Past week</SelectItem>
+                <SelectItem value="month">Past month</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
+
+        {/* Results */}
+        {jobs.length === 0 ? (
+          <div className="mt-8 rounded-lg border border-dashed border-border bg-card/50 p-10 text-center">
+            <p className="font-display text-2xl">No contracts yet</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Check back soon — new outside-IR35 roles are added regularly.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-6 space-y-3">
+            {jobs.map((job) => (
+              <JobListCard key={job.id} job={job} />
+            ))}
+          </div>
+        )}
       </div>
     </PageWrap>
   );
