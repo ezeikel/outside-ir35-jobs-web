@@ -82,7 +82,7 @@ A **pnpm + Turborepo monorepo** mirroring the conventions of the sister project
 ```
 outside-ir35-jobs/                 # repo root (renamed from outside-ir35-jobs-web)
 ├── apps/
-│   ├── outside-ir35-jobs-web/     # Next.js web app (existing app, moved in)
+│   ├── web/                      # Next.js web app (existing app, moved in)
 │   ├── outside-ir35-jobs-mobile/  # Expo / React Native app (later)
 │   └── outside-ir35-jobs-worker/  # AI worker: aggregation + blog crons (Claude + Perplexity)
 ├── packages/

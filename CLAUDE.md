@@ -33,7 +33,7 @@ Neon PostgreSQL with branch-based development:
 | **development** | `br-holy-glade-a45m7ttr`    | Local development data (localhost) |
 
 **Important**: When testing on `localhost`, always query the **development**
-branch. `apps/outside-ir35-jobs-web/.env.local` points `DATABASE_URL` /
+branch. `apps/web/.env.local` points `DATABASE_URL` /
 `DATABASE_URL_UNPOOLED` at the dev branch. `pgvector` is enabled on both branches.
 
 ### Migrations (Prisma 7)
@@ -78,7 +78,7 @@ re-baseline.
 `chunky-crayon`'s conventions). On-disk folder may still be `outside-ir35-jobs-web`
 pending a rename to `outside-ir35-jobs`.
 
-- `apps/outside-ir35-jobs-web` — Next.js 16 web app (`@outside-ir35-jobs/web`)
+- `apps/web` — Next.js 16 web app (`@outside-ir35-jobs/web`)
 - `apps/outside-ir35-jobs-mobile` — React Native / Expo app (planned, not yet scaffolded)
 - `apps/outside-ir35-jobs-worker` — AI worker for aggregation + blog crons (planned)
 - `packages/db` — Prisma 7 + Neon client (`@outside-ir35-jobs/db`). Server code imports
@@ -98,14 +98,14 @@ pending a rename to `outside-ir35-jobs`.
   to single versions — needed so transitive deps don't pull a stale nested copy
   (e.g. next-auth's nested Next 14 broke the route types). Keep React in sync across
   all workspaces (pnpm isolation → version mismatch = "Invalid hook call").
-- `.env.local` lives in the **app dir** (`apps/outside-ir35-jobs-web/.env.local`),
+- `.env.local` lives in the **app dir** (`apps/web/.env.local`),
   not the repo root — that's where Next and `packages/db/prisma.config.ts` read it.
 
 ## Vercel Deployment
 
 The web app has its own Vercel project. **Run Vercel CLI from the app dir**, never
 the repo root (monorepo — a root `.vercel` can only point at one project). Set the
-project's **Root Directory** to `apps/outside-ir35-jobs-web`, and add `AUTH_SECRET`
+project's **Root Directory** to `apps/web`, and add `AUTH_SECRET`
 + the Neon `DATABASE_URL` / `DATABASE_URL_UNPOOLED` env vars.
 
 ## Commits

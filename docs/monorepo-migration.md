@@ -46,7 +46,7 @@ mirroring the conventions of the sister project `chunky-crayon`, and bring
 ```
 outside-ir35-jobs/
 ├── apps/
-│   ├── outside-ir35-jobs-web/      # the existing Next app, moved in
+│   ├── web/                       # the existing Next app, moved in
 │   ├── outside-ir35-jobs-mobile/   # Expo / React Native (scaffolded later)
 │   └── outside-ir35-jobs-worker/   # AI worker: aggregation + blog crons
 ├── packages/
@@ -87,7 +87,7 @@ There are no migrations and the DB is live. Running `migrate dev` now could
 
 ### Steps 2–3 — Move app + extract db package
 
-- `git mv` the Next app → `apps/outside-ir35-jobs-web` (preserves history).
+- `git mv` the Next app → `apps/web` (preserves history).
 - `git mv prisma/schema.prisma` → `packages/db/prisma/schema.prisma`; create
   `packages/db/{package.json,tsconfig.json,prisma.config.ts,src/index.ts}`.
 - Switch the client to the **`PrismaNeon({ connectionString })`** adapter
@@ -126,7 +126,7 @@ Upgrade **one major per commit**, building between each:
 - **ESLint 8 → 9** flat config; **Jest → Vitest** (match chunky-crayon).
 - **FontAwesome** — needs the `.npmrc` registry + `FONTAWESOME_NPM_AUTH_TOKEN`.
 - Verify with `turbo build`; update **Vercel Root Directory** to
-  `apps/outside-ir35-jobs-web`.
+  `apps/web`.
 
 ### Later — scaffold the other apps
 

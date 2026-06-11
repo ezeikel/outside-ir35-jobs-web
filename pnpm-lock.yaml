@@ -29,7 +29,7 @@ importers:
         specifier: ~6.0.3
         version: 6.0.3
 
-  apps/outside-ir35-jobs-web:
+  apps/web:
     dependencies:
       '@fortawesome/fontawesome-svg-core':
         specifier: ^6.5.2
@@ -9226,7 +9226,7 @@ snapshots:
 
   '@types/ws@8.18.1':
     dependencies:
-      '@types/node': 20.19.42
+      '@types/node': 22.19.20
 
   '@vercel/analytics@1.6.1(next@16.1.0(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)':
     optionalDependencies:
@@ -11152,7 +11152,7 @@ snapshots:
     dependencies:
       nanoid: 3.3.12
       picocolors: 1.1.1
-      source-map-js: 1.0.2
+      source-map-js: 1.2.1
 
   postcss@8.5.15:
     dependencies:
