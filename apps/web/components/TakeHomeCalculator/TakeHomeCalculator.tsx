@@ -14,9 +14,7 @@ const TakeHomeCalculator = ({ className }: TakeHomeCalculatorProps) => (
     })}
   >
     <div className="space-y-4">
-      <h1 className="font-open-sans text-2xl font-semibold">
-        Take Home Calculator
-      </h1>
+      <h1 className="text-2xl">Take Home Calculator</h1>
       <p className="text-gray-500 dark:text-gray-400">
         Estimate your take-home pay as an outside IR35 contractor in the UK.
       </p>

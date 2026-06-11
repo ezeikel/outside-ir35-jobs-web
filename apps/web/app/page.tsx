@@ -63,7 +63,7 @@ const HomePage = () => (
       </div>
     </div>
     <section className="flex flex-col gap-y-8 p-4">
-      <h2 className="font-open-sans text-3xl font-bold">Latest Contracts</h2>
+      <h2 className="text-3xl">Latest Contracts</h2>
       <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {DUMMY_JOBS.map((job) => (
           <Card key={job.id}>

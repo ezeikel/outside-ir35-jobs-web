@@ -1,7 +1,8 @@
 import { config } from '@fortawesome/fontawesome-svg-core';
 import { Analytics } from '@vercel/analytics/react';
+import { GeistMono } from 'geist/font/mono';
 import type { Metadata } from 'next';
-import { Montserrat, Open_Sans } from 'next/font/google';
+import { Instrument_Serif, Inter_Tight } from 'next/font/google';
 import Script from 'next/script';
 import PlausibleProvider from 'next-plausible';
 import { Toaster } from '@/components/ui/toaster';
@@ -14,14 +15,20 @@ import '@/global.css';
 
 config.autoAddCss = false;
 
-const openSans = Open_Sans({
+// Register design system fonts.
+// Inter Tight = body + all UI/data. Instrument Serif = display headings only.
+// Geist Mono = numerics where a mono figure reads better than tabular sans.
+const interTight = Inter_Tight({
   subsets: ['latin'],
-  variable: '--font-open-sans',
+  variable: '--font-inter-tight',
+  display: 'swap',
 });
 
-const montserrat = Montserrat({
+const instrumentSerif = Instrument_Serif({
   subsets: ['latin'],
-  variable: '--font-montserrat',
+  weight: '400',
+  variable: '--font-instrument-serif',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -42,9 +49,10 @@ export default function RootLayout({
       </head>
       <body
         className={cn(
-          'font-montserrat antialiased',
-          openSans.variable,
-          montserrat.variable,
+          'font-sans antialiased',
+          interTight.variable,
+          instrumentSerif.variable,
+          GeistMono.variable,
         )}
       >
         <Providers>

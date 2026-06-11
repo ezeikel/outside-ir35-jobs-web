@@ -1,58 +1,95 @@
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
 
-/* Dark mode driven by a `.dark` class (was darkMode: ['class'] in v3). */
+/* Dark mode driven by a `.dark` class. */
 @custom-variant dark (&:is(.dark *));
 
 /* Content sources (replaces the v3 `content` array). */
 @source "./app";
 @source "./components";
 
+/*
+ * ─────────────────────────────────────────────────────────────────────────
+ * REGISTER — design tokens
+ * Editorial-premium fintech. Ink/anthracite authority anchor (never "Stripe
+ * blue"); forest-green reserved EXCLUSIVELY for verified states; amber for
+ * aging/partial; a single quiet ink-blue only for secondary links. Two type
+ * faces, hard cap: Instrument Serif (display) + Inter Tight (body/data).
+ * See docs/design-system.md.
+ * ─────────────────────────────────────────────────────────────────────────
+ */
+
 @theme inline {
-  /* Fonts (CSS vars injected by next/font). */
-  --font-open-sans: var(--font-open-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-montserrat: var(--font-montserrat), ui-serif, Georgia, serif;
+  /* ── Fonts (CSS vars injected by next/font) ── */
+  --font-sans:
+    var(--font-inter-tight), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-instrument-serif), ui-serif, Georgia, serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
 
-  /* shadcn/ui color tokens, mapped to the HSL CSS vars below. */
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
+  /* ── shadcn/ui semantic tokens → mapped to the OKLCH primitives below ── */
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
 
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
 
-  --color-secondary: hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
 
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
 
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
 
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
 
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
 
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
 
-  /* Border radii. */
-  --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 2px);
+  /* ── Trust / verification semantic colours (the moat) ──
+     verified: forest-green, ONLY for register-verified states.
+     aging:    amber, for expiring/partial — never red unless failed.
+     pending:  neutral, for unverified/self-declared.
+     link:     quiet ink-blue, secondary links/CTA tint only. */
+  --color-verified: var(--verified);
+  --color-verified-foreground: var(--verified-foreground);
+  --color-verified-muted: var(--verified-muted);
+  --color-aging: var(--aging);
+  --color-aging-foreground: var(--aging-foreground);
+  --color-aging-muted: var(--aging-muted);
+  --color-link: var(--link);
+
+  /* ── Neutral ink ramp (OKLCH, warm-cool neutral) — the data workhorse ── */
+  --color-ink-50: var(--ink-50);
+  --color-ink-100: var(--ink-100);
+  --color-ink-200: var(--ink-200);
+  --color-ink-300: var(--ink-300);
+  --color-ink-400: var(--ink-400);
+  --color-ink-500: var(--ink-500);
+  --color-ink-600: var(--ink-600);
+  --color-ink-700: var(--ink-700);
+  --color-ink-800: var(--ink-800);
+  --color-ink-900: var(--ink-900);
+  --color-ink-950: var(--ink-950);
+
+  /* ── Radius scale (Register: moderate, ~8px base) ── */
   --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 
-  /* Container (was theme.container in v3). */
+  /* ── Container ── */
   --container-center: true;
 
-  /* Background images. */
-  --background-image-hero: url("/images/pexels-vlada-karpovich-4939643.jpg");
-
-  /* Accordion animations (radix). */
+  /* ── Accordion animations (radix) ── */
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
 
@@ -75,66 +112,102 @@
   }
 }
 
+/*
+ * Primitives in OKLCH. Light theme is the canvas; .dark is a graceful
+ * monochrome shift (Register stays restrained in both).
+ */
 :root {
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
-
-  --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-
-  --primary: 222.2 47.4% 11.2%;
-  --primary-foreground: 210 40% 98%;
-
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 222.2 84% 4.9%;
-
   --radius: 0.5rem;
+
+  /* Neutral ink ramp — slightly warm anthracite, near-neutral chroma. */
+  --ink-50: oklch(0.985 0.002 70);
+  --ink-100: oklch(0.97 0.002 70);
+  --ink-200: oklch(0.928 0.003 70);
+  --ink-300: oklch(0.87 0.004 70);
+  --ink-400: oklch(0.708 0.005 70);
+  --ink-500: oklch(0.556 0.006 70);
+  --ink-600: oklch(0.44 0.006 70);
+  --ink-700: oklch(0.37 0.006 70);
+  --ink-800: oklch(0.27 0.006 70);
+  --ink-900: oklch(0.21 0.006 70);
+  --ink-950: oklch(0.17 0.006 70); /* #17181A — the authority anchor */
+
+  /* Surface */
+  --background: oklch(0.97 0.003 75); /* #F6F5F3 neutral off-white canvas */
+  --foreground: var(--ink-950);
+
+  --card: oklch(1 0 0); /* pure white card surface */
+  --card-foreground: var(--ink-950);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--ink-950);
+
+  /* Ink as the primary (authority anchor — never blue). */
+  --primary: var(--ink-950);
+  --primary-foreground: var(--ink-50);
+
+  --secondary: var(--ink-100);
+  --secondary-foreground: var(--ink-900);
+
+  --muted: var(--ink-100);
+  --muted-foreground: var(--ink-500);
+
+  --accent: var(--ink-100);
+  --accent-foreground: var(--ink-900);
+
+  --destructive: oklch(0.55 0.2 27); /* failed state only */
+  --destructive-foreground: oklch(0.99 0 0);
+
+  --border: var(--ink-200);
+  --input: var(--ink-200);
+  --ring: var(--ink-950);
+
+  /* ── Trust semantics ── */
+  --verified: oklch(0.46 0.09 158); /* #1F5D43 forest-green */
+  --verified-foreground: oklch(0.99 0 0);
+  --verified-muted: oklch(0.95 0.03 158); /* tinted chip bg */
+  --aging: oklch(0.62 0.12 75); /* warm amber */
+  --aging-foreground: oklch(0.99 0 0);
+  --aging-muted: oklch(0.95 0.04 75);
+  --link: oklch(0.42 0.06 255); /* #2B3A55 quiet ink-blue — links only */
 }
 
 .dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
+  --background: var(--ink-950);
+  --foreground: var(--ink-50);
 
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
+  --card: var(--ink-900);
+  --card-foreground: var(--ink-50);
 
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
+  --popover: var(--ink-900);
+  --popover-foreground: var(--ink-50);
 
-  --primary: 210 40% 98%;
-  --primary-foreground: 222.2 47.4% 11.2%;
+  --primary: var(--ink-50);
+  --primary-foreground: var(--ink-950);
 
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
+  --secondary: var(--ink-800);
+  --secondary-foreground: var(--ink-50);
 
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
+  --muted: var(--ink-800);
+  --muted-foreground: var(--ink-400);
 
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
+  --accent: var(--ink-800);
+  --accent-foreground: var(--ink-50);
 
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
+  --destructive: oklch(0.6 0.19 27);
+  --destructive-foreground: oklch(0.99 0 0);
 
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 212.7 26.8% 83.9%;
+  --border: var(--ink-800);
+  --input: var(--ink-800);
+  --ring: var(--ink-300);
+
+  --verified: oklch(0.62 0.11 158);
+  --verified-foreground: oklch(0.15 0.02 158);
+  --verified-muted: oklch(0.28 0.05 158);
+  --aging: oklch(0.72 0.12 75);
+  --aging-foreground: oklch(0.18 0.03 75);
+  --aging-muted: oklch(0.3 0.05 75);
+  --link: oklch(0.7 0.08 255);
 }
 
 @layer base {
@@ -142,7 +215,20 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "cv11", "ss01";
+  }
+  /* Display face for headings; opt out with .font-sans where needed. */
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+  /* All money / percentile / benchmark figures use lining tabular numerals. */
+  .tabular {
+    font-variant-numeric: tabular-nums lining-nums;
   }
 }
 
@@ -200,5 +286,5 @@
 
 .tiptap a,
 .editor-preview a {
-  @apply underline text-blue-400 mx-0.5 cursor-pointer;
+  @apply underline text-link mx-0.5 cursor-pointer;
 }
