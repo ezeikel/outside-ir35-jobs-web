@@ -12,8 +12,16 @@ export const viewport: Viewport = {
 
 const JobPostPage = () => (
   <PageWrap>
-    <h1 className="text-2xl font-bold mb-4">Post a Job</h1>
-    <PostJob />
+    <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6">
+      <header className="mb-8 max-w-xl">
+        <h1 className="text-4xl leading-none">Post a contract</h1>
+        <p className="mt-2 text-muted-foreground">
+          Reach UK limited-company contractors who only want outside-IR35 work.
+          Day rate, mode and your IR35 position, shown up front.
+        </p>
+      </header>
+      <PostJob />
+    </div>
   </PageWrap>
 );
 

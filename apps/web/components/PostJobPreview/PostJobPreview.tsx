@@ -1,16 +1,20 @@
-import {
-  faBriefcase,
-  faBuilding,
-  faLaptopHouse,
-  faLocationDot,
-  faSterlingSign,
-  faSync,
-} from '@fortawesome/pro-regular-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { WorkMode } from '@outside-ir35-jobs/db/types';
+'use client';
+
 import { useFormContext } from 'react-hook-form';
 import HTMLViewer from '../HTMLViewer/HTMLViewer';
+import {
+  AttributedClaim,
+  DayRatePill,
+  IR35SignalChip,
+  type WorkMode,
+  WorkModePill,
+} from '../trust';
 
+/**
+ * Live preview of the listing as it will appear, built from the SAME trust
+ * components the public job-detail uses — so what the poster sees is what gets
+ * published. Register skin.
+ */
 const JobPostPreview = () => {
   const { watch } = useFormContext();
   const {
@@ -18,79 +22,68 @@ const JobPostPreview = () => {
     position,
     description,
     location,
-    // companyLogo,
     dayRate,
     howToApply,
     workMode,
   } = watch();
 
-  let workModeIcon;
-
-  switch (workMode) {
-    case WorkMode.REMOTE:
-      workModeIcon = faLaptopHouse;
-      break;
-    case WorkMode.HYBRID:
-      workModeIcon = faSync;
-      break;
-    case WorkMode.ON_SITE:
-      workModeIcon = faBuilding;
-      break;
-    default:
-      workModeIcon = faBriefcase;
-      break;
-  }
+  const rate: number[] = Array.isArray(dayRate)
+    ? dayRate.filter((n) => Number(n) > 0).map(Number)
+    : [];
 
   return (
-    <div className="flex flex-col gap-y-4 bg-gray-100 p-4 rounded-lg editor-preview">
-      <h2 className="text-2xl font-bold">Job Preview</h2>
-      <div className="flex flex-col gap-y-4 bg-white p-4 rounded-lg shadow-md">
-        <div className="flex flex-col gap-y-2.5">
-          {position ? <h3 className="text-xl font-bold">{position}</h3> : null}
-          {companyName ? <p className="text-gray-600">{companyName}</p> : null}
-          {location.address ? (
-            <div className="flex items-center gap-x-2">
-              <FontAwesomeIcon
-                icon={faLocationDot}
-                className="text-gray-600"
-                size="sm"
-              />
+    <div className="lg:sticky lg:top-24 lg:self-start">
+      <p className="mb-3 text-xs font-medium uppercase tracking-widest text-muted-foreground">
+        Live preview
+      </p>
+      <div className="rounded-lg border border-border bg-card p-6">
+        {position ? (
+          <h3 className="font-display text-3xl leading-tight">{position}</h3>
+        ) : (
+          <h3 className="font-display text-3xl leading-tight text-muted-foreground">
+            Job title
+          </h3>
+        )}
 
-              <p className="text-gray-600">{location.address}</p>
-            </div>
-          ) : null}
-          <div className="flex gap-x-4">
-            {dayRate[0] ? (
-              <div className="flex items-center gap-x-2">
-                <FontAwesomeIcon
-                  icon={faSterlingSign}
-                  className="text-gray-600"
-                  size="sm"
-                />
-                <p className="text-gray-600">
-                  {dayRate.length > 1
-                    ? `${dayRate[0]} - ${dayRate[1]}`
-                    : dayRate}{' '}
-                  per day
-                </p>
-              </div>
-            ) : null}
-            {workMode ? (
-              <div className="flex items-center gap-x-2">
-                <FontAwesomeIcon
-                  icon={workModeIcon}
-                  className="text-gray-600"
-                  size="sm"
-                />
-                <p className="text-gray-600">
-                  {workMode.charAt(0).toUpperCase() + workMode.slice(1)}
-                </p>
-              </div>
-            ) : null}
-          </div>
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground">
+          {companyName && (
+            <span className="font-medium text-foreground">{companyName}</span>
+          )}
+          {location?.address && (
+            <>
+              <span>·</span>
+              <span>{location.address}</span>
+            </>
+          )}
         </div>
-        {description ? <HTMLViewer html={description} /> : null}
-        {howToApply ? <HTMLViewer html={howToApply} /> : null}
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <IR35SignalChip signal="CLIENT_INTENDS_OUTSIDE" />
+          {workMode && <WorkModePill mode={workMode as WorkMode} />}
+          {rate.length > 0 && (
+            <span className="ml-auto">
+              <DayRatePill rate={rate} />
+            </span>
+          )}
+        </div>
+
+        <div className="mt-5">
+          <AttributedClaim
+            claim="This role is intended to be outside IR35."
+            attributedTo={`${companyName || 'Your company'} (client)`}
+          />
+        </div>
+
+        {description && (
+          <div className="editor-preview mt-6 text-[15px] leading-relaxed text-foreground/90">
+            <HTMLViewer html={description} />
+          </div>
+        )}
+        {howToApply && (
+          <div className="editor-preview mt-4 text-[15px] leading-relaxed text-foreground/90">
+            <HTMLViewer html={howToApply} />
+          </div>
+        )}
       </div>
     </div>
   );

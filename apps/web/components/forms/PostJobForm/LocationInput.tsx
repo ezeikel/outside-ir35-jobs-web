@@ -83,7 +83,7 @@ const LocationInput = () => {
                         className="bg-background-contrast-2 animate-spin self-start"
                       />
                     ) : null}
-                    <div className="absolute w-full mt-1 rounded-md bg-white shadow-lg">
+                    <div className="absolute w-full mt-1 rounded-md border border-border bg-popover shadow-lg">
                       <ul
                         className={cn(
                           'max-h-60 overflow-auto text-base leading-6 rounded-md ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm',
