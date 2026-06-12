@@ -29,6 +29,8 @@ const PostJob = () => {
       howToApply: '',
       applicationEmail: '',
       workMode: undefined,
+      ir35Signal: undefined,
+      ir35Attested: false,
       companyTwitter: '',
       companyEmail: '',
       invoiceAddress: '',

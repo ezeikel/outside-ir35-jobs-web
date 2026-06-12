@@ -6,6 +6,7 @@ import {
   AttributedClaim,
   DayRatePill,
   IR35SignalChip,
+  type JobIR35Signal,
   type WorkMode,
   WorkModePill,
 } from '../trust';
@@ -25,11 +26,19 @@ const JobPostPreview = () => {
     dayRate,
     howToApply,
     workMode,
+    ir35Signal,
   } = watch();
 
   const rate: number[] = Array.isArray(dayRate)
     ? dayRate.filter((n) => Number(n) > 0).map(Number)
     : [];
+
+  const signal: JobIR35Signal = ir35Signal ?? 'UNKNOWN';
+  const isOutsideClaim =
+    signal === 'CLIENT_INTENDS_OUTSIDE' ||
+    signal === 'SDS_ISSUED' ||
+    signal === 'CONTRACT_REVIEW_HELD' ||
+    signal === 'SMALL_CLIENT_EXEMPT';
 
   return (
     <div className="lg:sticky lg:top-24 lg:self-start">
@@ -58,7 +67,7 @@ const JobPostPreview = () => {
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <IR35SignalChip signal="CLIENT_INTENDS_OUTSIDE" />
+          <IR35SignalChip signal={signal} />
           {workMode && <WorkModePill mode={workMode as WorkMode} />}
           {rate.length > 0 && (
             <span className="ml-auto">
@@ -67,12 +76,14 @@ const JobPostPreview = () => {
           )}
         </div>
 
-        <div className="mt-5">
-          <AttributedClaim
-            claim="This role is intended to be outside IR35."
-            attributedTo={`${companyName || 'Your company'} (client)`}
-          />
-        </div>
+        {isOutsideClaim && (
+          <div className="mt-5">
+            <AttributedClaim
+              claim="This role is intended to be outside IR35."
+              attributedTo={`${companyName || 'Your company'} (client)`}
+            />
+          </div>
+        )}
 
         {description && (
           <div className="editor-preview mt-6 text-[15px] leading-relaxed text-foreground/90">

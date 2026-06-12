@@ -10,6 +10,7 @@ export const createJobPost = async ({
   location,
   dayRate,
   workMode,
+  ir35Signal,
   description,
   howToApply,
   applicationEmail,
@@ -21,6 +22,9 @@ export const createJobPost = async ({
       location,
       dayRate,
       workMode,
+      // The client's stated IR35 position (poster-attested). Defaults to UNKNOWN
+      // when unset — we never persist an assertion of status.
+      ir35Signal: ir35Signal ?? 'UNKNOWN',
       description,
       howToApply,
       applicationEmail,

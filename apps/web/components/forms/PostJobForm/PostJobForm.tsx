@@ -1,4 +1,4 @@
-import { WorkMode } from '@outside-ir35-jobs/db/types';
+import { JobIR35Signal, WorkMode } from '@outside-ir35-jobs/db/types';
 import { useEffect, useState } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { createJobPost } from '@/app/actions';
@@ -14,11 +14,38 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { PostJobFormValues } from '@/types';
 import cn from '@/utils/cn';
 import DayRateInputs from './DayRateInputs';
 import LocationInput from './LocationInput';
+
+// Honest labels for the poster-selectable IR35 signal — always the CLIENT's
+// position, never an assertion by us.
+const IR35_OPTIONS: { value: JobIR35Signal; label: string }[] = [
+  {
+    value: JobIR35Signal.CLIENT_INTENDS_OUTSIDE,
+    label: 'Client states: outside IR35',
+  },
+  { value: JobIR35Signal.SDS_ISSUED, label: 'Outside — SDS issued by client' },
+  {
+    value: JobIR35Signal.CONTRACT_REVIEW_HELD,
+    label: 'Outside — IR35 contract review held',
+  },
+  {
+    value: JobIR35Signal.SMALL_CLIENT_EXEMPT,
+    label: 'Small client — contractor self-determines',
+  },
+  { value: JobIR35Signal.UNKNOWN, label: 'Not stated' },
+  { value: JobIR35Signal.INSIDE, label: 'Inside IR35' },
+];
 
 interface PostJobFormProps {
   className?: string;
@@ -188,6 +215,55 @@ const PostJobForm = ({ className }: PostJobFormProps) => {
                 </FormItem>
               </RadioGroup>
             </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={control}
+        name="ir35Signal"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="block mb-1">IR35 position</FormLabel>
+            <FormControl>
+              <Select
+                onValueChange={field.onChange}
+                value={field.value as string | undefined}
+              >
+                <SelectTrigger aria-label="IR35 position">
+                  <SelectValue placeholder="What does the client say about IR35?" />
+                </SelectTrigger>
+                <SelectContent>
+                  {IR35_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={control}
+        name="ir35Attested"
+        render={({ field }) => (
+          <FormItem>
+            <label className="flex cursor-pointer items-start gap-2.5 rounded-md border border-border bg-muted/30 p-3 text-sm">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--primary)]"
+                checked={Boolean(field.value)}
+                onChange={(e) => field.onChange(e.target.checked)}
+              />
+              <span className="text-muted-foreground">
+                I confirm this reflects the client&rsquo;s stated IR35 position.
+                The platform does not determine, verify or warrant IR35 status —
+                the SDS is the client&rsquo;s legal responsibility.
+              </span>
+            </label>
             <FormMessage />
           </FormItem>
         )}

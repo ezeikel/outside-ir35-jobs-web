@@ -1,4 +1,4 @@
-import { WorkMode } from '@outside-ir35-jobs/db/types';
+import { JobIR35Signal, WorkMode } from '@outside-ir35-jobs/db/types';
 import { z } from 'zod';
 
 export const PostJobFormSchema = z.object({
@@ -22,6 +22,12 @@ export const PostJobFormSchema = z.object({
   howToApply: z.string(),
   applicationEmail: z.string(),
   workMode: z.nativeEnum(WorkMode),
+  // The CLIENT's IR35 position, selected by the poster — never our assertion.
+  ir35Signal: z.nativeEnum(JobIR35Signal),
+  // Poster must confirm the signal reflects the client's stated position.
+  ir35Attested: z.boolean().refine((v) => v === true, {
+    message: 'Please confirm this reflects the client’s stated IR35 position.',
+  }),
   companyTwitter: z.string(),
   companyEmail: z.string(),
   invoiceAddress: z.string(),

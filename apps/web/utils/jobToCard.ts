@@ -6,13 +6,8 @@ import type {
 
 /**
  * Adapts a DB `Job` row to the presentational `JobListCardData` shape.
- *
- * INTERIM: the schema still has the legacy `verifiedIR35Status` boolean rather
- * than the `ir35Signal` enum from the trust model (that's a Phase 1 migration —
- * see docs/ir35-trust-model.md). Until then we map the boolean honestly: a
- * truthy flag means the poster claimed outside ("client states"), never a
- * platform assertion; otherwise the signal is UNKNOWN. We never render a
- * "verified/SDS" signal off the old boolean.
+ * The `ir35Signal` and `source` enum members are identical between the DB enums
+ * and the trust-component types, so they pass through directly.
  */
 
 type DbJobLike = {
@@ -24,7 +19,9 @@ type DbJobLike = {
   dayRate: number[];
   workMode: string;
   contractLength?: number | null;
-  verifiedIR35Status?: boolean;
+  ir35Signal?: JobIR35Signal;
+  source?: 'NATIVE' | 'AGGREGATED';
+  sourceUrl?: string | null;
   createdAt?: Date | string;
 };
 
@@ -58,13 +55,10 @@ export const jobToCard = (job: DbJobLike): JobListCardData => ({
   companyLogo: job.companyLogo,
   location: locationAddress(job.location),
   dayRate: job.dayRate?.length ? job.dayRate : [0],
-  // Honest interim mapping — never derive a verified/SDS signal from the old boolean.
-  ir35Signal: (job.verifiedIR35Status
-    ? 'CLIENT_INTENDS_OUTSIDE'
-    : 'UNKNOWN') satisfies JobIR35Signal,
+  ir35Signal: job.ir35Signal ?? 'UNKNOWN',
   workMode: (job.workMode as WorkMode) ?? 'REMOTE',
   contractLengthDays: job.contractLength ?? null,
   postedLabel: postedLabel(job.createdAt),
-  source: 'NATIVE',
+  source: job.source ?? 'NATIVE',
   href: `/job/${job.id}`,
 });

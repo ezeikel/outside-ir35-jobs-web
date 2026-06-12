@@ -36,53 +36,127 @@ enum WorkMode {
   ON_SITE
 }
 
+// What a JOB LISTING claims about IR35 — always the CLIENT's claim, never the
+// platform's assertion. See docs/ir35-trust-model.md.
+enum JobIR35Signal {
+  CLIENT_INTENDS_OUTSIDE // "Client states this role is intended to be outside IR35"
+  SDS_ISSUED // client confirms a Status Determination Statement has been issued
+  SMALL_CLIENT_EXEMPT // small client → contractor's PSC self-determines
+  CONTRACT_REVIEW_HELD // IR35-specialist contract review on file (poster-supplied)
+  UNKNOWN // aggregated/scraped or unstated — first-class default
+  INSIDE // for completeness/filtering; not our niche
+}
+
+// How a listing reached us — native (posted) vs aggregated (scraped, attributed).
+enum JobSource {
+  NATIVE
+  AGGREGATED
+}
+
+// The contractor trust ladder (earned over time). Each tier = a specific,
+// defensible set of checks, never a status guarantee. See docs/ir35-trust-model.md.
+enum ContractorTrustTier {
+  SELF_DECLARED // T0 — typed it, nothing verified
+  IDENTITY_VERIFIED // T1 — Companies House + VAT auto-checks pass
+  DOCUMENTS_ON_FILE // T2 — PI/PL/EL certs uploaded, insurer/limit/expiry tracked
+  COMPLIANCE_CURRENT // T3 — all docs present AND in-date AND right-to-work confirmed
+}
+
+// Types of document in a contractor's compliance pack.
+enum ContractorDocType {
+  INCORPORATION
+  VAT_CERTIFICATE
+  PI_INSURANCE
+  PL_INSURANCE
+  EL_INSURANCE
+  RIGHT_TO_WORK
+  CV
+  OTHER
+}
+
+// Live status of a single compliance document.
+enum DocStatus {
+  ON_FILE
+  EXPIRING
+  PENDING
+  MISSING
+  FAILED
+}
+
 model Job {
-  id                 String        @id @default(cuid())
-  companyName        String
-  position           String
-  description        String
-  keywords           String[]
-  location           Json
-  companyLogo        String?
-  dayRate            Int[] // e.g. [100, 200] for a range or [100] for a fixed rate
-  howToApply         String
-  applicationEmail   String
-  workMode           WorkMode
-  contractLength     Int? //  in days e.g. 30, 60, 90
-  verifiedIR35Status Boolean       @default(false)
+  id               String   @id @default(cuid())
+  companyName      String
+  position         String
+  description      String
+  keywords         String[]
+  location         Json
+  companyLogo      String?
+  dayRate          Int[] // e.g. [100, 200] for a range or [100] for a fixed rate
+  howToApply       String
+  applicationEmail String
+  workMode         WorkMode
+  contractLength   Int? //  in days e.g. 30, 60, 90
+
+  // IR35 — the CLIENT's claim about the role, never the platform's assertion.
+  // Replaces the old verifiedIR35Status boolean (which asserted a status we have
+  // no authority to assert). See docs/ir35-trust-model.md.
+  ir35Signal               JobIR35Signal @default(UNKNOWN)
+  classificationConfidence Int? // 0–100, set by the AI classifier for aggregated jobs
+
+  // Aggregation — native posts vs scraped+attributed index entries.
+  source          JobSource @default(NATIVE)
+  sourceUrl       String? // link back to origin for aggregated listings
+  rawDescription  String? // unparsed source text (aggregation pipeline)
+  extractedSkills String[] // AI-extracted skills
+
+  // Semantic search. Prisma can't type pgvector — see the migration for the
+  // vector(1536) column + HNSW index; this field is raw-SQL only.
+  embedding Unsupported("vector(1536)")?
+
   // postedBy           User          @relation(fields: [userId], references: [id])
   // userId             String
-  isActive           Boolean       @default(true)
-  duration           Int           @default(30) // job post duration in days
-  applications       Application[]
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  isActive     Boolean       @default(true)
+  duration     Int           @default(30) // job post duration in days
+  applications Application[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   @@map("jobs")
 }
 
 model User {
-  id               String           @id @default(cuid())
-  name             String
-  email            String           @unique
-  role             Role
-  posterType       PosterType?
-  contactNumber    String?
-  address          String?
-  dob              DateTime?
-  subscription     Subscription?
-  credits          Int              @default(0)
+  id            String        @id @default(cuid())
+  name          String
+  email         String        @unique
+  role          Role
+  posterType    PosterType?
+  contactNumber String?
+  address       String?
+  dob           DateTime?
+  subscription  Subscription?
+  credits       Int           @default(0)
+
+  // Contractor trust (for role = JOB_SEEKER). The verified-profile moat.
+  trustTier             ContractorTrustTier          @default(SELF_DECLARED)
+  holdsIR35Insurance    Boolean                      @default(false)
+  ir35InsuranceProvider String? // e.g. "Qdos TLC35", "Markel Tax"
+  ir35InsuranceExpiry   DateTime?
+  rightToWorkConfirmed  Boolean                      @default(false)
+  parsedProfile         Json? // AI-parsed CV → structured profile
+  embedding             Unsupported("vector(1536)")? // semantic match; raw-SQL only
+
   applications     Application[]
   // jobs             Job[]
   limitedCompanies LimitedCompany[]
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  documents        ContractorDocument[]
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
 
   @@map("users")
 }
 
 model LimitedCompany {
-  id                  String   @id @default(cuid())
+  id                  String    @id @default(cuid())
   name                String
   address             String
   bankName            String
@@ -90,12 +164,34 @@ model LimitedCompany {
   bankSortCode        String
   vatNumber           String
   incorporationNumber String
-  user                User     @relation(fields: [userId], references: [id])
+  // When the checkable facts last passed against official registers (we record
+  // only what the gov APIs confirm — existence/active status, VAT validity).
+  companyVerifiedAt   DateTime? // Companies House
+  vatVerifiedAt       DateTime? // HMRC VAT / VIES
+  user                User      @relation(fields: [userId], references: [id])
   userId              String
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   @@map("limited_companies")
+}
+
+// A single document in a contractor's compliance pack (R2-backed, expiry-tracked).
+// Mirrors the DocStatusRow UI and the T2/T3 tiers in docs/ir35-trust-model.md.
+model ContractorDocument {
+  id         String            @id @default(cuid())
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  type       ContractorDocType
+  status     DocStatus         @default(PENDING)
+  insurer    String? // for insurance docs
+  coverLimit Int? // cover limit in pounds, e.g. 1000000
+  expiresAt  DateTime?
+  r2Key      String? // Cloudflare R2 object key (@outside-ir35-jobs/storage)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  @@map("contractor_documents")
 }
 
 model Subscription {

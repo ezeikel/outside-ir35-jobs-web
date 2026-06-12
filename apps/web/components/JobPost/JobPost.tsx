@@ -47,15 +47,13 @@ const JobPost = async ({ id }: JobPostProps) => {
   }
 
   const location = locationAddress(job.location);
-  // INTERIM: derive the IR35 signal honestly from the legacy boolean until the
-  // Phase 1 ir35Signal enum lands. Never a verified/SDS signal off the boolean.
-  // INTERIM: only the legacy boolean distinguishes "client claims outside" from
-  // "not stated". Once the Phase 1 ir35Signal enum lands this widens to include
-  // SDS_ISSUED / CONTRACT_REVIEW_HELD etc.
-  const isOutsideClaim = Boolean(job.verifiedIR35Status);
-  const ir35Signal: JobIR35Signal = isOutsideClaim
-    ? 'CLIENT_INTENDS_OUTSIDE'
-    : 'UNKNOWN';
+  const ir35Signal: JobIR35Signal = job.ir35Signal ?? 'UNKNOWN';
+  // Show the attributed-claim pull-quote only when the client leans outside.
+  const isOutsideClaim =
+    ir35Signal === 'CLIENT_INTENDS_OUTSIDE' ||
+    ir35Signal === 'SDS_ISSUED' ||
+    ir35Signal === 'CONTRACT_REVIEW_HELD' ||
+    ir35Signal === 'SMALL_CLIENT_EXEMPT';
 
   return (
     <article className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6">
