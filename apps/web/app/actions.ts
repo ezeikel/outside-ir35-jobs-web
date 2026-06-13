@@ -42,3 +42,16 @@ export const getJob = async (id: string) =>
   prisma.job.findUnique({
     where: { id },
   });
+
+// The verified contractor profile (the moat). Until auth is wired into a real
+// session, the /profile route shows the current viewer's profile — for now we
+// resolve the first JOB_SEEKER. Returns the contractor with their company +
+// compliance-pack documents.
+export const getContractorProfile = async (userId?: string) =>
+  prisma.user.findFirst({
+    where: userId ? { id: userId } : { role: 'JOB_SEEKER' },
+    include: {
+      limitedCompanies: true,
+      documents: { orderBy: { createdAt: 'asc' } },
+    },
+  });
