@@ -69,7 +69,10 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16
+        # pgvector-enabled Postgres: our migration runs `CREATE EXTENSION vector`,
+        # which stock `postgres:16` can't satisfy. This image ships pgvector so
+        # the shadow DB can replay the migration during the drift diff.
+        image: pgvector/pgvector:pg16
         env:
           POSTGRES_USER: prisma
           POSTGRES_PASSWORD: prisma
