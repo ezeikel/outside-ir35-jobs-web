@@ -58,10 +58,15 @@ jobs:
   # Neither is caught by `prisma validate` or `prisma migrate deploy`. Blocks
   # the `migrate` job below so prod never receives a drifted migration.
   #
-  # NOTE: this repo's Phase 1 migration intentionally hand-edits the generated
-  # SQL to add pgvector (CREATE EXTENSION + HNSW indexes) — additions Prisma
-  # cannot express from schema.prisma. `migrate diff` ignores those extra
-  # statements (it only diffs Prisma-expressible structure), so parity holds.
+  # NOTE: this repo's Phase 1 migration hand-edits the generated SQL to add
+  # pgvector (CREATE EXTENSION + two HNSW indexes on `vector` columns) —
+  # additions Prisma cannot express from schema.prisma. Unlike the extension
+  # statement, `migrate diff` DOES see the HNSW indexes when it introspects the
+  # replayed shadow DB, and — because schema.prisma can't declare an index on an
+  # `Unsupported("vector")` column — always reports them as "drift" (it wants to
+  # DROP them). That's a permanent false positive, so the parity check runs via
+  # scripts/check-drift.sh, which ignores exactly those `DROP INDEX
+  # …_embedding_hnsw_idx` statements and fails on anything else.
   check-drift:
     runs-on: ubuntu-latest
     name: Schema ↔ Migrations Parity
@@ -117,34 +122,12 @@ jobs:
           # happy. Must differ from SHADOW_DATABASE_URL or Prisma rejects
           # them as the same database.
           DATABASE_URL: 'postgresql://prisma:prisma@localhost:5432/postgres'
-        run: |
-          set +e
-          pnpm exec prisma migrate diff \
-            --from-migrations prisma/migrations \
-            --to-schema prisma/schema.prisma \
-            --exit-code
-          exit_code=$?
-          set -e
-
-          if [ $exit_code -eq 2 ]; then
-            echo "::error::Drift detected between schema.prisma and migrations/"
-            echo ""
-            echo "schema.prisma no longer matches what applying migrations/ would produce."
-            echo "Either:"
-            echo "  • schema.prisma was edited without running 'pnpm db:migrate', or"
-            echo "  • a migration.sql was hand-written with SQL that doesn't match."
-            echo ""
-            echo "Fix: in packages/db, revert the drift and run"
-            echo "     'pnpm db:migrate --name <descriptive_name>'"
-            echo "     so Prisma generates the correct migration."
-            exit 1
-          elif [ $exit_code -eq 0 ]; then
-            echo "✓ schema.prisma and migrations/ are in sync"
-            exit 0
-          else
-            echo "::error::prisma migrate diff failed with exit code $exit_code"
-            exit $exit_code
-          fi
+        # scripts/check-drift.sh runs `migrate diff --script`, then ignores the
+        # expected pgvector HNSW-index drift (which schema.prisma structurally
+        # can't declare) and fails on any other diff. See the script header and
+        # the job comment above for why the plain `--exit-code` check can't work
+        # here.
+        run: bash scripts/check-drift.sh
 
   migrate:
     runs-on: ubuntu-latest
