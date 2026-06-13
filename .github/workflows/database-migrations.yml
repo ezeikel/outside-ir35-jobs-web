@@ -6,9 +6,11 @@ on:
       - main
     paths:
       - 'packages/db/prisma/**'
+      - 'packages/db/prisma.config.ts'
   pull_request:
     paths:
       - 'packages/db/prisma/**'
+      - 'packages/db/prisma.config.ts'
   # Allow manual trigger for testing or manual deployments
   workflow_dispatch:
 

@@ -11,6 +11,12 @@ dotenv.config({
 const databaseUrl =
   process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
 
+// Shadow DB is only used by `prisma migrate diff --from-migrations ...` in the
+// CI drift-check job (Prisma 7 removed the --shadow-database-url CLI flag, so it
+// must be configured here). Local dev + `prisma migrate deploy` don't need it,
+// so only set it when the env var is present.
+const shadowDatabaseUrl = process.env.SHADOW_DATABASE_URL;
+
 export default defineConfig({
   schema: './prisma/schema.prisma',
   migrations: {
@@ -18,5 +24,6 @@ export default defineConfig({
   },
   datasource: {
     url: databaseUrl,
+    ...(shadowDatabaseUrl ? { shadowDatabaseUrl } : {}),
   },
 });
