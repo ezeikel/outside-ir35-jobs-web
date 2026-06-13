@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { getContractorProfile } from '@/app/actions';
+import { auth } from '@/auth';
 import ContractorProfile, {
   type ContractorProfileData,
 } from '@/components/ContractorProfile/ContractorProfile';
@@ -11,6 +13,17 @@ export const metadata: Metadata = {
 };
 
 const ProfilePage = async () => {
+  const session = await auth();
+
+  // Must be signed in; unonboarded users go pick a role first.
+  if (!session?.userId) {
+    redirect('/api/auth/signin');
+  }
+  if (!session.onboarded) {
+    redirect('/onboarding');
+  }
+
+  // Session-scoped: returns null for posters or contractors with no data yet.
   const profile = await getContractorProfile();
 
   if (!profile) {

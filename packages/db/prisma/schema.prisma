@@ -128,8 +128,12 @@ model User {
   id            String        @id @default(cuid())
   name          String
   email         String        @unique
-  role          Role
+  // Nullable until onboarding: NextAuth creates the user on first sign-in, before
+  // they pick contractor (JOB_SEEKER) vs hiring (JOB_POSTER). `role == null`
+  // (or onboardedAt == null) means "not yet onboarded".
+  role          Role?
   posterType    PosterType?
+  onboardedAt   DateTime?
   contactNumber String?
   address       String?
   dob           DateTime?

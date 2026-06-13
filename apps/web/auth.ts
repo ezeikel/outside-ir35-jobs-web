@@ -1,4 +1,4 @@
-import { db as prisma, Role } from '@outside-ir35-jobs/db';
+import { db as prisma } from '@outside-ir35-jobs/db';
 import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 
@@ -11,38 +11,44 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     async signIn({ account, profile }) {
-      if (account?.provider === 'google') {
-        const existingUser = profile?.email
-          ? await prisma.user.findUnique({ where: { email: profile.email } })
-          : null;
+      if (account?.provider !== 'google' || !profile?.email) {
+        return false;
+      }
 
-        if (existingUser) {
-          return true;
-        }
+      const existingUser = await prisma.user.findUnique({
+        where: { email: profile.email },
+      });
 
-        await prisma.user.create({
-          data: {
-            email: profile?.email as string,
-            name: profile?.name as string,
-            // TODO: default to job seeker for now but should be via button in UI?
-            role: Role.JOB_SEEKER,
-          },
-        }); // create a new user with these details
+      if (existingUser) {
         return true;
       }
 
-      // TODO: handle other providers
-      return false;
+      // First sign-in: create a provisional user with NO role. The user picks
+      // contractor (JOB_SEEKER) vs hiring (JOB_POSTER) at /onboarding, which sets
+      // role + onboardedAt via the setUserRole action. (name is required.)
+      await prisma.user.create({
+        data: {
+          email: profile.email,
+          name: profile.name ?? '',
+          role: null,
+          onboardedAt: null,
+        },
+      });
+      return true;
     },
     async session({ session, token }) {
       const dbUser = token.email
         ? await prisma.user.findUnique({
             where: { email: token.email },
+            select: { id: true, role: true, onboardedAt: true },
           })
         : null;
 
-      // eslint-disable-next-line no-param-reassign
+      /* eslint-disable no-param-reassign */
       session.userId = dbUser?.id as string;
+      session.role = dbUser?.role ?? null;
+      session.onboarded = !!dbUser?.onboardedAt;
+      /* eslint-enable no-param-reassign */
       return session;
     },
   },

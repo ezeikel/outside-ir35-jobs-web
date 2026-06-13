@@ -1,4 +1,9 @@
-import { JobIR35Signal, WorkMode } from '@outside-ir35-jobs/db/types';
+import {
+  JobIR35Signal,
+  PosterType,
+  Role,
+  WorkMode,
+} from '@outside-ir35-jobs/db/types';
 import { z } from 'zod';
 
 export const PostJobFormSchema = z.object({
@@ -34,3 +39,18 @@ export const PostJobFormSchema = z.object({
 });
 
 export type PostJobFormValues = z.infer<typeof PostJobFormSchema>;
+
+// Role chosen at onboarding (first sign-in). The UI offers contractor
+// (JOB_SEEKER) vs hiring (JOB_POSTER) — ADMIN is never offered. When hiring, the
+// user must also say whether they're a recruiter or hiring directly (posterType).
+export const OnboardingRoleSchema = z
+  .object({
+    role: z.nativeEnum(Role),
+    posterType: z.nativeEnum(PosterType).optional(),
+  })
+  .refine((v) => v.role !== Role.JOB_POSTER || !!v.posterType, {
+    message: 'Please tell us whether you’re a recruiter or hiring directly.',
+    path: ['posterType'],
+  });
+
+export type OnboardingRoleValues = z.infer<typeof OnboardingRoleSchema>;

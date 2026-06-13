@@ -3,6 +3,7 @@ import Link from 'next/link';
 import cn from '@/utils/cn';
 import HeaderLogo from '../HeaderLogo/HeaderLogo';
 import { Button } from '../ui/button';
+import UserMenu from './UserMenu';
 
 interface HeaderProps {
   className?: string;
@@ -43,9 +44,7 @@ const Header = ({ className }: HeaderProps) => (
       </nav>
     </div>
     <div className="hidden items-center gap-2 md:flex">
-      <Button asChild variant="ghost">
-        <Link href="/">Log in</Link>
-      </Button>
+      <UserMenu />
       <Button asChild>
         <Link href="/job/post">Post a job</Link>
       </Button>
