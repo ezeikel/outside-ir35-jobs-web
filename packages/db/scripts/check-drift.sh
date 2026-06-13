@@ -26,15 +26,23 @@ set -uo pipefail
 
 cd "$(dirname "$0")/.."
 
-# `migrate diff --script` prints the would-be SQL. We don't use --exit-code here
-# because we need to inspect WHICH statements differ, not just whether any do.
-# Capture stdout+stderr and the exit code separately (no `set -e`, so a non-zero
-# exit doesn't abort before we can inspect it).
+# `migrate diff --script` prints the would-be SQL to STDOUT. We don't use
+# --exit-code here because we need to inspect WHICH statements differ, not just
+# whether any do.
+#
+# Capture stdout and stderr SEPARATELY: only stdout is the SQL we parse. pnpm
+# and the Prisma config loader emit chatter on stderr (e.g. the
+# `WARN Issue while reading .npmrc … FONTAWESOME_NPM_AUTH_TOKEN` warning on CI),
+# and folding that into the SQL stream made a benign warning look like a
+# non-HNSW "drift" statement → false failure. stderr is kept only for the
+# error path. `set +e` so a non-zero exit doesn't abort before we inspect it.
+stderr_file="$(mktemp)"
+trap 'rm -f "$stderr_file"' EXIT
 set +e
 diff_sql="$(pnpm exec prisma migrate diff \
   --from-migrations prisma/migrations \
   --to-schema prisma/schema.prisma \
-  --script 2>&1)"
+  --script 2>"$stderr_file")"
 diff_status=$?
 
 # `prisma migrate diff` exits non-zero on engine errors (bad shadow DB, invalid
@@ -43,6 +51,7 @@ diff_status=$?
 if [ "$diff_status" -ne 0 ]; then
   echo "::error::prisma migrate diff failed (exit $diff_status):"
   printf '%s\n' "$diff_sql"
+  cat "$stderr_file" >&2
   exit "$diff_status"
 fi
 
