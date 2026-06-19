@@ -22,6 +22,13 @@ export const createJobPost = async ({
   howToApply,
   applicationEmail,
 }: PostJobFormValues) => {
+  // Only signed-in posters may create jobs; the owner comes from the session,
+  // never the client payload.
+  const session = await auth();
+  if (!session?.userId || session.role !== Role.JOB_POSTER) {
+    throw new Error('Only job posters can create jobs');
+  }
+
   // keywords arrive as a free-text string (e.g. "React, Node.js"); the column is
   // String[]. Split on commas, trim, drop blanks.
   const keywordList = keywords
@@ -45,6 +52,8 @@ export const createJobPost = async ({
       ...(companyLogo ? { companyLogo } : {}),
       howToApply,
       applicationEmail,
+      // Attribute the job to its poster.
+      userId: session.userId,
     },
   });
 

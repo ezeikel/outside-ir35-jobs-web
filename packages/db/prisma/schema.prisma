@@ -113,8 +113,11 @@ model Job {
   // vector(1536) column + HNSW index; this field is raw-SQL only.
   embedding Unsupported("vector(1536)")?
 
-  // postedBy           User          @relation(fields: [userId], references: [id])
-  // userId             String
+  // The poster who owns this job (role = JOB_POSTER). Nullable: legacy/seed jobs
+  // and future AGGREGATED (scraped) listings have no owner. SetNull so deleting a
+  // poster doesn't delete their jobs.
+  postedBy     User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId       String?
   isActive     Boolean       @default(true)
   duration     Int           @default(30) // job post duration in days
   applications Application[]
@@ -150,7 +153,7 @@ model User {
   embedding             Unsupported("vector(1536)")? // semantic match; raw-SQL only
 
   applications     Application[]
-  // jobs             Job[]
+  jobs             Job[] // jobs this user posted (role = JOB_POSTER)
   limitedCompanies LimitedCompany[]
   documents        ContractorDocument[]
   createdAt        DateTime             @default(now())
