@@ -17,9 +17,18 @@ export const createJobPost = async ({
   workMode,
   ir35Signal,
   description,
+  keywords,
+  companyLogo,
   howToApply,
   applicationEmail,
 }: PostJobFormValues) => {
+  // keywords arrive as a free-text string (e.g. "React, Node.js"); the column is
+  // String[]. Split on commas, trim, drop blanks.
+  const keywordList = keywords
+    .split(',')
+    .map((k) => k.trim())
+    .filter(Boolean);
+
   const job = await prisma.job.create({
     data: {
       position,
@@ -31,17 +40,26 @@ export const createJobPost = async ({
       // when unset — we never persist an assertion of status.
       ir35Signal: ir35Signal ?? 'UNKNOWN',
       description,
+      keywords: keywordList,
+      // Optional column — only set when the poster supplied a logo URL.
+      ...(companyLogo ? { companyLogo } : {}),
       howToApply,
       applicationEmail,
     },
   });
 
   revalidatePath('/jobs');
+  // Homepage shows the latest contracts too.
+  revalidatePath('/');
 
   return job;
 };
 
-export const getJobs = async () => prisma.job.findMany();
+export const getJobs = async () =>
+  prisma.job.findMany({
+    where: { isActive: true },
+    orderBy: { createdAt: 'desc' },
+  });
 
 export const getJob = async (id: string) =>
   prisma.job.findUnique({
