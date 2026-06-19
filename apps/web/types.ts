@@ -1,10 +1,17 @@
 import {
+  ContractorDocType,
   JobIR35Signal,
   PosterType,
   Role,
   WorkMode,
 } from '@outside-ir35-jobs/db/types';
 import { z } from 'zod';
+
+const INSURANCE_DOC_TYPES = [
+  ContractorDocType.PI_INSURANCE,
+  ContractorDocType.PL_INSURANCE,
+  ContractorDocType.EL_INSURANCE,
+] as const;
 
 export const PostJobFormSchema = z.object({
   companyName: z.string(),
@@ -54,3 +61,25 @@ export const OnboardingRoleSchema = z
   });
 
 export type OnboardingRoleValues = z.infer<typeof OnboardingRoleSchema>;
+
+// Editing a document's compliance metadata (insurer / cover limit / expiry).
+// Insurance certs (PI/PL/EL) require all three; right-to-work takes expiry only;
+// other types carry no metadata. `coerce` turns form strings into number/date.
+export const DocumentMetadataSchema = z
+  .object({
+    type: z.nativeEnum(ContractorDocType),
+    insurer: z.string().trim().min(1).optional(),
+    coverLimit: z.coerce.number().int().positive().optional(),
+    expiresAt: z.coerce.date().optional(),
+  })
+  .refine(
+    (v) =>
+      !(INSURANCE_DOC_TYPES as readonly ContractorDocType[]).includes(v.type) ||
+      (!!v.insurer && !!v.coverLimit && !!v.expiresAt),
+    {
+      message: 'Insurer, cover limit and expiry date are all required.',
+      path: ['insurer'],
+    },
+  );
+
+export type DocumentMetadataValues = z.infer<typeof DocumentMetadataSchema>;

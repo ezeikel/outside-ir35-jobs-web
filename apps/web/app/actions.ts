@@ -9,8 +9,15 @@ import {
 import { del, getSignedDownloadUrl, put } from '@outside-ir35-jobs/storage';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
-import { validateUpload } from '@/lib/documents/validate';
 import {
+  computeDocStatus,
+  parseCoverLimit,
+  parseExpiry,
+  tracksExpiry,
+  validateUpload,
+} from '@/lib/documents/validate';
+import {
+  DocumentMetadataSchema,
   OnboardingRoleSchema,
   OnboardingRoleValues,
   PostJobFormValues,
@@ -163,11 +170,12 @@ export const uploadContractorDocument = async (formData: FormData) => {
 
   await put(key, buffer, { contentType: file.type });
 
-  // Replace any existing doc of this type; delete its old R2 object first.
   const existing = await prisma.contractorDocument.findUnique({
     where: { userId_type: { userId: session.userId, type } },
-    select: { r2Key: true },
+    select: { r2Key: true, insurer: true, coverLimit: true, expiresAt: true },
   });
+
+  // Replace the old R2 object if the key changed.
   if (existing?.r2Key && existing.r2Key !== key) {
     // Best-effort cleanup — don't fail the upload if the old object is already gone.
     try {
@@ -177,22 +185,34 @@ export const uploadContractorDocument = async (formData: FormData) => {
     }
   }
 
+  // Metadata is only meaningful for expiry-tracking types (insurance, RTW). If the
+  // form supplied values use them; otherwise PRESERVE what's already on file (a
+  // re-upload of just the file must not wipe insurer/cover/expiry).
+  const supplied = tracksExpiry(type)
+    ? {
+        insurer: (formData.get('insurer') as string | null)?.trim() || null,
+        coverLimit: parseCoverLimit(formData.get('coverLimit')),
+        expiresAt: parseExpiry(formData.get('expiresAt')),
+      }
+    : { insurer: null, coverLimit: null, expiresAt: null };
+
+  const insurer = supplied.insurer ?? existing?.insurer ?? null;
+  const coverLimit = supplied.coverLimit ?? existing?.coverLimit ?? null;
+  const expiresAt = supplied.expiresAt ?? existing?.expiresAt ?? null;
+  const status = computeDocStatus(expiresAt, new Date());
+
   await prisma.contractorDocument.upsert({
     where: { userId_type: { userId: session.userId, type } },
     create: {
       userId: session.userId,
       type,
       r2Key: key,
-      status: DocStatus.ON_FILE,
+      status,
+      insurer,
+      coverLimit,
+      expiresAt,
     },
-    update: {
-      r2Key: key,
-      status: DocStatus.ON_FILE,
-      // A fresh upload resets type-specific metadata until re-entered.
-      insurer: null,
-      coverLimit: null,
-      expiresAt: null,
-    },
+    update: { r2Key: key, status, insurer, coverLimit, expiresAt },
   });
 
   revalidatePath('/profile');
@@ -217,4 +237,82 @@ export const getDocumentDownloadUrl = async (
   }
 
   return getSignedDownloadUrl(doc.r2Key, 300);
+};
+
+// Edit a document's compliance metadata (insurer / cover limit / expiry) without
+// re-uploading the file. Recomputes status from the new expiry. The doc's `type`
+// is read from the row (not trusted from the client). Accepts raw form strings;
+// the zod schema coerces coverLimit→number and expiresAt→Date.
+export const setDocumentMetadata = async (
+  documentId: string,
+  input: {
+    insurer?: string;
+    coverLimit?: string;
+    expiresAt?: string;
+  },
+) => {
+  const session = await auth();
+  if (!session?.userId || session.role !== Role.JOB_SEEKER) {
+    throw new Error('Only contractors can edit documents');
+  }
+
+  const doc = await prisma.contractorDocument.findUnique({
+    where: { id: documentId },
+    select: { userId: true, type: true },
+  });
+  if (!doc || doc.userId !== session.userId) {
+    throw new Error('Document not found');
+  }
+
+  // Validate with the doc's real type (insurance ⇒ all three required).
+  const { insurer, coverLimit, expiresAt } = DocumentMetadataSchema.parse({
+    type: doc.type,
+    ...input,
+  });
+
+  await prisma.contractorDocument.update({
+    where: { id: documentId },
+    data: {
+      insurer: insurer ?? null,
+      coverLimit: coverLimit ?? null,
+      expiresAt: expiresAt ?? null,
+      status: computeDocStatus(expiresAt ?? null, new Date()),
+    },
+  });
+
+  revalidatePath('/profile');
+};
+
+// Daily expiry sweep: recompute status for every doc that has an expiry, flipping
+// ON_FILE → EXPIRING (within the warn window) → FAILED (past expiry). Idempotent —
+// only writes rows whose computed status differs from what's stored. Called by the
+// cron route (which handles auth); takes no session itself.
+export const sweepDocumentExpiry = async () => {
+  const now = new Date();
+  const docs = await prisma.contractorDocument.findMany({
+    where: { expiresAt: { not: null } },
+    select: { id: true, expiresAt: true, status: true },
+  });
+
+  const changed: { id: string; from: DocStatus; to: DocStatus }[] = [];
+  for (const doc of docs) {
+    const next = computeDocStatus(doc.expiresAt, now);
+    if (next !== doc.status) {
+      changed.push({ id: doc.id, from: doc.status, to: next });
+    }
+  }
+
+  if (changed.length > 0) {
+    await prisma.$transaction(
+      changed.map((c) =>
+        prisma.contractorDocument.update({
+          where: { id: c.id },
+          data: { status: c.to },
+        }),
+      ),
+    );
+    revalidatePath('/profile');
+  }
+
+  return { scanned: docs.length, updated: changed.length, changed };
 };

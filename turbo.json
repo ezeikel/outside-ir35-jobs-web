@@ -9,6 +9,7 @@
       "env": [
         "ANTHROPIC_API_KEY",
         "AUTH_SECRET",
+        "CRON_SECRET",
         "DATABASE_URL",
         "DATABASE_URL_UNPOOLED",
         "FONTAWESOME_NPM_AUTH_TOKEN",

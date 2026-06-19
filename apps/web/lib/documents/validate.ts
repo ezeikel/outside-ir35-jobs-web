@@ -1,4 +1,4 @@
-import { ContractorDocType } from '@outside-ir35-jobs/db/types';
+import { ContractorDocType, DocStatus } from '@outside-ir35-jobs/db/types';
 
 /**
  * Validation for contractor document uploads. Pure logic (no Prisma/Next) so it
@@ -60,4 +60,75 @@ export const validateUpload = (input: UploadCandidate): UploadValidation => {
   }
 
   return { ok: true, type: input.type };
+};
+
+/* ------------------------------------------------------------------ *
+ * Document lifecycle: metadata + expiry status.                       *
+ * Pure logic shared by the upload/edit actions AND the expiry cron so *
+ * the two can never disagree about a doc's status.                    *
+ * ------------------------------------------------------------------ */
+
+// Days before expiry that a doc starts showing as EXPIRING.
+export const EXPIRY_WARN_DAYS = 30;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const INSURANCE_TYPES: ContractorDocType[] = [
+  ContractorDocType.PI_INSURANCE,
+  ContractorDocType.PL_INSURANCE,
+  ContractorDocType.EL_INSURANCE,
+];
+
+// Insurance certs carry insurer + cover limit + expiry.
+export const isInsuranceType = (type: string): boolean =>
+  (INSURANCE_TYPES as string[]).includes(type);
+
+// Types that carry an expiry date: insurance certs, plus right-to-work
+// (time-limited visas). Right-to-work has no insurer/cover.
+export const tracksExpiry = (type: string): boolean =>
+  isInsuranceType(type) || type === ContractorDocType.RIGHT_TO_WORK;
+
+/**
+ * Parse a cover-limit form value to whole pounds. Returns null for blank /
+ * non-numeric / non-positive input (so the column stays null rather than 0).
+ */
+export const parseCoverLimit = (raw: unknown): number | null => {
+  if (raw === null || raw === undefined || raw === '') return null;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.round(n);
+};
+
+/**
+ * Parse an expiry form value (e.g. an <input type="date"> string) to a Date.
+ * Returns null for blank / unparseable input.
+ */
+export const parseExpiry = (raw: unknown): Date | null => {
+  if (raw === null || raw === undefined || raw === '') return null;
+  const d = new Date(raw as string | number | Date);
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
+/**
+ * The single source of truth for a document's lifecycle status, derived from its
+ * expiry. Used by the upload/edit actions (on write) and the daily cron sweep.
+ *
+ * - no expiry            → ON_FILE  (e.g. CV, incorporation, or insurance with
+ *                                    expiry not yet entered)
+ * - expiry > warn window → ON_FILE
+ * - within warn window   → EXPIRING
+ * - on/after expiry      → FAILED   (expired — no longer valid cover)
+ *
+ * `now` is injected so it's deterministic in tests and consistent within a sweep.
+ */
+export const computeDocStatus = (
+  expiresAt: Date | null | undefined,
+  now: Date,
+  warnDays: number = EXPIRY_WARN_DAYS,
+): DocStatus => {
+  if (!expiresAt) return DocStatus.ON_FILE;
+
+  const msLeft = expiresAt.getTime() - now.getTime();
+  if (msLeft <= 0) return DocStatus.FAILED;
+  if (msLeft <= warnDays * DAY_MS) return DocStatus.EXPIRING;
+  return DocStatus.ON_FILE;
 };

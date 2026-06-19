@@ -7,6 +7,8 @@ import {
   VerifiedBadge,
   VerifiedFactRow,
 } from '@/components/trust';
+import { tracksExpiry } from '@/lib/documents/validate';
+import DocumentMetaForm from './DocumentMetaForm';
 import DocumentUpload from './DocumentUpload';
 
 /**
@@ -196,12 +198,22 @@ const ContractorProfile = ({ data }: { data: ContractorProfileData }) => {
               </p>
             ) : (
               data.documents.map((doc) => (
-                <DocStatusRow
-                  key={doc.id}
-                  name={DOC_LABEL[doc.type] ?? doc.type}
-                  status={DOC_STATUS[doc.status] ?? 'pending'}
-                  detail={docDetail(doc)}
-                />
+                <div key={doc.id}>
+                  <DocStatusRow
+                    name={DOC_LABEL[doc.type] ?? doc.type}
+                    status={DOC_STATUS[doc.status] ?? 'pending'}
+                    detail={docDetail(doc)}
+                  />
+                  {tracksExpiry(doc.type) && (
+                    <DocumentMetaForm
+                      documentId={doc.id}
+                      type={doc.type}
+                      insurer={doc.insurer}
+                      coverLimit={doc.coverLimit}
+                      expiresAt={doc.expiresAt}
+                    />
+                  )}
+                </div>
               ))
             )}
             <DocumentUpload />
