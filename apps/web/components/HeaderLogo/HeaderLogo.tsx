@@ -1,32 +1,13 @@
-'use client';
-
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { useMediaQuery } from 'react-responsive';
 
-const HeaderLogo = () => {
-  const [isClient, setIsClient] = useState(false);
-  const isNotMobile = useMediaQuery({ minWidth: 768 }, undefined, (matches) => {
-    if (isClient) {
-      return matches;
-    }
-
-    return false;
-  });
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  if (!isClient) {
-    return 'Loading...';
-  }
-
-  return (
-    <Link className="text-xl font-bold" href="/">
-      {isNotMobile ? 'Outside IR35 Jobs' : 'OIR35J'}
-    </Link>
-  );
-};
+// The brand wordmark, in the Register display face (Instrument Serif) to match
+// the rest of the site. Responsive label via CSS (no JS media query → no
+// hydration flash): full name on sm+, short mark on mobile.
+const HeaderLogo = () => (
+  <Link href="/" className="font-display text-2xl leading-none tracking-tight">
+    <span className="hidden sm:inline">Outside IR35 Jobs</span>
+    <span className="sm:hidden">OIR35J</span>
+  </Link>
+);
 
 export default HeaderLogo;

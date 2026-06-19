@@ -30,16 +30,6 @@ const Header = ({ className }: HeaderProps) => (
               Jobs
             </Link>
           </li>
-          <li>
-            <Link className="transition-colors hover:text-foreground" href="/">
-              Companies
-            </Link>
-          </li>
-          <li>
-            <Link className="transition-colors hover:text-foreground" href="/">
-              Resources
-            </Link>
-          </li>
         </ul>
       </nav>
     </div>

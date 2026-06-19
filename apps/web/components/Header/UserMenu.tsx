@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 
@@ -23,9 +24,12 @@ const UserMenu = () => {
 
   return (
     <div className="flex items-center gap-2">
-      <span className="hidden text-sm text-muted-foreground sm:inline">
+      <Link
+        href="/profile"
+        className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline"
+      >
         {session.user.name || session.user.email}
-      </span>
+      </Link>
       <Button variant="ghost" onClick={() => signOut()}>
         Sign out
       </Button>
