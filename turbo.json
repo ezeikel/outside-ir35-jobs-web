@@ -45,7 +45,7 @@
       "outputs": ["coverage/**"]
     },
     "db:generate": {
-      "inputs": ["packages/db/prisma/schema.prisma"],
+      "inputs": ["prisma/schema.prisma"],
       "outputs": ["src/generated/**"]
     },
     "db:migrate": {
