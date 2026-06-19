@@ -7,6 +7,7 @@ import {
   VerifiedBadge,
   VerifiedFactRow,
 } from '@/components/trust';
+import DocumentUpload from './DocumentUpload';
 
 /**
  * The verified contractor profile — the platform's moat made visible.
@@ -56,7 +57,7 @@ const fmtDate = (d: Date | string | null | undefined): string => {
   });
 };
 
-const DOC_LABEL: Record<string, string> = {
+export const DOC_LABEL: Record<string, string> = {
   INCORPORATION: 'Certificate of incorporation',
   VAT_CERTIFICATE: 'VAT certificate',
   PI_INSURANCE: 'Professional Indemnity insurance',
@@ -203,6 +204,7 @@ const ContractorProfile = ({ data }: { data: ContractorProfileData }) => {
                 />
               ))
             )}
+            <DocumentUpload />
           </section>
         </div>
 

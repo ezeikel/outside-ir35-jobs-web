@@ -7,6 +7,13 @@ const nextConfig = {
   transpilePackages: ['@outside-ir35-jobs/db', '@outside-ir35-jobs/storage'],
   // Renamed from experimental.serverComponentsExternalPackages in Next 15.
   serverExternalPackages: ['@react-pdf/renderer'],
+  experimental: {
+    // Contractor document uploads go through a server action; the default 1 MB
+    // body cap is too small for a PDF/scan. Match the 10 MB validation ceiling.
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
+  },
 };
 
 // sentry configuration options

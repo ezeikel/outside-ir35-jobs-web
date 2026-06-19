@@ -1,8 +1,15 @@
 'use server';
 
-import { db as prisma, Role } from '@outside-ir35-jobs/db';
+import {
+  ContractorDocType,
+  DocStatus,
+  db as prisma,
+  Role,
+} from '@outside-ir35-jobs/db';
+import { del, getSignedDownloadUrl, put } from '@outside-ir35-jobs/storage';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
+import { validateUpload } from '@/lib/documents/validate';
 import {
   OnboardingRoleSchema,
   OnboardingRoleValues,
@@ -121,4 +128,93 @@ export const getContractorProfile = async () => {
       documents: { orderBy: { createdAt: 'asc' } },
     },
   });
+};
+
+// Upload a compliance-pack document to R2 and record it. One row per (user, type)
+// — re-uploading a type replaces the file. status=ON_FILE is an objective "we hold
+// this file" fact, never an IR35 assertion. Owner comes from the session.
+export const uploadContractorDocument = async (formData: FormData) => {
+  const session = await auth();
+  if (!session?.userId || session.role !== Role.JOB_SEEKER) {
+    throw new Error('Only contractors can upload documents');
+  }
+
+  const rawType = String(formData.get('type') ?? '');
+  const file = formData.get('file');
+  if (!(file instanceof File)) {
+    throw new Error('No file provided');
+  }
+
+  const check = validateUpload({
+    type: rawType,
+    mimeType: file.type,
+    size: file.size,
+  });
+  if (!check.ok) {
+    throw new Error(check.error);
+  }
+  const type: ContractorDocType = check.type;
+
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
+  // User-scoped, random key — no leading slash (the package prepends the bucket).
+  // The UUID keeps the key unguessable even though the bucket is private.
+  const key = `contractors/${session.userId}/${type.toLowerCase()}/${crypto.randomUUID()}.${ext}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  await put(key, buffer, { contentType: file.type });
+
+  // Replace any existing doc of this type; delete its old R2 object first.
+  const existing = await prisma.contractorDocument.findUnique({
+    where: { userId_type: { userId: session.userId, type } },
+    select: { r2Key: true },
+  });
+  if (existing?.r2Key && existing.r2Key !== key) {
+    // Best-effort cleanup — don't fail the upload if the old object is already gone.
+    try {
+      await del(existing.r2Key);
+    } catch {
+      // ignore
+    }
+  }
+
+  await prisma.contractorDocument.upsert({
+    where: { userId_type: { userId: session.userId, type } },
+    create: {
+      userId: session.userId,
+      type,
+      r2Key: key,
+      status: DocStatus.ON_FILE,
+    },
+    update: {
+      r2Key: key,
+      status: DocStatus.ON_FILE,
+      // A fresh upload resets type-specific metadata until re-entered.
+      insurer: null,
+      coverLimit: null,
+      expiresAt: null,
+    },
+  });
+
+  revalidatePath('/profile');
+};
+
+// Return a short-lived presigned URL to view/download one of the caller's own
+// documents. Private bucket → never a public R2_PUBLIC_URL concat.
+export const getDocumentDownloadUrl = async (
+  documentId: string,
+): Promise<string> => {
+  const session = await auth();
+  if (!session?.userId) {
+    throw new Error('Not authenticated');
+  }
+
+  const doc = await prisma.contractorDocument.findUnique({
+    where: { id: documentId },
+    select: { userId: true, r2Key: true },
+  });
+  if (!doc || doc.userId !== session.userId || !doc.r2Key) {
+    throw new Error('Document not found');
+  }
+
+  return getSignedDownloadUrl(doc.r2Key, 300);
 };

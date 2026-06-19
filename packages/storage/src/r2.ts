@@ -10,11 +10,13 @@
 
 import {
   DeleteObjectCommand,
+  GetObjectCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 // Lazy initialization to avoid errors when env vars aren't set
 let r2Client: S3Client | null = null;
@@ -234,6 +236,31 @@ export async function exists(pathname: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/**
+ * Generate a short-lived presigned GET URL for a private object.
+ *
+ * For private buckets (e.g. contractor documents — CVs, incorporation/insurance
+ * certs, which are PII), objects must NOT be served via public `R2_PUBLIC_URL`
+ * concatenation. Instead, generate a time-limited signed URL server-side and hand
+ * it to the browser; it expires after `expiresIn` seconds.
+ *
+ * @param key        the object key (no leading slash), as stored
+ * @param expiresIn  lifetime in seconds (default 300 = 5 minutes)
+ */
+export async function getSignedDownloadUrl(
+  key: string,
+  expiresIn = 300,
+): Promise<string> {
+  const client = getR2Client();
+  const bucket = getBucket();
+
+  return getSignedUrl(
+    client,
+    new GetObjectCommand({ Bucket: bucket, Key: key }),
+    { expiresIn },
+  );
 }
 
 /**

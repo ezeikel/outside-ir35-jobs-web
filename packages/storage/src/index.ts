@@ -8,4 +8,4 @@
  */
 
 export type { ListOptions, ListResult, PutOptions, PutResult } from './r2';
-export { del, exists, list, put } from './r2';
+export { del, exists, getSignedDownloadUrl, list, put } from './r2';

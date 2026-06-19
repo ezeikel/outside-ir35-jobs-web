@@ -198,6 +198,9 @@ model ContractorDocument {
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
 
+  // One document per type per contractor — lets the upload action upsert
+  // (re-uploading a type replaces the existing row + R2 object).
+  @@unique([userId, type])
   @@map("contractor_documents")
 }
 
