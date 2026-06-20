@@ -21,6 +21,7 @@ import {
   tracksExpiry,
   validateUpload,
 } from '@/lib/documents/validate';
+import { embedAndStoreJob } from '@/lib/search/embed-job';
 import { embedQuery } from '@/lib/search/embed-query';
 import {
   normalizeFilters,
@@ -117,6 +118,15 @@ export const createJobPost = async ({
       // Attribute the job to its poster.
       userId: session.userId,
     },
+  });
+
+  // Embed it so it appears in semantic search alongside aggregated jobs
+  // (best-effort — doesn't block creation if embedding fails).
+  await embedAndStoreJob({
+    id: job.id,
+    position,
+    keywords: keywordList,
+    description,
   });
 
   revalidatePath('/jobs');
