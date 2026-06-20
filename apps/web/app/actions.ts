@@ -9,6 +9,7 @@ import {
 import { del, getSignedDownloadUrl, put } from '@outside-ir35-jobs/storage';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
+import { computeTrustTier } from '@/lib/contractor/trust-tier';
 import {
   computeDocStatus,
   parseCoverLimit,
@@ -22,6 +23,39 @@ import {
   OnboardingRoleValues,
   PostJobFormValues,
 } from '@/types';
+
+// Recompute a contractor's trust tier from their verified companies + documents +
+// right-to-work, persisting only when it changes. Internal helper (NOT exported —
+// every export in a 'use server' file is a client-callable action). Called after
+// any change that can move the tier: upload, metadata edit, expiry sweep.
+const recomputeTrustTier = async (userId: string): Promise<boolean> => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      trustTier: true,
+      rightToWorkConfirmed: true,
+      limitedCompanies: {
+        select: { companyVerifiedAt: true, vatVerifiedAt: true },
+      },
+      documents: { select: { type: true, status: true } },
+    },
+  });
+  if (!user) return false;
+
+  const next = computeTrustTier({
+    companies: user.limitedCompanies,
+    documents: user.documents,
+    rightToWorkConfirmed: user.rightToWorkConfirmed,
+  });
+
+  if (next === user.trustTier) return false;
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { trustTier: next },
+  });
+  return true;
+};
 
 export const createJobPost = async ({
   position,
@@ -215,6 +249,7 @@ export const uploadContractorDocument = async (formData: FormData) => {
     update: { r2Key: key, status, insurer, coverLimit, expiresAt },
   });
 
+  await recomputeTrustTier(session.userId);
   revalidatePath('/profile');
 };
 
@@ -280,6 +315,7 @@ export const setDocumentMetadata = async (
     },
   });
 
+  await recomputeTrustTier(session.userId);
   revalidatePath('/profile');
 };
 
@@ -291,14 +327,24 @@ export const sweepDocumentExpiry = async () => {
   const now = new Date();
   const docs = await prisma.contractorDocument.findMany({
     where: { expiresAt: { not: null } },
-    select: { id: true, expiresAt: true, status: true },
+    select: { id: true, userId: true, expiresAt: true, status: true },
   });
 
-  const changed: { id: string; from: DocStatus; to: DocStatus }[] = [];
+  const changed: {
+    id: string;
+    userId: string;
+    from: DocStatus;
+    to: DocStatus;
+  }[] = [];
   for (const doc of docs) {
     const next = computeDocStatus(doc.expiresAt, now);
     if (next !== doc.status) {
-      changed.push({ id: doc.id, from: doc.status, to: next });
+      changed.push({
+        id: doc.id,
+        userId: doc.userId,
+        from: doc.status,
+        to: next,
+      });
     }
   }
 
@@ -311,8 +357,29 @@ export const sweepDocumentExpiry = async () => {
         }),
       ),
     );
+  }
+
+  // Recompute EVERY contractor's tier (cheap at this scale, and guarantees the
+  // stored tier always matches reality — self-heals any drift, not only the docs
+  // that flipped this run). A doc going EXPIRING/FAILED can demote a tier; a
+  // renewal back to ON_FILE restores it.
+  const contractors = await prisma.user.findMany({
+    where: { role: Role.JOB_SEEKER },
+    select: { id: true },
+  });
+  let tiersUpdated = 0;
+  for (const c of contractors) {
+    if (await recomputeTrustTier(c.id)) tiersUpdated += 1;
+  }
+
+  if (changed.length > 0 || tiersUpdated > 0) {
     revalidatePath('/profile');
   }
 
-  return { scanned: docs.length, updated: changed.length, changed };
+  return {
+    scanned: docs.length,
+    updated: changed.length,
+    changed,
+    tiersUpdated,
+  };
 };
