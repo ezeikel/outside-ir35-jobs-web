@@ -1,0 +1,83 @@
+name: Deploy Aggregation Worker
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/outside-ir35-jobs-worker/**'
+      # The worker imports the shared Prisma client; a schema/client change must
+      # redeploy + regenerate or it runs against a stale client.
+      - 'packages/db/**'
+      - '.github/workflows/deploy-worker.yml'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'What to do'
+        required: true
+        default: 'deploy-and-restart'
+        type: choice
+        options:
+          - deploy-and-restart
+          - deploy-only
+          - restart-only
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute on Hetzner
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          # FontAwesome Pro registry auth — apps/web (pulled in by the workspace
+          # install) needs it. Passed through to the box's install env.
+          FONTAWESOME_NPM_AUTH_TOKEN: ${{ secrets.FONTAWESOME_NPM_AUTH_TOKEN }}
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          envs: FONTAWESOME_NPM_AUTH_TOKEN
+          script: |
+            set -e
+
+            ACTION="${{ inputs.action || 'deploy-and-restart' }}"
+            cd /opt/outside-ir35-jobs-web
+
+            if [[ "$ACTION" == deploy* ]]; then
+              echo "Pulling latest code..."
+              git checkout -- . || true
+              # Scope the clean to the worker dir only — never wipe the
+              # gitignored worker .env or other local-only state.
+              git clean -fd apps/outside-ir35-jobs-worker/ || true
+              git pull origin main
+              echo "Code pulled"
+
+              echo "Installing dependencies (bun workspace)..."
+              # Bun resolves the workspace incl. @outside-ir35-jobs/db. FA token
+              # is needed because apps/web pulls FontAwesome Pro.
+              /root/.bun/bin/bun install
+              echo "Deps installed"
+
+              echo "Generating Prisma client..."
+              cd packages/db
+              /root/.bun/bin/bunx prisma generate
+              cd /opt/outside-ir35-jobs-web
+              echo "Prisma client generated"
+            fi
+
+            if [[ "$ACTION" != deploy-only ]]; then
+              echo "Restarting outside-ir35-jobs-worker service..."
+              systemctl restart outside-ir35-jobs-worker
+              echo "Service restarted"
+            fi
+
+            sleep 3
+            echo ""
+            echo "=== Service Status ==="
+            systemctl status outside-ir35-jobs-worker --no-pager -l || true
+            echo ""
+            echo "=== Recent Logs ==="
+            journalctl -u outside-ir35-jobs-worker --no-pager -n 30 || true
+            echo ""
+            echo "=== Health Check ==="
+            curl -s http://localhost:3060/health || echo "Health check failed"
