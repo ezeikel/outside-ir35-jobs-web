@@ -8,6 +8,7 @@
     "start": "tsx --env-file=.env src/index.ts",
     "aggregate:jobserve": "tsx --env-file=.env src/scripts/run-jobserve.ts",
     "aggregate:cwjobs": "tsx --env-file=.env src/scripts/run-cwjobs.ts",
+    "aggregate:adzuna": "tsx --env-file=.env src/scripts/run-adzuna.ts",
     "check-types": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"
   },

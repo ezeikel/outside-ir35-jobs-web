@@ -9,7 +9,7 @@ import { NextResponse } from 'next/server';
  *
  * Scheduled in apps/web/vercel.json. Add a source by appending its endpoint.
  */
-const SOURCES = ['jobserve', 'cwjobs'] as const;
+const SOURCES = ['jobserve', 'cwjobs', 'adzuna'] as const;
 
 const handle = async (request: Request) => {
   const authHeader = request.headers.get('authorization');

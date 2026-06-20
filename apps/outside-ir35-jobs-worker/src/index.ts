@@ -4,7 +4,11 @@ import { type Context, Hono, type Next } from 'hono';
 import { logger } from 'hono/logger';
 // MUST stay above every other import — Sentry patches the runtime on init.
 import { Sentry } from './instrument.js';
-import { runCwjobsAggregation, runJobserveAggregation } from './pipeline.js';
+import {
+  runAdzunaAggregation,
+  runCwjobsAggregation,
+  runJobserveAggregation,
+} from './pipeline.js';
 
 const app = new Hono();
 app.use('*', logger());
@@ -45,6 +49,16 @@ app.post('/aggregate/cwjobs', (c) => {
   runCwjobsAggregation({ limit }).catch((err) => {
     Sentry.captureException(err);
     console.error('[aggregate/cwjobs] failed:', err);
+  });
+  return c.json({ status: 'accepted' }, 202);
+});
+
+// Same contract for Adzuna (JSON API → shared pipeline).
+app.post('/aggregate/adzuna', (c) => {
+  const limit = Number(c.req.query('limit')) || undefined;
+  runAdzunaAggregation({ limit }).catch((err) => {
+    Sentry.captureException(err);
+    console.error('[aggregate/adzuna] failed:', err);
   });
   return c.json({ status: 'accepted' }, 202);
 });

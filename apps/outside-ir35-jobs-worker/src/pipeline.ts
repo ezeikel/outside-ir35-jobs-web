@@ -2,6 +2,7 @@ import { classifyJob } from './classify/classify.js';
 import { prefilter } from './classify/prefilter.js';
 import { embedJob } from './embed.js';
 import { ingestJob } from './ingest.js';
+import { scrapeAdzuna } from './scrapers/adzuna.js';
 import { scrapeCwjobs } from './scrapers/cwjobs.js';
 import { scrapeJobserve } from './scrapers/jobserve.js';
 import type { ScrapedJob } from './scrapers/types.js';
@@ -78,3 +79,6 @@ export const runJobserveAggregation = (opts?: { limit?: number }) =>
 
 export const runCwjobsAggregation = (opts?: { limit?: number }) =>
   runAggregation('cwjobs', scrapeCwjobs, opts);
+
+export const runAdzunaAggregation = (opts?: { limit?: number }) =>
+  runAggregation('adzuna', scrapeAdzuna, opts);

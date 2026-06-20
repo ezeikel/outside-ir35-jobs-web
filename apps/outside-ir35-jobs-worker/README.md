@@ -26,6 +26,11 @@ Sources:
   No detail fetch — CWJobs detail pages live on totaljobs.com and are deliberately
   HTTP/2-walled. Hourly rates are converted to day rates (× 7.5h) by the
   classifier; annual salaries are NOT treated as a day rate.
+- **Adzuna** — a clean JSON API (no browser): GB `contract_time=contract`. We
+  attribute a salary ONLY when Adzuna marks it not-predicted, label it "per year"
+  (annual → the classifier leaves dayRate []), and keep `redirect_url` as the
+  link-back. Requires `ADZUNA_APP_ID` + `ADZUNA_APP_KEY` (free at
+  developer.adzuna.com); the source skips itself if they're unset.
 
 ## Routes
 
@@ -33,6 +38,7 @@ Sources:
 - `POST /aggregate/jobserve?limit=N` — bearer-gated (`WORKER_SECRET`); kicks off a
   Jobserve run, returns `202` immediately (work runs in the background).
 - `POST /aggregate/cwjobs?limit=N` — same, for CWJobs.
+- `POST /aggregate/adzuna?limit=N` — same, for Adzuna (no-op if API keys unset).
 
 ## Local dev
 
@@ -43,6 +49,7 @@ pnpm --filter @outside-ir35-jobs/worker dev          # starts the Hono server
 # or run a pipeline once without HTTP:
 pnpm --filter @outside-ir35-jobs/worker aggregate:jobserve 10
 pnpm --filter @outside-ir35-jobs/worker aggregate:cwjobs 10
+pnpm --filter @outside-ir35-jobs/worker aggregate:adzuna 10
 ```
 
 Without Browserbase creds it falls back to local Playwright (`npx playwright
