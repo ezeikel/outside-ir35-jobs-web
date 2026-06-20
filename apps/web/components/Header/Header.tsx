@@ -30,6 +30,14 @@ const Header = ({ className }: HeaderProps) => (
               Jobs
             </Link>
           </li>
+          <li>
+            <Link
+              className="transition-colors hover:text-foreground"
+              href="/day-rates"
+            >
+              Day rates
+            </Link>
+          </li>
         </ul>
       </nav>
     </div>
