@@ -29,6 +29,7 @@ import {
   OUTSIDE_SIGNALS,
   type SearchParams,
 } from '@/lib/search/filters';
+import { reciprocalRankFusion } from '@/lib/search/rrf';
 import { verifyCompany } from '@/lib/verification/companies-house';
 import { verifyVat } from '@/lib/verification/vat';
 import {
@@ -165,11 +166,13 @@ const JOB_CARD_COLUMNS = Prisma.sql`
   "workMode", "ir35Signal", "contractLength", "source", "sourceUrl", "createdAt"`;
 
 /**
- * Search the board. With a query, ranks by semantic similarity (pgvector cosine,
- * HNSW index) to the query embedding; without one, newest-first. Either way the
- * structured filters (rate floor, work mode, location, IR35-outside, posted) are
- * applied as hard WHERE constraints. All fragments are parameterized — no string
- * interpolation of user input.
+ * Search the board. With a query, ranks by HYBRID relevance: lexical full-text
+ * (Postgres FTS, GIN index) fused with semantic similarity (pgvector cosine, HNSW
+ * index) via Reciprocal Rank Fusion — so exact-keyword and conceptual matches both
+ * surface, and jobs strong on both rank top. FTS works without an embedding, so
+ * search degrades gracefully (FTS-only, semantic-only, or newest-first). Either
+ * way the structured filters (rate floor, work mode, location, IR35-outside,
+ * posted) apply as hard WHERE constraints. All fragments are parameterized.
  */
 export const searchJobs = async (
   params: SearchParams,
@@ -200,26 +203,60 @@ export const searchJobs = async (
     );
   }
 
-  // Try semantic ranking when a query is present and embeds.
+  const where = Prisma.join(conds, ' AND ');
+
+  // Hybrid ranking when a query is present: fuse lexical (FTS) + semantic
+  // (pgvector) rankings with RRF. FTS needs no embedding so it's always
+  // available; semantic adds conceptual matches. Either alone still ranks; if
+  // both are empty we fall through to newest-first.
   if (f.q) {
+    const RANK_LIMIT = 100; // gather more per ranker than we return, for a fuller fusion
+
+    // Lexical ranking via the FTS searchVector + GIN index.
+    const ftsPromise = prisma.$queryRaw<{ id: string }[]>`
+      SELECT "id"
+      FROM "jobs"
+      WHERE ${where}
+        AND "searchVector" @@ websearch_to_tsquery('english', ${f.q})
+      ORDER BY ts_rank("searchVector", websearch_to_tsquery('english', ${f.q})) DESC
+      LIMIT ${RANK_LIMIT}`;
+
+    // Semantic ranking via pgvector cosine (only if the query embeds).
     const vector = await embedQuery(f.q);
-    if (vector) {
-      const where = Prisma.join(
-        [...conds, Prisma.sql`"embedding" IS NOT NULL`],
-        ' AND ',
-      );
-      const vecLiteral = `[${vector.join(',')}]`;
-      return prisma.$queryRaw<JobSearchRow[]>`
+    const semanticPromise = vector
+      ? prisma.$queryRaw<{ id: string }[]>`
+          SELECT "id"
+          FROM "jobs"
+          WHERE ${Prisma.join([...conds, Prisma.sql`"embedding" IS NOT NULL`], ' AND ')}
+          ORDER BY "embedding" <=> ${`[${vector.join(',')}]`}::vector
+          LIMIT ${RANK_LIMIT}`
+      : Promise.resolve<{ id: string }[]>([]);
+
+    const [ftsRows, semanticRows] = await Promise.all([
+      ftsPromise.catch(() => [] as { id: string }[]),
+      semanticPromise.catch(() => [] as { id: string }[]),
+    ]);
+
+    const rankings = [
+      ftsRows.map((r) => r.id),
+      semanticRows.map((r) => r.id),
+    ].filter((list) => list.length > 0);
+
+    if (rankings.length > 0) {
+      const fusedIds = reciprocalRankFusion(rankings).slice(0, 50);
+      // Fetch the cards for the fused ids, preserving the fused order.
+      const rows = await prisma.$queryRaw<JobSearchRow[]>`
         SELECT ${JOB_CARD_COLUMNS}
         FROM "jobs"
-        WHERE ${where}
-        ORDER BY "embedding" <=> ${vecLiteral}::vector
-        LIMIT 50`;
+        WHERE "id" = ANY(${fusedIds})`;
+      const byId = new Map(rows.map((r) => [r.id, r]));
+      return fusedIds
+        .map((id) => byId.get(id))
+        .filter((r): r is JobSearchRow => Boolean(r));
     }
-    // embed failed → fall through to newest-first + filters (degrade gracefully)
+    // No ranker produced hits → fall through to newest-first.
   }
 
-  const where = Prisma.join(conds, ' AND ');
   return prisma.$queryRaw<JobSearchRow[]>`
     SELECT ${JOB_CARD_COLUMNS}
     FROM "jobs"
