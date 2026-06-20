@@ -264,6 +264,27 @@ export async function getSignedDownloadUrl(
 }
 
 /**
+ * Fetch a private object's raw bytes server-side. Used when the bytes must be
+ * processed in-process (e.g. sending a contractor CV to an LLM for parsing) —
+ * NOT for serving to a browser (use getSignedDownloadUrl for that).
+ *
+ * @param key  the object key (no leading slash), as stored
+ */
+export async function get(key: string): Promise<Buffer> {
+  const client = getR2Client();
+  const bucket = getBucket();
+
+  const res = await client.send(
+    new GetObjectCommand({ Bucket: bucket, Key: key }),
+  );
+  if (!res.Body) {
+    throw new Error(`R2 object not found or empty: ${key}`);
+  }
+  const bytes = await res.Body.transformToByteArray();
+  return Buffer.from(bytes);
+}
+
+/**
  * Infer content type from file extension
  */
 function inferContentType(pathname: string): string {

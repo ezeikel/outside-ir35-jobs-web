@@ -54,6 +54,17 @@ markdown→portable-text → Sanity write. A post failing the validator is REJEC
 never published. Text-only (no images). Needs `PERPLEXITY_API_KEY` +
 `NEXT_PUBLIC_SANITY_*` + `SANITY_API_TOKEN`.
 
+## CV parsing (`src/cv/`)
+
+`POST /process/cv` (bearer-gated; body `{ userId, r2Key, mimeType }`) — fired by
+the web upload action when a contractor uploads a CV. Fetches the CV from R2 →
+Claude `claude-sonnet-4-6` NATIVE document/image input (no PDF lib/OCR) →
+structured profile (`parse-cv.ts`, zod) → OpenAI embed of the competency text →
+writes `User.parsedProfile` (Json) + `User.embedding` (raw ::vector). Best-effort.
+HONESTY/PII: extracts COMPETENCY only (skills/roles/sectors), deliberately NOT
+identity (name/email/address); the profile is the contractor's own stated facts,
+never platform-verified and unrelated to IR35 status. Needs `R2_*` + `OPENAI_API_KEY`.
+
 ## Local dev
 
 ```bash

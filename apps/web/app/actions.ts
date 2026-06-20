@@ -452,8 +452,38 @@ export const uploadContractorDocument = async (formData: FormData) => {
     update: { r2Key: key, status, insurer, coverLimit, expiresAt },
   });
 
+  // A CV upload kicks off background parsing on the worker (fetch from R2 →
+  // Claude → structured profile + embedding). Fire-and-forget: best-effort, never
+  // blocks or fails the upload. The profile shows on the next /profile load.
+  if (type === ContractorDocType.CV) {
+    triggerCvParse({ userId: session.userId, r2Key: key, mimeType: file.type });
+  }
+
   await recomputeTrustTier(session.userId);
   revalidatePath('/profile');
+};
+
+// Fire-and-forget POST to the worker's CV-parse endpoint. Bearer-gated with the
+// shared WORKER_SECRET. We don't await the work — only the 202 ack — and swallow
+// failures so a parse outage never affects the upload.
+const triggerCvParse = (body: {
+  userId: string;
+  r2Key: string;
+  mimeType: string;
+}): void => {
+  const workerUrl = process.env.OUTSIDE_IR35_JOBS_WORKER_URL;
+  if (!workerUrl) return;
+  void fetch(`${workerUrl}/process/cv`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.WORKER_SECRET ?? ''}`,
+    },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(10_000),
+  }).catch((err) => {
+    console.error('[triggerCvParse] failed to reach worker:', err);
+  });
 };
 
 // Return a short-lived presigned URL to view/download one of the caller's own

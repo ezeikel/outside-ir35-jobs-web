@@ -4,6 +4,7 @@ import { type Context, Hono, type Next } from 'hono';
 import { logger } from 'hono/logger';
 // MUST stay above every other import — Sentry patches the runtime on init.
 import { runBlogCron } from './blog/cron.js';
+import { runCvParse } from './cv/pipeline.js';
 import { Sentry } from './instrument.js';
 import {
   runAdzunaAggregation,
@@ -76,6 +77,31 @@ app.post('/generate/blog', (c) => {
   runBlogCron({ topicOverride, dryRun }).catch((err) => {
     Sentry.captureException(err);
     console.error('[generate/blog] failed:', err);
+  });
+  return c.json({ status: 'accepted' }, 202);
+});
+
+// Processing an uploaded artifact (not aggregation or generation). Own
+// bearer-gated namespace.
+app.use('/process/*', bearerAuth);
+
+// Parse an uploaded contractor CV → structured profile + embedding. The web
+// upload action fires this and returns; we ack 202 and run in the background.
+// Body: { userId, r2Key, mimeType }.
+app.post('/process/cv', async (c) => {
+  let body: { userId?: string; r2Key?: string; mimeType?: string };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: 'Invalid JSON body' }, 400);
+  }
+  const { userId, r2Key, mimeType } = body;
+  if (!userId || !r2Key || !mimeType) {
+    return c.json({ error: 'userId, r2Key and mimeType are required' }, 400);
+  }
+  runCvParse({ userId, r2Key, mimeType }).catch((err) => {
+    Sentry.captureException(err);
+    console.error('[process/cv] failed:', err);
   });
   return c.json({ status: 'accepted' }, 202);
 });

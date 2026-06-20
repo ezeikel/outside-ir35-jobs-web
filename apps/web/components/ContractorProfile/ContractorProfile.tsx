@@ -9,6 +9,7 @@ import {
 } from '@/components/trust';
 import { tracksExpiry } from '@/lib/documents/validate';
 import AddCompanyForm from './AddCompanyForm';
+import CvProfile from './CvProfile';
 import DocumentMetaForm from './DocumentMetaForm';
 import DocumentUpload from './DocumentUpload';
 import ReverifyButton from './ReverifyButton';
@@ -40,6 +41,22 @@ type DbDocument = {
   expiresAt: Date | string | null;
 };
 
+// The AI-parsed CV profile (contractor-supplied facts). Loosely typed — it's a
+// JSON column written by the worker; CvProfile renders it defensively.
+export type ParsedCvProfile = {
+  headline?: string | null;
+  seniority?: string | null;
+  yearsExperience?: number | null;
+  skills?: string[];
+  experience?: {
+    title: string;
+    company?: string | null;
+    period?: string | null;
+    summary?: string | null;
+  }[];
+  sectors?: string[];
+};
+
 export type ContractorProfileData = {
   name: string;
   trustTier: ContractorTrustTier;
@@ -49,6 +66,7 @@ export type ContractorProfileData = {
   rightToWorkConfirmed: boolean;
   limitedCompanies: DbCompany[];
   documents: DbDocument[];
+  parsedProfile: ParsedCvProfile | null;
 };
 
 const fmtDate = (d: Date | string | null | undefined): string => {
@@ -226,6 +244,11 @@ const ContractorProfile = ({ data }: { data: ContractorProfileData }) => {
             )}
             <DocumentUpload />
           </section>
+
+          {/* Parsed CV profile (contractor-supplied, shown once a CV is parsed) */}
+          {data.parsedProfile ? (
+            <CvProfile profile={data.parsedProfile} />
+          ) : null}
         </div>
 
         {/* Right: completeness */}
