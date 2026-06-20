@@ -64,17 +64,21 @@ statements="$(printf '%s\n' "$diff_sql" \
   | grep -v 'Loaded Prisma config' \
   | grep -vE '^\s*(--.*)?$' || true)"
 
-# Remove the benign, expected pgvector HNSW index drops. Whatever remains is
+# Remove the benign drift Prisma can't model: the pgvector HNSW index drops AND
+# the FTS GIN index on the Unsupported("tsvector") searchVector column (Prisma
+# has no @@index for a GIN-on-tsvector, so the diff always wants to DROP it — like
+# the HNSW indexes, it lives only in the migration). Whatever remains is real
 # drift the guard should fail on.
 residual="$(printf '%s\n' "$statements" \
   | grep -vE '^\s*DROP INDEX "[a-z_]+_embedding_hnsw_idx";\s*$' \
+  | grep -vE '^\s*DROP INDEX "jobs_search_vector_gin_idx";\s*$' \
   | grep -vE '^\s*$' || true)"
 
 if [ -n "$residual" ]; then
   echo "::error::Drift detected between schema.prisma and migrations/"
   echo ""
   echo "schema.prisma no longer matches what applying migrations/ would produce."
-  echo "Statements that don't reconcile (ignoring the expected pgvector HNSW indexes):"
+  echo "Statements that don't reconcile (ignoring the expected pgvector HNSW + FTS GIN indexes):"
   echo ""
   printf '%s\n' "$residual"
   echo ""
