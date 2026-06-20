@@ -38,6 +38,14 @@ const Header = ({ className }: HeaderProps) => (
               Day rates
             </Link>
           </li>
+          <li>
+            <Link
+              className="transition-colors hover:text-foreground"
+              href="/blog"
+            >
+              Blog
+            </Link>
+          </li>
         </ul>
       </nav>
     </div>

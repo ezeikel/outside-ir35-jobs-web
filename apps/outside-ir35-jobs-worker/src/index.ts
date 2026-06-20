@@ -3,6 +3,7 @@ import { serve } from '@hono/node-server';
 import { type Context, Hono, type Next } from 'hono';
 import { logger } from 'hono/logger';
 // MUST stay above every other import — Sentry patches the runtime on init.
+import { runBlogCron } from './blog/cron.js';
 import { Sentry } from './instrument.js';
 import {
   runAdzunaAggregation,
@@ -59,6 +60,22 @@ app.post('/aggregate/adzuna', (c) => {
   runAdzunaAggregation({ limit }).catch((err) => {
     Sentry.captureException(err);
     console.error('[aggregate/adzuna] failed:', err);
+  });
+  return c.json({ status: 'accepted' }, 202);
+});
+
+// Generation (not aggregation): the AI blog cron. Own bearer-gated namespace.
+app.use('/generate/*', bearerAuth);
+
+// Kick off one blog generation run (research → generate → validate → Sanity
+// write). Returns 202 immediately; the work runs in the background. ?topic= pins
+// a topic, ?dryRun=true skips the write.
+app.post('/generate/blog', (c) => {
+  const topicOverride = c.req.query('topic') || undefined;
+  const dryRun = c.req.query('dryRun') === 'true';
+  runBlogCron({ topicOverride, dryRun }).catch((err) => {
+    Sentry.captureException(err);
+    console.error('[generate/blog] failed:', err);
   });
   return c.json({ status: 'accepted' }, 202);
 });

@@ -82,3 +82,6 @@ export const runCwjobsAggregation = (opts?: { limit?: number }) =>
 
 export const runAdzunaAggregation = (opts?: { limit?: number }) =>
   runAggregation('adzuna', scrapeAdzuna, opts);
+
+// Blog generation lives in src/blog; re-exported here for discoverability.
+export { runBlogCron } from './blog/cron.js';

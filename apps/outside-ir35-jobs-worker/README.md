@@ -39,6 +39,20 @@ Sources:
   Jobserve run, returns `202` immediately (work runs in the background).
 - `POST /aggregate/cwjobs?limit=N` — same, for CWJobs.
 - `POST /aggregate/adzuna?limit=N` — same, for Adzuna (no-op if API keys unset).
+- `POST /generate/blog?topic=...&dryRun=true` — bearer-gated; generates ONE AI
+  blog post (Perplexity research → Claude → honesty validator → Sanity write) and
+  returns `202`. No-op if Sanity isn't configured. See `src/blog/`.
+
+## AI blog (`src/blog/`)
+
+Daily cron picks an uncovered topic (`topics.ts`, dedup via Sanity
+`generationMeta.topic`) → Perplexity `sonar` research (primary gov.uk/HMRC
+sources) → Claude `claude-sonnet-4-6` generation → **honesty validator**
+(`validator.ts`, the never-assert-IR35 backstop: forbidden phrases, required
+disclaimer, attributed claims, day-rate posts gated on `MIN_SAMPLE`) →
+markdown→portable-text → Sanity write. A post failing the validator is REJECTED,
+never published. Text-only (no images). Needs `PERPLEXITY_API_KEY` +
+`NEXT_PUBLIC_SANITY_*` + `SANITY_API_TOKEN`.
 
 ## Local dev
 
