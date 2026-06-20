@@ -165,10 +165,12 @@ model User {
 model LimitedCompany {
   id                  String    @id @default(cuid())
   name                String
-  address             String
-  bankName            String
-  bankAccountNumber   String
-  bankSortCode        String
+  address             String?
+  // Bank details aren't needed to verify a company and aren't collected when a
+  // contractor adds one (data minimisation). Nullable — captured later if ever.
+  bankName            String?
+  bankAccountNumber   String?
+  bankSortCode        String?
   vatNumber           String
   incorporationNumber String
   // When the checkable facts last passed against official registers (we record

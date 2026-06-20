@@ -8,8 +8,10 @@ import {
   VerifiedFactRow,
 } from '@/components/trust';
 import { tracksExpiry } from '@/lib/documents/validate';
+import AddCompanyForm from './AddCompanyForm';
 import DocumentMetaForm from './DocumentMetaForm';
 import DocumentUpload from './DocumentUpload';
+import ReverifyButton from './ReverifyButton';
 
 /**
  * The verified contractor profile — the platform's moat made visible.
@@ -21,6 +23,7 @@ import DocumentUpload from './DocumentUpload';
  */
 
 type DbCompany = {
+  id: string;
   name: string;
   vatNumber: string;
   incorporationNumber: string;
@@ -150,18 +153,21 @@ const ContractorProfile = ({ data }: { data: ContractorProfileData }) => {
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_280px]">
         {/* Left: verified facts + insurance */}
         <div className="space-y-6">
-          {company && (
+          {company ? (
             <section className="rounded-lg border border-border bg-card p-5">
-              <p className="mb-1 text-sm font-medium">Verified facts</p>
+              <div className="mb-1 flex items-center justify-between">
+                <p className="text-sm font-medium">Verified facts</p>
+                <ReverifyButton companyId={company.id} />
+              </div>
               <VerifiedFactRow
                 source="Companies House"
-                fact={`${company.name} — active (no. ${company.incorporationNumber})`}
+                fact={`${company.name} (no. ${company.incorporationNumber})`}
                 status={company.companyVerifiedAt ? 'verified' : 'none'}
                 checkedOn={fmtDate(company.companyVerifiedAt) || undefined}
               />
               <VerifiedFactRow
                 source="HMRC VAT"
-                fact={`${company.vatNumber} — valid`}
+                fact={company.vatNumber}
                 status={company.vatVerifiedAt ? 'verified' : 'none'}
                 checkedOn={fmtDate(company.vatVerifiedAt) || undefined}
               />
@@ -171,6 +177,8 @@ const ContractorProfile = ({ data }: { data: ContractorProfileData }) => {
                 status={data.rightToWorkConfirmed ? 'verified' : 'pending'}
               />
             </section>
+          ) : (
+            <AddCompanyForm />
           )}
 
           {data.holdsIR35Insurance && (

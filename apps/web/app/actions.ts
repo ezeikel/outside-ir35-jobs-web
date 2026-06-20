@@ -17,7 +17,11 @@ import {
   tracksExpiry,
   validateUpload,
 } from '@/lib/documents/validate';
+import { verifyCompany } from '@/lib/verification/companies-house';
+import { verifyVat } from '@/lib/verification/vat';
 import {
+  AddCompanySchema,
+  AddCompanyValues,
   DocumentMetadataSchema,
   OnboardingRoleSchema,
   OnboardingRoleValues,
@@ -382,4 +386,93 @@ export const sweepDocumentExpiry = async () => {
     changed,
     tiersUpdated,
   };
+};
+
+export type CompanyVerificationResult = {
+  companies_house: 'verified' | 'not_found' | 'inactive' | 'pending' | 'error';
+  vat: 'verified' | 'not_found' | 'inactive' | 'pending' | 'error';
+};
+
+// Run the official-register checks for a company and stamp the verifiedAt fields
+// (only on 'verified'). Persists any address Companies House returns, then
+// recomputes the owner's trust tier (so T1 lights up when both checks pass).
+// Internal (NOT exported — not a client-callable action). Returns the per-check
+// outcome so the UI can show CH ✓ / VAT pending.
+const verifyCompanyRecord = async (
+  companyId: string,
+): Promise<CompanyVerificationResult> => {
+  const company = await prisma.limitedCompany.findUnique({
+    where: { id: companyId },
+    select: { userId: true, incorporationNumber: true, vatNumber: true },
+  });
+  if (!company) {
+    return { companies_house: 'error', vat: 'error' };
+  }
+
+  const [ch, vat] = await Promise.all([
+    verifyCompany(company.incorporationNumber),
+    verifyVat(company.vatNumber),
+  ]);
+
+  const now = new Date();
+  await prisma.limitedCompany.update({
+    where: { id: companyId },
+    data: {
+      // Only stamp when the register confirms it; clear on any non-verified
+      // result so a previously-verified company that lapses loses the badge.
+      companyVerifiedAt: ch.status === 'verified' ? now : null,
+      vatVerifiedAt: vat.status === 'verified' ? now : null,
+      // Use the official registered-office address if we got one.
+      ...(ch.address ? { address: ch.address } : {}),
+    },
+  });
+
+  await recomputeTrustTier(company.userId);
+
+  return { companies_house: ch.status, vat: vat.status };
+};
+
+// Add a contractor's limited company and verify it immediately. Owner from the
+// session. Returns the per-check verification result for instant UI feedback.
+export const addLimitedCompany = async (
+  input: AddCompanyValues,
+): Promise<CompanyVerificationResult> => {
+  const session = await auth();
+  if (!session?.userId || session.role !== Role.JOB_SEEKER) {
+    throw new Error('Only contractors can add a company');
+  }
+
+  const { name, incorporationNumber, vatNumber } =
+    AddCompanySchema.parse(input);
+
+  const company = await prisma.limitedCompany.create({
+    data: { name, incorporationNumber, vatNumber, userId: session.userId },
+  });
+
+  const result = await verifyCompanyRecord(company.id);
+  revalidatePath('/profile');
+  return result;
+};
+
+// Re-run verification for one of the caller's own companies (e.g. after the
+// contractor fixed a number, or once HMRC creds enable the VAT check).
+export const reverifyCompany = async (
+  companyId: string,
+): Promise<CompanyVerificationResult> => {
+  const session = await auth();
+  if (!session?.userId || session.role !== Role.JOB_SEEKER) {
+    throw new Error('Only contractors can verify a company');
+  }
+
+  const company = await prisma.limitedCompany.findUnique({
+    where: { id: companyId },
+    select: { userId: true },
+  });
+  if (!company || company.userId !== session.userId) {
+    throw new Error('Company not found');
+  }
+
+  const result = await verifyCompanyRecord(companyId);
+  revalidatePath('/profile');
+  return result;
 };

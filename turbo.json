@@ -9,6 +9,7 @@
       "env": [
         "ANTHROPIC_API_KEY",
         "AUTH_SECRET",
+        "COMPANIES_HOUSE_API_KEY",
         "CRON_SECRET",
         "DATABASE_URL",
         "DATABASE_URL_UNPOOLED",
@@ -16,6 +17,8 @@
         "GOOGLE_CLIENT_ID",
         "GOOGLE_CLIENT_SECRET",
         "GOOGLE_MAPS_API_KEY",
+        "HMRC_CLIENT_ID",
+        "HMRC_CLIENT_SECRET",
         "NEXT_AUTH_SECRET",
         "NEXTAUTH_URL",
         "PERPLEXITY_API_KEY",

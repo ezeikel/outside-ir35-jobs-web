@@ -83,3 +83,17 @@ export const DocumentMetadataSchema = z
   );
 
 export type DocumentMetadataValues = z.infer<typeof DocumentMetadataSchema>;
+
+// Adding a limited company to verify. We only collect what's needed to check it
+// against the official registers — name, incorporation number, VAT number.
+// (Address comes back from Companies House; bank details are not collected here.)
+export const AddCompanySchema = z.object({
+  name: z.string().trim().min(1, 'Company name is required.'),
+  incorporationNumber: z
+    .string()
+    .trim()
+    .min(1, 'Company registration number is required.'),
+  vatNumber: z.string().trim().min(1, 'VAT number is required.'),
+});
+
+export type AddCompanyValues = z.infer<typeof AddCompanySchema>;
