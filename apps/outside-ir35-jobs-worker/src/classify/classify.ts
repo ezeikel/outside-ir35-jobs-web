@@ -26,10 +26,14 @@ export const ClassificationSchema = z.object({
   // low confidence must stay UNKNOWN, never be coerced to outside.
   confidence: z.number().int().min(0).max(100),
   // Day rate in GBP/day. [min, max] for a range, [n] for a single rate, [] if
-  // none stated. Never invent a rate.
+  // none stated. Never invent a rate. An HOURLY rate is converted to a day rate
+  // (× 7.5h standard contractor day); an ANNUAL salary is NOT a day rate → [].
   dayRate: z.array(z.number().int().positive()).max(2),
   workMode: z.enum(['REMOTE', 'HYBRID', 'ON_SITE']).nullable(),
   contractLengthDays: z.number().int().positive().nullable(),
+  // The hiring company / recruiter named in the listing, cleaned (e.g. "Certain
+  // Advantage"). null if not clearly stated — never guess.
+  companyName: z.string().nullable(),
   // Cleaned location string (city/region or "Remote").
   location: z.string().nullable(),
   // Key technical/role skills mentioned (e.g. React, AWS, Terraform).
@@ -50,9 +54,21 @@ LISTING states:
   UNKNOWN. UNKNOWN is the correct, expected default. Do not guess "outside".
 
 Set confidence to reflect how clearly the listing states its IR35 position
-(high only when it is explicit). Extract day rate, work mode, contract length,
-location and skills ONLY from what the text actually says — never invent values.
-Use null / empty arrays when a field isn't stated.`;
+(high only when it is explicit). Extract company name, day rate, work mode,
+contract length, location and skills ONLY from what the text actually says —
+never invent values. Use null / empty arrays when a field isn't stated. For
+companyName, give the hiring company or recruiter as named (null if unclear).
+
+DAY RATE — read carefully, our benchmarks depend on it being honest:
+- If the rate is per DAY (e.g. "£500/day", "£500-£600 per day"), use it directly.
+- If the rate is per HOUR (e.g. "£60 per hour"), CONVERT to a day rate by
+  multiplying by 7.5 (a standard contractor working day): "£60 per hour" →
+  dayRate [450]. For an hourly range, convert both ends.
+- If only an ANNUAL salary is given (e.g. "£28,000 a year", "£50,000 - £70,000 a
+  year"), that is NOT a day rate — leave dayRate EMPTY []. Do not divide a salary
+  into a day rate; a salaried/annual posting is not a day-rate contract.
+- "Competitive" or any non-numeric rate → dayRate [].
+Always output dayRate in GBP per day as positive integers (round to the nearest £).`;
 
 /**
  * Classify + extract structured fields from one scraped listing with Claude

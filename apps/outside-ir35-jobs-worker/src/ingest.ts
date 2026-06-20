@@ -19,7 +19,9 @@ export const ingestJob = async (
 ): Promise<{ id: string; created: boolean }> => {
   const data = {
     position: scraped.position,
-    companyName: scraped.companyName,
+    // Prefer the company the classifier read from the listing text over the
+    // scraper's placeholder (some scrapers can't cleanly split company out).
+    companyName: cls.companyName?.trim() || scraped.companyName,
     description: scraped.description,
     keywords: cls.skills,
     extractedSkills: cls.skills,

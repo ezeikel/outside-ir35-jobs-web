@@ -1,16 +1,9 @@
 import { createStagehand } from '../browser.js';
+import type { ScrapedJob } from './types.js';
 
-// A raw scraped listing — attribution + a SHORT extract only. We are an INDEX,
-// not a re-publisher: we store the sourceUrl + a brief description, never the
-// full job body. The classifier reads these to extract structured fields.
-export type ScrapedJob = {
-  position: string;
-  companyName: string;
-  location: string;
-  dayRateText: string; // raw, e.g. "£500pd inside IR35" — parsed downstream
-  description: string; // short extract, not the full body
-  sourceUrl: string; // canonical link back to the origin listing
-};
+// ScrapedJob now lives in ./types so every scraper shares one definition and
+// the pipeline is source-agnostic. Re-exported for existing import sites.
+export type { ScrapedJob };
 
 const JOBSERVE_SEARCH_PAGE = 'https://www.jobserve.com/gb/en/Job-Search/';
 

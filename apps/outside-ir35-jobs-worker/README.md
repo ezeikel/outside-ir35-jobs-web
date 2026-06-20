@@ -10,16 +10,29 @@ box (Hono + Bun + systemd), triggered by the web app's daily Vercel cron.
 > claim (`CLIENT_INTENDS_OUTSIDE`), with confidence surfaced in the UI. We index
 > and link back — we do not re-publish job bodies.
 
-## Pipeline (`POST /aggregate/jobserve`)
+## Pipeline (source-agnostic)
 
-scrape (Browserbase Stagehand) → keyword pre-filter → Claude Sonnet classify +
-extract → OpenAI embed → upsert by `sourceUrl` (idempotent). See `src/pipeline.ts`.
+scrape → keyword pre-filter → Claude Sonnet classify + extract → OpenAI embed →
+upsert by `sourceUrl` (idempotent). `runAggregation(source, scrape, opts)` in
+`src/pipeline.ts` is shared; each source is just a `(limit) => ScrapedJob[]`
+scraper (`src/scrapers/`).
+
+Sources:
+
+- **Jobserve** — Angular SPA; we capture its `RetrieveJobs` JSON API and parse the
+  `.jobItem` fragment deterministically.
+- **CWJobs** — server-rendered `job-item` cards carry title/company/location/rate
+  (£/hr, £/day, or annual)/snippet inline; we parse the cards deterministically.
+  No detail fetch — CWJobs detail pages live on totaljobs.com and are deliberately
+  HTTP/2-walled. Hourly rates are converted to day rates (× 7.5h) by the
+  classifier; annual salaries are NOT treated as a day rate.
 
 ## Routes
 
 - `GET /health` — `{ status: 'ok' }`.
 - `POST /aggregate/jobserve?limit=N` — bearer-gated (`WORKER_SECRET`); kicks off a
-  run, returns `202` immediately (work runs in the background).
+  Jobserve run, returns `202` immediately (work runs in the background).
+- `POST /aggregate/cwjobs?limit=N` — same, for CWJobs.
 
 ## Local dev
 
@@ -27,8 +40,9 @@ extract → OpenAI embed → upsert by `sourceUrl` (idempotent). See `src/pipeli
 cp .env.example .env   # fill ANTHROPIC_API_KEY, OPENAI_API_KEY, BROWSERBASE_*, DATABASE_URL
 pnpm install           # from repo root
 pnpm --filter @outside-ir35-jobs/worker dev          # starts the Hono server
-# or run the pipeline once without HTTP:
+# or run a pipeline once without HTTP:
 pnpm --filter @outside-ir35-jobs/worker aggregate:jobserve 10
+pnpm --filter @outside-ir35-jobs/worker aggregate:cwjobs 10
 ```
 
 Without Browserbase creds it falls back to local Playwright (`npx playwright

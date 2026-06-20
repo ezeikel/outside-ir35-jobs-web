@@ -25,7 +25,11 @@ const EXCLUDE = [
   'volunteer',
 ];
 
-// Signals that this really is a day-rate contract role worth classifying.
+// Signals that this really is a day-rate (or hourly) contract role worth
+// classifying. Hourly is a strong contract signal on some boards (CWJobs quotes
+// many contracts as "£X per hour") — keep those; the classifier converts an
+// hourly rate to a day rate downstream. We deliberately DON'T treat a bare
+// annual "£X a year" as a contract signal (those are usually perm/FTC).
 const INCLUDE = [
   'contract',
   'per day',
@@ -33,6 +37,11 @@ const INCLUDE = [
   'daily rate',
   '/day',
   'p/d',
+  'per hour',
+  'an hour',
+  'a day',
+  '/hr',
+  'hourly rate',
   'outside ir35',
   'inside ir35',
   'ir35',
