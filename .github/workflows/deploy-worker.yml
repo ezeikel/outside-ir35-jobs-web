@@ -58,6 +58,22 @@ jobs:
               /root/.bun/bin/bun install
               echo "Deps installed"
 
+              # Guard: `bun install` reads pnpm-lock.yaml and has been observed to
+              # SILENTLY skip materialising some newly-added packages (it reports
+              # "no changes" while the package is absent from node_modules) — which
+              # crash-loops the worker with ERR_MODULE_NOT_FOUND. Verify the
+              # worker's runtime deps actually resolved and `bun add` any missing
+              # ones at the repo root (the only form that reliably materialises).
+              echo "Verifying worker runtime deps..."
+              for pkg in @sanity/client @ai-sdk/perplexity @ai-sdk/anthropic @ai-sdk/openai @browserbasehq/stagehand hono; do
+                if [[ ! -d "node_modules/$pkg" ]]; then
+                  ver=$(node -p "require('./apps/outside-ir35-jobs-worker/package.json').dependencies['$pkg'] || ''")
+                  echo "  $pkg missing — installing ${ver:-latest}"
+                  /root/.bun/bin/bun add "$pkg@${ver:-latest}" || echo "  WARN: failed to add $pkg"
+                fi
+              done
+              echo "Worker deps verified"
+
               echo "Generating Prisma client..."
               cd packages/db
               /root/.bun/bin/bunx prisma generate
