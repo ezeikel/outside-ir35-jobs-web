@@ -80,6 +80,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@ai-sdk/openai':
+        specifier: ^3.0.38
+        version: 3.0.73(zod@3.25.76)
       '@fortawesome/fontawesome-svg-core':
         specifier: ^6.5.2
         version: 6.7.2
@@ -161,6 +164,9 @@ importers:
       '@vercel/analytics':
         specifier: ^1.2.2
         version: 1.6.1(next@16.1.0(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)
+      ai:
+        specifier: ^6.0.27
+        version: 6.0.208(zod@3.25.76)
       class-variance-authority:
         specifier: ^0.7.0
         version: 0.7.1

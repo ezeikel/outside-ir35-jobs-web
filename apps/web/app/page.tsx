@@ -47,15 +47,18 @@ const HomePage = async () => {
               Stop filtering LinkedIn. Day rate, work mode and the client’s IR35
               signal — surfaced up front, on every role.
             </p>
-            <form className="mt-8 flex max-w-lg gap-2">
+            <form
+              method="get"
+              action="/jobs"
+              className="mt-8 flex max-w-lg gap-2"
+            >
               <Input
+                name="q"
                 className="flex-1 border-transparent bg-white text-foreground placeholder:text-muted-foreground"
                 placeholder="Role, skill or company"
                 type="text"
               />
-              <Button asChild>
-                <Link href="/jobs">Search</Link>
-              </Button>
+              <Button type="submit">Search</Button>
             </form>
           </div>
           <TakeHomeCalculator className="hidden md:block" />

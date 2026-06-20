@@ -67,7 +67,9 @@
     "stripe": "^15.6.0",
     "tailwind-merge": "^3.2.0",
     "tailwindcss-animate": "^1.0.7",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "ai": "^6.0.27",
+    "@ai-sdk/openai": "^3.0.38"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.16",

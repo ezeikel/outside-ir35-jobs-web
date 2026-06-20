@@ -21,6 +21,7 @@
         "HMRC_CLIENT_SECRET",
         "NEXT_AUTH_SECRET",
         "NEXTAUTH_URL",
+        "OPENAI_API_KEY",
         "OUTSIDE_IR35_JOBS_WORKER_URL",
         "PERPLEXITY_API_KEY",
         "R2_ACCESS_KEY_ID",

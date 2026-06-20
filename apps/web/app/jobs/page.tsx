@@ -10,10 +10,29 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
-const JobsPage = () => (
-  <PageWrap className="gap-y-16">
-    <JobPosts />
-  </PageWrap>
-);
+const JobsPage = async ({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) => {
+  const sp = await searchParams;
+  // The filter bar only submits scalars; flatten defensively.
+  const str = (v: string | string[] | undefined) =>
+    Array.isArray(v) ? v[0] : v;
+  const params = {
+    q: str(sp.q),
+    location: str(sp.location),
+    ir35: str(sp.ir35),
+    mode: str(sp.mode),
+    minRate: str(sp.minRate),
+    posted: str(sp.posted),
+  };
+
+  return (
+    <PageWrap className="gap-y-16">
+      <JobPosts params={params} />
+    </PageWrap>
+  );
+};
 
 export default JobsPage;

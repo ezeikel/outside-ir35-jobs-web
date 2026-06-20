@@ -3,8 +3,12 @@
 import {
   ContractorDocType,
   DocStatus,
+  type JobIR35Signal,
+  type JobSource,
+  Prisma,
   db as prisma,
   Role,
+  type WorkMode,
 } from '@outside-ir35-jobs/db';
 import { del, getSignedDownloadUrl, put } from '@outside-ir35-jobs/storage';
 import { revalidatePath } from 'next/cache';
@@ -17,6 +21,12 @@ import {
   tracksExpiry,
   validateUpload,
 } from '@/lib/documents/validate';
+import { embedQuery } from '@/lib/search/embed-query';
+import {
+  normalizeFilters,
+  OUTSIDE_SIGNALS,
+  type SearchParams,
+} from '@/lib/search/filters';
 import { verifyCompany } from '@/lib/verification/companies-house';
 import { verifyVat } from '@/lib/verification/vat';
 import {
@@ -121,6 +131,91 @@ export const getJobs = async () =>
     where: { isActive: true },
     orderBy: { createdAt: 'desc' },
   });
+
+// A row shaped for jobToCard (the columns the card needs). Raw queries return
+// snake/camel exactly as the columns are named in Postgres.
+type JobSearchRow = {
+  id: string;
+  position: string;
+  companyName: string;
+  companyLogo: string | null;
+  location: Prisma.JsonValue;
+  dayRate: number[];
+  workMode: WorkMode;
+  ir35Signal: JobIR35Signal;
+  contractLength: number | null;
+  source: JobSource;
+  sourceUrl: string | null;
+  createdAt: Date;
+};
+
+const JOB_CARD_COLUMNS = Prisma.sql`
+  "id", "position", "companyName", "companyLogo", "location", "dayRate",
+  "workMode", "ir35Signal", "contractLength", "source", "sourceUrl", "createdAt"`;
+
+/**
+ * Search the board. With a query, ranks by semantic similarity (pgvector cosine,
+ * HNSW index) to the query embedding; without one, newest-first. Either way the
+ * structured filters (rate floor, work mode, location, IR35-outside, posted) are
+ * applied as hard WHERE constraints. All fragments are parameterized — no string
+ * interpolation of user input.
+ */
+export const searchJobs = async (
+  params: SearchParams,
+): Promise<JobSearchRow[]> => {
+  const f = normalizeFilters(params);
+
+  // Hard filters shared by both paths.
+  const conds: Prisma.Sql[] = [Prisma.sql`"isActive" = true`];
+  if (f.workMode)
+    conds.push(Prisma.sql`"workMode" = ${f.workMode}::"WorkMode"`);
+  if (f.ir35Outside) {
+    conds.push(
+      Prisma.sql`"ir35Signal" = ANY(${OUTSIDE_SIGNALS}::"JobIR35Signal"[])`,
+    );
+  }
+  if (f.minRate !== null) {
+    // dayRate is Int[] = [min] or [min,max]; the top of the range must clear the floor.
+    conds.push(
+      Prisma.sql`"dayRate"[array_upper("dayRate", 1)] >= ${f.minRate}`,
+    );
+  }
+  if (f.location) {
+    conds.push(Prisma.sql`"location"->>'address' ILIKE ${`%${f.location}%`}`);
+  }
+  if (f.postedSinceDays !== null) {
+    conds.push(
+      Prisma.sql`"createdAt" >= now() - make_interval(days => ${f.postedSinceDays})`,
+    );
+  }
+
+  // Try semantic ranking when a query is present and embeds.
+  if (f.q) {
+    const vector = await embedQuery(f.q);
+    if (vector) {
+      const where = Prisma.join(
+        [...conds, Prisma.sql`"embedding" IS NOT NULL`],
+        ' AND ',
+      );
+      const vecLiteral = `[${vector.join(',')}]`;
+      return prisma.$queryRaw<JobSearchRow[]>`
+        SELECT ${JOB_CARD_COLUMNS}
+        FROM "jobs"
+        WHERE ${where}
+        ORDER BY "embedding" <=> ${vecLiteral}::vector
+        LIMIT 50`;
+    }
+    // embed failed → fall through to newest-first + filters (degrade gracefully)
+  }
+
+  const where = Prisma.join(conds, ' AND ');
+  return prisma.$queryRaw<JobSearchRow[]>`
+    SELECT ${JOB_CARD_COLUMNS}
+    FROM "jobs"
+    WHERE ${where}
+    ORDER BY "createdAt" DESC
+    LIMIT 50`;
+};
 
 export const getJob = async (id: string) =>
   prisma.job.findUnique({
