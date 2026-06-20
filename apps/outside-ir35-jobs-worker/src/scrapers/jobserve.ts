@@ -26,13 +26,16 @@ const LISTING_SCHEMA = z.object({
   ),
 });
 
-// Jobserve contract-only search (UK, contract roles). The query params keep this
-// to contract listings; we read the public search results page.
-const JOBSERVE_SEARCH_URL =
-  'https://www.jobserve.com/gb/en/JobSearch.aspx?shid=1&q=&jtype=Contract';
+// Jobserve's search needs a real interaction (no usable direct query URL — a
+// guessed one 404s to InvalidRequest.aspx) AND a cookie consent before results
+// render. So we drive the public Job-Search page agentically.
+const JOBSERVE_SEARCH_PAGE = 'https://www.jobserve.com/gb/en/Job-Search/';
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
- * Scrape recent UK contract roles from Jobserve via Stagehand. Capped at `limit`
+ * Scrape recent UK contract roles from Jobserve via Stagehand (agentic): accept
+ * cookies → run a contract search → extract the result list. Capped at `limit`
  * (default 25) per run — logged, never silent. Returns attribution + short
  * extracts for the classifier; we don't store full job bodies.
  */
@@ -40,18 +43,36 @@ export const scrapeJobserve = async (limit = 25): Promise<ScrapedJob[]> => {
   const sh = await createStagehand();
   try {
     const page = sh.page;
-    await page.goto(JOBSERVE_SEARCH_URL, { waitUntil: 'domcontentloaded' });
+    await page.goto(JOBSERVE_SEARCH_PAGE, { waitUntil: 'domcontentloaded' });
+    await sleep(3000);
 
-    // Stagehand extracts the visible result list into our typed schema. We ask
-    // for a SHORT description (the search-result snippet), not the full body, and
-    // the canonical per-listing URL for attribution + dedup.
+    // Cookie gate — results don't render until consent is given.
+    try {
+      await page.act(
+        'If a cookie consent banner is shown, click "Allow essential cookies"',
+      );
+      await sleep(1500);
+    } catch {
+      // no banner / already accepted — continue
+    }
+
+    // Filter to CONTRACT roles by job TYPE (not a keyword search for the word
+    // "contract", which returns permanent roles that merely mention it). Set the
+    // contract/contract-type option, then run the search.
+    await page.act(
+      'Set the job type filter to "Contract" only (not Permanent), using the ' +
+        'job type option in the search form, then run the search.',
+    );
+    await sleep(4000);
+
     const result = await page.extract({
       instruction:
-        `Extract up to ${limit} contract job listings from the search results. ` +
-        'For each: the job title (position), the hiring company or agency name ' +
-        '(use "Confidential" if hidden), the location, the day-rate text exactly ' +
-        'as shown, a SHORT one-or-two-sentence description snippet (not the full ' +
-        'body), and the absolute URL that links to the full listing.',
+        `Extract up to ${limit} job listings from the search results list. ` +
+        'For each: the job title (position), the hiring company or recruitment ' +
+        'agency name (use "Confidential" if not shown), the location, the ' +
+        'day-rate or salary text exactly as shown, a SHORT one-or-two-sentence ' +
+        'description snippet (NOT the full body), and the absolute URL linking ' +
+        'to the full job listing.',
       schema: LISTING_SCHEMA,
     });
 
@@ -78,12 +99,12 @@ export const scrapeJobserve = async (limit = 25): Promise<ScrapedJob[]> => {
   }
 };
 
-// Make the URL absolute + strip tracking/query noise so the same listing always
-// dedups to one sourceUrl.
+// Make the URL absolute + drop only the hash. We KEEP the query string — Jobserve
+// job links carry the job id there (e.g. ?jid=...), so stripping it would break
+// the link and collapse distinct jobs into one dedup key.
 const normalizeSourceUrl = (raw: string): string => {
   try {
     const u = new URL(raw, 'https://www.jobserve.com');
-    u.search = '';
     u.hash = '';
     return u.toString();
   } catch {
