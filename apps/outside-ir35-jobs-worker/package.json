@@ -1,0 +1,32 @@
+{
+  "name": "@outside-ir35-jobs/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx --env-file=.env src/index.ts",
+    "start": "tsx --env-file=.env src/index.ts",
+    "aggregate:jobserve": "tsx --env-file=.env src/scripts/run-jobserve.ts",
+    "check-types": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.64",
+    "@ai-sdk/openai": "^3.0.38",
+    "@browserbasehq/stagehand": "^2.0.0",
+    "@hono/node-server": "^1.19.11",
+    "@outside-ir35-jobs/db": "workspace:*",
+    "@sentry/node": "^10.0.0",
+    "ai": "^6.0.27",
+    "dotenv": "^16.4.5",
+    "hono": "^4.10.3",
+    "playwright": "^1.59.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4.19.2",
+    "typescript": "~6.0.3",
+    "vitest": "^4.0.0"
+  }
+}

@@ -105,7 +105,10 @@ model Job {
 
   // Aggregation — native posts vs scraped+attributed index entries.
   source          JobSource @default(NATIVE)
-  sourceUrl       String? // link back to origin for aggregated listings
+  // Link back to origin for aggregated listings. Unique so the worker can upsert
+  // idempotently (re-running a scrape updates, never duplicates). NATIVE jobs
+  // leave this null; Postgres treats nulls as distinct, so the constraint is safe.
+  sourceUrl       String?   @unique
   rawDescription  String? // unparsed source text (aggregation pipeline)
   extractedSkills String[] // AI-extracted skills
 
