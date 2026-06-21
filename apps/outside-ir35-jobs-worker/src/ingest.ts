@@ -34,6 +34,11 @@ export const ingestJob = async (
     contractLength: cls.contractLengthDays,
     ir35Signal: cls.ir35Signal,
     classificationConfidence: cls.confidence,
+    // This is an outside-IR35 board: an explicit Inside-IR35 listing is kept in
+    // the DB (the /day-rates inside-vs-outside benchmark needs it) but never
+    // shown on a public board. Defense-in-depth alongside the web-side
+    // ir35Signal<>INSIDE gate. See docs/ir35-trust-model.md.
+    boardVisible: cls.ir35Signal !== 'INSIDE',
     source: 'AGGREGATED' as const,
     sourceUrl: scraped.sourceUrl,
     // Aggregated index entries: we don't host the application — link to source.

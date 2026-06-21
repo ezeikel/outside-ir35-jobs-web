@@ -127,6 +127,14 @@ model Job {
   postedBy     User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
   userId       String?
   isActive     Boolean       @default(true)
+  // Whether this job may appear on a PUBLIC board surface (default /jobs,
+  // homepage, recommendations). Distinct from isActive (= live/not expired): an
+  // explicit Inside-IR35 listing is kept in the DB — the /day-rates inside-vs-
+  // outside benchmark needs it — but is NOT board-visible, because this is an
+  // outside-IR35 board (docs/ir35-trust-model.md: INSIDE is "not our niche").
+  // The worker sets this false for ir35Signal=INSIDE; defense-in-depth alongside
+  // the web-side ir35Signal<>INSIDE gate. Benchmarks query on isActive only.
+  boardVisible Boolean       @default(true)
   duration     Int           @default(30) // job post duration in days
   applications Application[]
   createdAt    DateTime      @default(now())

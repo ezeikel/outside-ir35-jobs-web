@@ -144,7 +144,12 @@ export const getJobs = async () =>
   prisma.job.findMany({
     // Outside-IR35 board: the homepage latest-jobs never shows explicit INSIDE
     // listings (they stay in the DB for the day-rates benchmark only).
-    where: { isActive: true, ir35Signal: { not: 'INSIDE' } },
+    // boardVisible is the absolute gate; the ir35Signal clause is belt-and-braces.
+    where: {
+      isActive: true,
+      boardVisible: true,
+      ir35Signal: { not: 'INSIDE' },
+    },
     orderBy: { createdAt: 'desc' },
   });
 
@@ -183,8 +188,14 @@ export const searchJobs = async (
 ): Promise<JobSearchRow[]> => {
   const f = normalizeFilters(params);
 
-  // Hard filters shared by both paths.
-  const conds: Prisma.Sql[] = [Prisma.sql`"isActive" = true`];
+  // Hard filters shared by both paths. boardVisible is the absolute gate — a job
+  // flagged not-board-visible (e.g. a worker-ingested Inside-IR35 listing) never
+  // appears on ANY board surface, even ?ir35=any. It's kept in the DB only for the
+  // /day-rates benchmark. See docs/ir35-trust-model.md.
+  const conds: Prisma.Sql[] = [
+    Prisma.sql`"isActive" = true`,
+    Prisma.sql`"boardVisible" = true`,
+  ];
   if (f.workMode)
     conds.push(Prisma.sql`"workMode" = ${f.workMode}::"WorkMode"`);
   if (f.ir35Outside) {
@@ -193,8 +204,8 @@ export const searchJobs = async (
       Prisma.sql`"ir35Signal" = ANY(${OUTSIDE_SIGNALS}::"JobIR35Signal"[])`,
     );
   } else if (f.ir35ExcludeInside) {
-    // Default board: everything except explicit INSIDE (this is an outside-IR35
-    // board; an Inside-IR35 role doesn't belong on the unfiltered listing).
+    // Belt-and-braces with boardVisible: explicit INSIDE never shows by default.
+    // (?ir35=any drops this clause but boardVisible still blocks hidden INSIDE.)
     conds.push(Prisma.sql`"ir35Signal" <> 'INSIDE'::"JobIR35Signal"`);
   }
   if (f.minRate !== null) {
@@ -313,6 +324,7 @@ export const getRecommendedJobs = async (): Promise<RecommendationResult> => {
       ("embedding" <=> ${vecText}::vector) AS distance
     FROM "jobs"
     WHERE "isActive" = true
+      AND "boardVisible" = true
       AND "ir35Signal" <> 'INSIDE'::"JobIR35Signal"
       AND "embedding" IS NOT NULL
       AND ("embedding" <=> ${vecText}::vector) <= ${RECOMMEND_MAX_DISTANCE}
@@ -370,6 +382,8 @@ export const getDayRateBenchmarks = async (): Promise<DayRateBenchmark[]> => {
         END AS rate
       FROM "jobs" j
       CROSS JOIN LATERAL unnest(j."extractedSkills") AS skill
+      -- isActive only — NOT boardVisible. INSIDE jobs are boardVisible=false but
+      -- must stay in this benchmark (the inside-vs-outside rate gap is the point).
       WHERE j."isActive" = true
         AND array_length(j."dayRate", 1) >= 1
         AND trim(skill) <> ''
