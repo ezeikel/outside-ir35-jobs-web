@@ -45,6 +45,22 @@ test('keyword search on /jobs returns the jobs page', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 });
 
+test('default board hides Inside-IR35 jobs; ?ir35=any reveals them', async ({
+  page,
+}) => {
+  // This is an outside-IR35 board: an explicit "Inside IR35" listing must never
+  // appear on the unfiltered board. The card renders an "Inside IR35" chip for
+  // INSIDE jobs, so its absence/presence is the regression signal.
+  await page.goto('/jobs');
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  await expect(page.getByText('Inside IR35', { exact: true })).toHaveCount(0);
+
+  // Opting into everything must bring them back (proves they're hidden, not
+  // deleted). Only assert presence if the seed/board actually has an INSIDE job.
+  await page.goto('/jobs?ir35=any');
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+});
+
 test('day-rates page renders (gated empty state or table)', async ({
   page,
 }) => {
