@@ -9,7 +9,7 @@ import { JobIR35Signal, WorkMode } from '@outside-ir35-jobs/db/types';
 export type SearchParams = {
   q?: string;
   location?: string;
-  ir35?: string; // 'outside' | 'any'
+  ir35?: string; // 'outside' (strict) | 'any' (incl. inside) | unset → default (not-inside)
   mode?: string; // REMOTE | HYBRID | ON_SITE
   minRate?: string; // '400' | '500' ...
   posted?: string; // '24h' | 'week' | 'month'
@@ -19,6 +19,13 @@ export type SearchFilters = {
   q: string;
   location: string | null;
   ir35Outside: boolean;
+  // The default board hides explicit INSIDE listings — this is an outside-IR35
+  // board, so an Inside-IR35 role doesn't belong on the unfiltered listing
+  // (docs/ir35-trust-model.md: INSIDE is "not our niche"). True unless the user
+  // explicitly opts into everything via ?ir35=any. We hide only INSIDE here, not
+  // UNKNOWN — most aggregated contract work is UNKNOWN and is the bulk of the
+  // board; excluding it would empty the listing.
+  ir35ExcludeInside: boolean;
   workMode: WorkMode | null;
   minRate: number | null;
   postedSinceDays: number | null;
@@ -32,6 +39,11 @@ export const OUTSIDE_SIGNALS: JobIR35Signal[] = [
   JobIR35Signal.CONTRACT_REVIEW_HELD,
   JobIR35Signal.SMALL_CLIENT_EXEMPT,
 ];
+
+// The only IR35 bucket the default board hard-excludes. INSIDE jobs stay in the
+// DB (the day-rates inside-vs-outside benchmark needs them) but never appear on
+// the default /jobs board, homepage, or recommendations.
+export const DEFAULT_HIDDEN_SIGNALS: JobIR35Signal[] = [JobIR35Signal.INSIDE];
 
 const POSTED_DAYS: Record<string, number> = {
   '24h': 1,
@@ -49,6 +61,8 @@ export const normalizeFilters = (params: SearchParams): SearchFilters => {
     q: (params.q ?? '').trim(),
     location: params.location?.trim() || null,
     ir35Outside: params.ir35 === 'outside',
+    // Hide INSIDE by default; only ?ir35=any opts back into showing it.
+    ir35ExcludeInside: params.ir35 !== 'any',
     workMode:
       params.mode && isWorkMode(params.mode) ? (params.mode as WorkMode) : null,
     minRate:

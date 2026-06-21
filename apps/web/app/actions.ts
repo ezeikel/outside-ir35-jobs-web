@@ -142,7 +142,9 @@ export const createJobPost = async ({
 
 export const getJobs = async () =>
   prisma.job.findMany({
-    where: { isActive: true },
+    // Outside-IR35 board: the homepage latest-jobs never shows explicit INSIDE
+    // listings (they stay in the DB for the day-rates benchmark only).
+    where: { isActive: true, ir35Signal: { not: 'INSIDE' } },
     orderBy: { createdAt: 'desc' },
   });
 
@@ -186,9 +188,14 @@ export const searchJobs = async (
   if (f.workMode)
     conds.push(Prisma.sql`"workMode" = ${f.workMode}::"WorkMode"`);
   if (f.ir35Outside) {
+    // Strict: only outside-leaning signals.
     conds.push(
       Prisma.sql`"ir35Signal" = ANY(${OUTSIDE_SIGNALS}::"JobIR35Signal"[])`,
     );
+  } else if (f.ir35ExcludeInside) {
+    // Default board: everything except explicit INSIDE (this is an outside-IR35
+    // board; an Inside-IR35 role doesn't belong on the unfiltered listing).
+    conds.push(Prisma.sql`"ir35Signal" <> 'INSIDE'::"JobIR35Signal"`);
   }
   if (f.minRate !== null) {
     // dayRate is Int[] = [min] or [min,max]; the top of the range must clear the floor.
@@ -306,6 +313,7 @@ export const getRecommendedJobs = async (): Promise<RecommendationResult> => {
       ("embedding" <=> ${vecText}::vector) AS distance
     FROM "jobs"
     WHERE "isActive" = true
+      AND "ir35Signal" <> 'INSIDE'::"JobIR35Signal"
       AND "embedding" IS NOT NULL
       AND ("embedding" <=> ${vecText}::vector) <= ${RECOMMEND_MAX_DISTANCE}
     ORDER BY "embedding" <=> ${vecText}::vector
