@@ -7,6 +7,7 @@ import Script from 'next/script';
 import PlausibleProvider from 'next-plausible';
 import { Toaster } from '@/components/ui/toaster';
 import '@fortawesome/fontawesome-svg-core/styles.css';
+import Footer from '@/components/Footer/Footer';
 import Header from '@/components/Header/Header';
 import LayoutWrap from '@/components/LayoutWrap/LayoutWrap';
 import cn from '@/utils/cn';
@@ -59,6 +60,7 @@ export default function RootLayout({
           <LayoutWrap>
             <Header className="row-start-1 row-span-1" />
             <main className="row-start-2 row-span-1">{children}</main>
+            <Footer />
           </LayoutWrap>
         </Providers>
         <Toaster />

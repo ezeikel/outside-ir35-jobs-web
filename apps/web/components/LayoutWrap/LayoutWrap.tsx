@@ -3,7 +3,7 @@ interface LayoutWrapProps {
 }
 
 const LayoutWrap = ({ children }: LayoutWrapProps) => (
-  <div className="grid grid-rows-[auto,1fr] ">{children}</div>
+  <div className="grid min-h-screen grid-rows-[auto,1fr,auto]">{children}</div>
 );
 
 export default LayoutWrap;
