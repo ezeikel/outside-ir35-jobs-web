@@ -3,7 +3,6 @@ import { Analytics } from '@vercel/analytics/react';
 import { GeistMono } from 'geist/font/mono';
 import type { Metadata } from 'next';
 import { Instrument_Serif, Inter_Tight } from 'next/font/google';
-import Script from 'next/script';
 import PlausibleProvider from 'next-plausible';
 import { Toaster } from '@/components/ui/toaster';
 import '@fortawesome/fontawesome-svg-core/styles.css';
@@ -65,10 +64,6 @@ export default function RootLayout({
         </Providers>
         <Toaster />
         <Analytics />
-        <Script
-          src={`https://maps.googleapis.com/maps/api/js?key=${process.env.GOOGLE_MAPS_API_KEY}&libraries=places`}
-          strategy="beforeInteractive"
-        />
       </body>
     </html>
   );

@@ -1,5 +1,6 @@
 import type { Viewport } from 'next';
 import { redirect } from 'next/navigation';
+import Script from 'next/script';
 import { auth } from '@/auth';
 import PageWrap from '@/components/PageWrap/PageWrap';
 import PostJob from '@/components/PostJob/PostJob';
@@ -28,6 +29,16 @@ const JobPostPage = async () => {
 
   return (
     <PageWrap>
+      {/* Google Maps (Places) powers the location autocomplete in PostJob's
+          LocationInput — loaded ONLY here, lazily, so a Maps load failure
+          degrades the autocomplete instead of 500-ing the whole site (it used to
+          be a global beforeInteractive script that crashed every page). */}
+      {process.env.GOOGLE_MAPS_API_KEY ? (
+        <Script
+          src={`https://maps.googleapis.com/maps/api/js?key=${process.env.GOOGLE_MAPS_API_KEY}&libraries=places`}
+          strategy="lazyOnload"
+        />
+      ) : null}
       <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6">
         <header className="mb-8 max-w-xl">
           <h1 className="text-4xl leading-none">Post a contract</h1>
