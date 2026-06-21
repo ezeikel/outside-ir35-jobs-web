@@ -1,4 +1,5 @@
 import sanitizeHtml from 'sanitize-html';
+import { linkifyBareUrls } from './linkify';
 
 interface HTMLViewerProps {
   html: string;
@@ -58,7 +59,14 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
 };
 
 const HTMLViewer = ({ html }: HTMLViewerProps) => {
-  const safeHtml = sanitizeHtml(html, SANITIZE_OPTIONS);
+  // sanitize → linkify bare text URLs → sanitize again. The second pass runs the
+  // injected <a> tags back through transformTags, so auto-linked URLs get the
+  // same rel="noopener noreferrer nofollow" + target=_blank and scheme allowlist
+  // as authored links.
+  const safeHtml = sanitizeHtml(
+    linkifyBareUrls(sanitizeHtml(html, SANITIZE_OPTIONS)),
+    SANITIZE_OPTIONS,
+  );
 
   return <div dangerouslySetInnerHTML={{ __html: safeHtml }} />;
 };
