@@ -65,7 +65,11 @@ const Dashboard = ({ jobs }: { jobs: DashboardJob[] }) => {
                 <span className="text-xs text-muted-foreground">
                   {job.applicants.length} applicant
                   {job.applicants.length === 1 ? '' : 's'}
-                  {!job.isActive ? ' · closed' : ''}
+                  {job.paymentStatus === 'PENDING'
+                    ? ' · awaiting payment'
+                    : !job.isActive
+                      ? ' · closed'
+                      : ''}
                 </span>
               </div>
 

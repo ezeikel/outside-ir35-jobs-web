@@ -32,6 +32,7 @@ import {
   type SearchParams,
 } from '@/lib/search/filters';
 import { reciprocalRankFusion } from '@/lib/search/rrf';
+import { getJobPostPriceId, getSiteUrl, getStripe } from '@/lib/stripe/client';
 import { verifyCompany } from '@/lib/verification/companies-house';
 import { verifyVat } from '@/lib/verification/vat';
 import {
@@ -76,6 +77,18 @@ const recomputeTrustTier = async (userId: string): Promise<boolean> => {
   return true;
 };
 
+/**
+ * Start a native (paid) job posting. Native posts cost £219: we create the job
+ * UNPUBLISHED (paymentStatus=PENDING, isActive=false), open a Stripe Checkout
+ * Session, and return its URL for the client to redirect to. The job is only
+ * published — and embedded for search — once Stripe confirms payment via the
+ * webhook (app/api/webhooks/stripe). The redirect is NEVER trusted as proof of
+ * payment; the webhook is the source of truth.
+ *
+ * An explicit Inside-IR35 selection is created boardVisible=false (this is an
+ * outside-IR35 board — see docs/ir35-trust-model.md), consistent with aggregated
+ * INSIDE handling.
+ */
 export const createJobPost = async ({
   position,
   companyName,
@@ -88,7 +101,7 @@ export const createJobPost = async ({
   companyLogo,
   howToApply,
   applicationEmail,
-}: PostJobFormValues) => {
+}: PostJobFormValues): Promise<{ checkoutUrl: string }> => {
   // Only signed-in posters may create jobs; the owner comes from the session,
   // never the client payload.
   const session = await auth();
@@ -103,6 +116,10 @@ export const createJobPost = async ({
     .map((k) => k.trim())
     .filter(Boolean);
 
+  const resolvedSignal = ir35Signal ?? 'UNKNOWN';
+
+  // Create the job UNPUBLISHED + awaiting payment. No embedding yet — that runs
+  // on payment confirmation so unpaid drafts never enter search.
   const job = await prisma.job.create({
     data: {
       position,
@@ -112,7 +129,9 @@ export const createJobPost = async ({
       workMode,
       // The client's stated IR35 position (poster-attested). Defaults to UNKNOWN
       // when unset — we never persist an assertion of status.
-      ir35Signal: ir35Signal ?? 'UNKNOWN',
+      ir35Signal: resolvedSignal,
+      // Outside-IR35 board: an explicit INSIDE post is never board-visible.
+      boardVisible: resolvedSignal !== 'INSIDE',
       description,
       keywords: keywordList,
       // Optional column — only set when the poster supplied a logo URL.
@@ -121,23 +140,91 @@ export const createJobPost = async ({
       applicationEmail,
       // Attribute the job to its poster.
       userId: session.userId,
+      // Unpublished until Stripe confirms payment.
+      isActive: false,
+      paymentStatus: 'PENDING',
     },
   });
 
-  // Embed it so it appears in semantic search alongside aggregated jobs
-  // (best-effort — doesn't block creation if embedding fails).
+  const checkoutUrl = await createJobCheckoutSession(job.id, position);
+  return { checkoutUrl };
+};
+
+/**
+ * Create a Stripe Checkout Session for a pending native job and persist its id on
+ * the job (so the webhook reconciles payment → job). Returns the hosted-checkout
+ * URL. Extracted so a future "retry payment" can reuse it.
+ */
+const createJobCheckoutSession = async (
+  jobId: string,
+  position: string,
+): Promise<string> => {
+  const site = getSiteUrl();
+  const checkout = await getStripe().checkout.sessions.create({
+    mode: 'payment',
+    line_items: [{ price: getJobPostPriceId(), quantity: 1 }],
+    // success/cancel return to our own pages; the webhook (not these redirects)
+    // is what actually publishes the job.
+    success_url: `${site}/job/post/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${site}/job/post?canceled=1`,
+    // Reconcile the payment back to the job from the webhook payload.
+    metadata: { jobId },
+    client_reference_id: jobId,
+    // Shown on the Stripe-hosted page.
+    payment_intent_data: {
+      description: `Job posting: ${position}`.slice(0, 1000),
+    },
+  });
+
+  if (!checkout.url) {
+    throw new Error('Stripe did not return a checkout URL');
+  }
+
+  await prisma.job.update({
+    where: { id: jobId },
+    data: { stripeSessionId: checkout.id },
+  });
+
+  return checkout.url;
+};
+
+/**
+ * Publish a job whose Stripe payment has completed. Called by the webhook on
+ * checkout.session.completed. Idempotent: if the job is already PAID/active it's
+ * a no-op, so Stripe's at-least-once delivery can't double-publish or double-embed.
+ */
+export const fulfilJobPayment = async (
+  stripeSessionId: string,
+): Promise<void> => {
+  const job = await prisma.job.findUnique({
+    where: { stripeSessionId },
+    select: {
+      id: true,
+      position: true,
+      description: true,
+      keywords: true,
+      paymentStatus: true,
+    },
+  });
+  if (!job) return; // unknown session — nothing to do
+  if (job.paymentStatus === 'PAID') return; // already fulfilled (idempotent)
+
+  await prisma.job.update({
+    where: { id: job.id },
+    data: { paymentStatus: 'PAID', isActive: true },
+  });
+
+  // Embed now that it's live, so it appears in semantic search (best-effort).
   await embedAndStoreJob({
     id: job.id,
-    position,
-    keywords: keywordList,
-    description,
+    position: job.position,
+    keywords: job.keywords,
+    description: job.description,
   });
 
   revalidatePath('/jobs');
   // Homepage shows the latest contracts too.
   revalidatePath('/');
-
-  return job;
 };
 
 export const getJobs = async () =>
@@ -867,6 +954,9 @@ export type DashboardJob = {
   id: string;
   position: string;
   isActive: boolean;
+  // PENDING = checkout not completed (job not live); PAID = paid + live; FREE =
+  // comped/legacy. Lets the dashboard flag a job awaiting payment.
+  paymentStatus: 'FREE' | 'PENDING' | 'PAID';
   createdAt: Date;
   applicants: DashboardApplicant[];
 };
@@ -888,6 +978,7 @@ export const getMyJobsWithApplicants = async (): Promise<DashboardJob[]> => {
       id: true,
       position: true,
       isActive: true,
+      paymentStatus: true,
       createdAt: true,
       applications: {
         orderBy: { createdAt: 'desc' },
@@ -905,6 +996,7 @@ export const getMyJobsWithApplicants = async (): Promise<DashboardJob[]> => {
     id: j.id,
     position: j.position,
     isActive: j.isActive,
+    paymentStatus: j.paymentStatus,
     createdAt: j.createdAt,
     applicants: j.applications.map((a) => ({
       applicationId: a.id,

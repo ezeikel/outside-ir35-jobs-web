@@ -36,6 +36,9 @@
         "SENTRY_AUTH_TOKEN",
         "SENTRY_DSN",
         "SHADOW_DATABASE_URL",
+        "STRIPE_SECRET_KEY",
+        "STRIPE_JOB_POST_PRICE_ID",
+        "STRIPE_WEBHOOK_SECRET",
         "WORKER_SECRET"
       ]
     },

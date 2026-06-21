@@ -54,11 +54,19 @@ interface PostJobFormProps {
 const PostJobForm = ({ className }: PostJobFormProps) => {
   const [descriptionContent, setDescriptionContent] = useState('');
   const [howToApplyContent, setHowToApplyContent] = useState('');
-  const { control, handleSubmit, setValue } =
-    useFormContext<PostJobFormValues>();
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    formState: { isSubmitting },
+  } = useFormContext<PostJobFormValues>();
 
   const onSubmit = async (values: PostJobFormValues) => {
-    await createJobPost(values);
+    // createJobPost creates the job unpublished and returns a Stripe Checkout
+    // URL; the job only goes live after payment (webhook). Send the browser to
+    // Stripe's hosted checkout.
+    const { checkoutUrl } = await createJobPost(values);
+    window.location.assign(checkoutUrl);
   };
 
   useEffect(() => {
@@ -318,10 +326,18 @@ const PostJobForm = ({ className }: PostJobFormProps) => {
           </FormItem>
         )}
       />
-      <div className="flex justify-end">
-        <Button className="bg-primary text-white" type="submit">
-          Post Job - £219
+      <div className="flex flex-col items-end gap-2">
+        <Button
+          className="bg-primary text-white"
+          type="submit"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? 'Redirecting to payment…' : 'Post Job - £219'}
         </Button>
+        <p className="text-xs text-muted-foreground">
+          You’ll be taken to secure checkout. Your listing goes live once
+          payment is confirmed.
+        </p>
       </div>
     </form>
   );
