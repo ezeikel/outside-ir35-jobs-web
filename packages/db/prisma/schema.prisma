@@ -225,15 +225,19 @@ model Subscription {
   @@map("subscriptions")
 }
 
-// Track job applications
+// Track job applications. A contractor applies to a NATIVE job with their
+// verified profile (+ optional cover message); one application per job per
+// applicant (the unique constraint prevents double-apply).
 model Application {
   id          String   @id @default(cuid())
   jobId       String
   job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
   applicantId String
   applicant   User     @relation(fields: [applicantId], references: [id])
+  message     String? // optional short cover note from the contractor
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  @@unique([jobId, applicantId])
   @@map("applications")
 }

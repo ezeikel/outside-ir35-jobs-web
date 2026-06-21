@@ -2,6 +2,7 @@
 
 import {
   ContractorDocType,
+  type ContractorTrustTier,
   DocStatus,
   type JobIR35Signal,
   type JobSource,
@@ -13,6 +14,7 @@ import {
 import { del, getSignedDownloadUrl, put } from '@outside-ir35-jobs/storage';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
+import { canApply } from '@/lib/apply/eligibility';
 import { MIN_SAMPLE } from '@/lib/benchmarks/compute';
 import { computeTrustTier } from '@/lib/contractor/trust-tier';
 import {
@@ -762,4 +764,174 @@ export const reverifyCompany = async (
   const result = await verifyCompanyRecord(companyId);
   revalidatePath('/profile');
   return result;
+};
+
+// ---- Job applications -------------------------------------------------------
+
+const APPLICATION_MESSAGE_MAX = 1000;
+
+/**
+ * Apply to a NATIVE job with the signed-in contractor's verified profile, plus an
+ * optional short cover message. Gated by canApply (role, source, active, not own
+ * job, not already applied) — the DB unique([jobId, applicantId]) is the final
+ * backstop against double-apply.
+ */
+export const createApplication = async (
+  jobId: string,
+  message?: string,
+): Promise<{ status: 'applied' }> => {
+  const session = await auth();
+
+  const job = await prisma.job.findUnique({
+    where: { id: jobId },
+    select: { id: true, source: true, isActive: true, userId: true },
+  });
+  if (!job) throw new Error('Job not found');
+
+  const already = session?.userId
+    ? await prisma.application.findUnique({
+        where: { jobId_applicantId: { jobId, applicantId: session.userId } },
+        select: { id: true },
+      })
+    : null;
+
+  const verdict = canApply({
+    viewerId: session?.userId ?? null,
+    viewerRole: session?.role ?? null,
+    jobSource: job.source,
+    jobIsActive: job.isActive,
+    jobOwnerId: job.userId,
+    alreadyApplied: Boolean(already),
+  });
+  if (!verdict.ok) {
+    const messages: Record<string, string> = {
+      not_signed_in: 'Please sign in to apply.',
+      not_contractor: 'Only contractors can apply.',
+      aggregated:
+        'This role is from an external source — apply on the original listing.',
+      inactive: 'This role is no longer accepting applications.',
+      own_job: 'You cannot apply to your own job.',
+      already_applied: 'You have already applied to this role.',
+    };
+    throw new Error(
+      messages[verdict.reason] ?? 'You cannot apply to this role.',
+    );
+  }
+
+  const note = message?.trim().slice(0, APPLICATION_MESSAGE_MAX) || null;
+
+  await prisma.application.create({
+    data: { jobId, applicantId: session!.userId as string, message: note },
+  });
+
+  revalidatePath(`/job/${jobId}`);
+  revalidatePath('/dashboard');
+  return { status: 'applied' };
+};
+
+// The applicant rows a poster sees on their dashboard (identity + trust, not the
+// raw documents). The applicant's full verified pack is fetched on demand via
+// getApplicantProfile (a separate, ownership-checked read).
+export type DashboardApplicant = {
+  applicationId: string;
+  applicantId: string;
+  name: string;
+  trustTier: ContractorTrustTier;
+  message: string | null;
+  appliedAt: Date;
+};
+
+export type DashboardJob = {
+  id: string;
+  position: string;
+  isActive: boolean;
+  createdAt: Date;
+  applicants: DashboardApplicant[];
+};
+
+/**
+ * The jobs the signed-in poster owns, each with its applicants. JOB_POSTER only,
+ * session-scoped to jobs they posted.
+ */
+export const getMyJobsWithApplicants = async (): Promise<DashboardJob[]> => {
+  const session = await auth();
+  if (!session?.userId || session.role !== Role.JOB_POSTER) {
+    return [];
+  }
+
+  const jobs = await prisma.job.findMany({
+    where: { userId: session.userId },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      position: true,
+      isActive: true,
+      createdAt: true,
+      applications: {
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          message: true,
+          createdAt: true,
+          applicant: { select: { id: true, name: true, trustTier: true } },
+        },
+      },
+    },
+  });
+
+  return jobs.map((j) => ({
+    id: j.id,
+    position: j.position,
+    isActive: j.isActive,
+    createdAt: j.createdAt,
+    applicants: j.applications.map((a) => ({
+      applicationId: a.id,
+      applicantId: a.applicant.id,
+      name: a.applicant.name,
+      trustTier: a.applicant.trustTier,
+      message: a.message,
+      appliedAt: a.createdAt,
+    })),
+  }));
+};
+
+/**
+ * A poster views one applicant's verified profile — ONLY when that applicant has
+ * applied to a job the poster owns. The ownership check is the access gate: no
+ * poster can read a contractor who didn't apply to their job.
+ */
+export const getApplicantProfile = async (applicantId: string) => {
+  const session = await auth();
+  if (!session?.userId || session.role !== Role.JOB_POSTER) {
+    return null;
+  }
+
+  // The applicant must have an application on a job this poster owns.
+  const link = await prisma.application.findFirst({
+    where: { applicantId, job: { userId: session.userId } },
+    select: { id: true },
+  });
+  if (!link) return null;
+
+  return prisma.user.findUnique({
+    where: { id: applicantId },
+    include: {
+      limitedCompanies: true,
+      documents: { orderBy: { createdAt: 'asc' } },
+    },
+  });
+};
+
+/**
+ * The jobs the signed-in contractor has applied to (for "already applied" state
+ * and a future "my applications" view). JOB_SEEKER only.
+ */
+export const getMyApplications = async (): Promise<string[]> => {
+  const session = await auth();
+  if (!session?.userId || session.role !== Role.JOB_SEEKER) return [];
+  const apps = await prisma.application.findMany({
+    where: { applicantId: session.userId },
+    select: { jobId: true },
+  });
+  return apps.map((a) => a.jobId);
 };

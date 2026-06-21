@@ -1,5 +1,7 @@
+import { db as prisma } from '@outside-ir35-jobs/db';
 import Link from 'next/link';
 import { getJob } from '@/app/actions';
+import { auth } from '@/auth';
 import HTMLViewer from '@/components/HTMLViewer/HTMLViewer';
 import {
   AttributedClaim,
@@ -11,7 +13,9 @@ import {
   type WorkMode,
   WorkModePill,
 } from '@/components/trust';
+import { canApply } from '@/lib/apply/eligibility';
 import { Button } from '../ui/button';
+import ApplyButton from './ApplyButton';
 
 interface JobPostProps {
   id: string;
@@ -45,6 +49,28 @@ const JobPost = async ({ id }: JobPostProps) => {
       </div>
     );
   }
+
+  // Compute apply eligibility server-side (the action re-checks authoritatively).
+  const session = await auth();
+  const alreadyApplied =
+    session?.userId && session.role === 'JOB_SEEKER'
+      ? Boolean(
+          await prisma.application.findUnique({
+            where: {
+              jobId_applicantId: { jobId: job.id, applicantId: session.userId },
+            },
+            select: { id: true },
+          }),
+        )
+      : false;
+  const eligibility = canApply({
+    viewerId: session?.userId ?? null,
+    viewerRole: session?.role ?? null,
+    jobSource: job.source,
+    jobIsActive: job.isActive,
+    jobOwnerId: job.userId,
+    alreadyApplied,
+  });
 
   const location = locationAddress(job.location);
   const ir35Signal: JobIR35Signal = job.ir35Signal ?? 'UNKNOWN';
@@ -160,10 +186,11 @@ const JobPost = async ({ id }: JobPostProps) => {
               </div>
             </dl>
 
-            <Button className="mt-5 w-full">Apply with verified profile</Button>
-            <p className="mt-2 text-center text-xs text-muted-foreground">
-              One click — share your verified compliance pack.
-            </p>
+            <ApplyButton
+              jobId={job.id}
+              eligibility={eligibility}
+              sourceUrl={job.sourceUrl}
+            />
           </div>
 
           {/* Verified facts about the client */}

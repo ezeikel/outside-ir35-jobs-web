@@ -22,8 +22,19 @@ const UserMenu = () => {
     );
   }
 
+  // Posters get a link to their jobs-and-applicants dashboard.
+  const isPoster = session.role === 'JOB_POSTER';
+
   return (
     <div className="flex items-center gap-2">
+      {isPoster ? (
+        <Link
+          href="/dashboard"
+          className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline"
+        >
+          Dashboard
+        </Link>
+      ) : null}
       <Link
         href="/profile"
         className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline"
