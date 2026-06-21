@@ -190,14 +190,15 @@ const createJobCheckoutSession = async (
 
 /**
  * Publish a job whose Stripe payment has completed. Called by the webhook on
- * checkout.session.completed. Idempotent: if the job is already PAID/active it's
- * a no-op, so Stripe's at-least-once delivery can't double-publish or double-embed.
+ * checkout.session.completed, keyed on the jobId carried in the session metadata
+ * (race-proof: doesn't depend on stripeSessionId having been persisted before the
+ * webhook arrives). Idempotent: if the job is already PAID it's a no-op, so
+ * Stripe's at-least-once delivery can't double-publish or double-embed. Only a
+ * PENDING native job is published — a FREE job is never touched.
  */
-export const fulfilJobPayment = async (
-  stripeSessionId: string,
-): Promise<void> => {
+export const fulfilJobPayment = async (jobId: string): Promise<void> => {
   const job = await prisma.job.findUnique({
-    where: { stripeSessionId },
+    where: { id: jobId },
     select: {
       id: true,
       position: true,
@@ -206,8 +207,8 @@ export const fulfilJobPayment = async (
       paymentStatus: true,
     },
   });
-  if (!job) return; // unknown session — nothing to do
-  if (job.paymentStatus === 'PAID') return; // already fulfilled (idempotent)
+  if (!job) return; // unknown job — nothing to do
+  if (job.paymentStatus !== 'PENDING') return; // already fulfilled / not payable (idempotent)
 
   await prisma.job.update({
     where: { id: job.id },

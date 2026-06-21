@@ -43,10 +43,13 @@ export const POST = async (request: Request) => {
   // We only act on a completed checkout. Other events are acked (200) and ignored.
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
+    // The job is carried in metadata (set by createJobCheckoutSession), with
+    // client_reference_id as a fallback.
+    const jobId = session.metadata?.jobId ?? session.client_reference_id;
     // Only publish on a paid session (mode=payment sessions report payment_status).
-    if (session.payment_status === 'paid') {
+    if (session.payment_status === 'paid' && jobId) {
       try {
-        await fulfilJobPayment(session.id);
+        await fulfilJobPayment(jobId);
       } catch (err) {
         // Return 500 so Stripe retries (fulfilJobPayment is idempotent).
         const message =
