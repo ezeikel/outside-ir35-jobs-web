@@ -163,6 +163,9 @@ const createJobCheckoutSession = async (
   const checkout = await getStripe().checkout.sessions.create({
     mode: 'payment',
     line_items: [{ price: getJobPostPriceId(), quantity: 1 }],
+    // Show the "Promotion code" box on the hosted checkout so a poster can redeem
+    // a code (e.g. a founding-employer comp, or 100%-off for testing the live flow).
+    allow_promotion_codes: true,
     // success/cancel return to our own pages; the webhook (not these redirects)
     // is what actually publishes the job.
     success_url: `${site}/job/post/success?session_id={CHECKOUT_SESSION_ID}`,
