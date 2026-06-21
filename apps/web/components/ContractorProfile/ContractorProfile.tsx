@@ -1,3 +1,4 @@
+import type { RecommendationResult } from '@/app/actions';
 import {
   CompletenessRing,
   type ContractorTrustTier,
@@ -12,6 +13,7 @@ import AddCompanyForm from './AddCompanyForm';
 import CvProfile from './CvProfile';
 import DocumentMetaForm from './DocumentMetaForm';
 import DocumentUpload from './DocumentUpload';
+import RecommendedJobs from './RecommendedJobs';
 import ReverifyButton from './ReverifyButton';
 
 /**
@@ -140,7 +142,13 @@ const TIER_BADGE_LABEL: Record<ContractorTrustTier, string> = {
   COMPLIANCE_CURRENT: 'Compliance current',
 };
 
-const ContractorProfile = ({ data }: { data: ContractorProfileData }) => {
+const ContractorProfile = ({
+  data,
+  recommendations,
+}: {
+  data: ContractorProfileData;
+  recommendations: RecommendationResult;
+}) => {
   const company = data.limitedCompanies[0];
   const pct = completeness(data);
 
@@ -249,6 +257,9 @@ const ContractorProfile = ({ data }: { data: ContractorProfileData }) => {
           {data.parsedProfile ? (
             <CvProfile profile={data.parsedProfile} />
           ) : null}
+
+          {/* Jobs matched to the contractor's CV (honest empty/no-CV states) */}
+          <RecommendedJobs data={recommendations} />
         </div>
 
         {/* Right: completeness */}

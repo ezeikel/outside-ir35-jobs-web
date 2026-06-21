@@ -265,6 +265,64 @@ export const searchJobs = async (
     LIMIT 50`;
 };
 
+// A recommended job is a search card plus its match distance (cosine, lower =
+// closer). The UI never shows the raw number; it's there for ordering + the cap.
+export type RecommendedJob = JobSearchRow & { distance: number };
+
+export type RecommendationResult =
+  | { status: 'no_cv' } // contractor has no parsed-CV embedding yet
+  | { status: 'ok'; jobs: RecommendedJob[] };
+
+// Only surface jobs within this cosine distance of the contractor's profile.
+// Beyond it the match is too weak to honestly call a "recommendation" — better to
+// show fewer (or none) than pad the list with noise. Distance = 1 - similarity.
+const RECOMMEND_MAX_DISTANCE = 0.62;
+const RECOMMEND_LIMIT = 8;
+
+/**
+ * Recommend jobs for the signed-in contractor by semantic similarity between
+ * their parsed-CV embedding (User.embedding) and each active job's embedding
+ * (pgvector cosine, HNSW index). Honest by design: no CV embedding → 'no_cv' (the
+ * UI prompts to upload a CV); weak matches beyond RECOMMEND_MAX_DISTANCE are
+ * dropped rather than shown as tailored; near-duplicate listings are de-duped.
+ */
+export const getRecommendedJobs = async (): Promise<RecommendationResult> => {
+  const session = await auth();
+  if (!session?.userId || session.role !== Role.JOB_SEEKER) {
+    return { status: 'no_cv' };
+  }
+
+  // The embedding column is Unsupported() in Prisma → read it as text via raw SQL.
+  const rows = await prisma.$queryRaw<{ embedding: string | null }[]>`
+    SELECT "embedding"::text AS embedding FROM "users" WHERE "id" = ${session.userId}`;
+  const vecText = rows[0]?.embedding;
+  if (!vecText) return { status: 'no_cv' };
+
+  // Pull a few extra to allow for de-duplication, then trim to the limit.
+  const candidates = await prisma.$queryRaw<RecommendedJob[]>`
+    SELECT ${JOB_CARD_COLUMNS},
+      ("embedding" <=> ${vecText}::vector) AS distance
+    FROM "jobs"
+    WHERE "isActive" = true
+      AND "embedding" IS NOT NULL
+      AND ("embedding" <=> ${vecText}::vector) <= ${RECOMMEND_MAX_DISTANCE}
+    ORDER BY "embedding" <=> ${vecText}::vector
+    LIMIT ${RECOMMEND_LIMIT * 3}`;
+
+  // De-dupe near-identical listings (same title + company), keeping the closest.
+  const seen = new Set<string>();
+  const jobs: RecommendedJob[] = [];
+  for (const job of candidates) {
+    const key = `${job.position.toLowerCase().trim()}|${job.companyName.toLowerCase().trim()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    jobs.push(job);
+    if (jobs.length >= RECOMMEND_LIMIT) break;
+  }
+
+  return { status: 'ok', jobs };
+};
+
 export type DayRateBenchmark = {
   skill: string;
   ir35Bucket: 'OUTSIDE' | 'INSIDE' | 'UNKNOWN';

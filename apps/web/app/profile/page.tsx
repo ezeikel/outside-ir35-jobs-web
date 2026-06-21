@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { getContractorProfile } from '@/app/actions';
+import { getContractorProfile, getRecommendedJobs } from '@/app/actions';
 import { auth } from '@/auth';
 import ContractorProfile, {
   type ContractorProfileData,
@@ -24,7 +24,10 @@ const ProfilePage = async () => {
   }
 
   // Session-scoped: returns null for posters or contractors with no data yet.
-  const profile = await getContractorProfile();
+  const [profile, recommendations] = await Promise.all([
+    getContractorProfile(),
+    getRecommendedJobs(),
+  ]);
 
   if (!profile) {
     return (
@@ -42,7 +45,12 @@ const ProfilePage = async () => {
   }
 
   // The Prisma result already matches ContractorProfileData's shape.
-  return <ContractorProfile data={profile as ContractorProfileData} />;
+  return (
+    <ContractorProfile
+      data={profile as ContractorProfileData}
+      recommendations={recommendations}
+    />
+  );
 };
 
 export default ProfilePage;
