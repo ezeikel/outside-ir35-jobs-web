@@ -1,8 +1,14 @@
 import { format } from 'date-fns';
-import type { ParsedCvProfile } from '@/components/ContractorProfile/ContractorProfile';
+import {
+  DOC_LABEL,
+  type ParsedCvProfile,
+} from '@/components/ContractorProfile/ContractorProfile';
 import CvProfile from '@/components/ContractorProfile/CvProfile';
 import {
+  CompletenessRing,
   type ContractorTrustTier,
+  DocStatusRow,
+  type DocStatus as UiDocStatus,
   VerifiedBadge,
   VerifiedFactRow,
 } from '@/components/trust';
@@ -36,6 +42,14 @@ type Company = {
   companyVerifiedAt: Date | string | null;
   vatVerifiedAt: Date | string | null;
 };
+type Document = {
+  id: string;
+  type: string;
+  status: string;
+  insurer: string | null;
+  coverLimit: number | null;
+  expiresAt: Date | string | null;
+};
 type ApplicantData = {
   name: string;
   trustTier: ContractorTrustTier;
@@ -43,7 +57,45 @@ type ApplicantData = {
   holdsIR35Insurance: boolean;
   ir35InsuranceProvider: string | null;
   limitedCompanies: Company[];
+  documents: Document[];
   parsedProfile: unknown;
+};
+
+// Map the DB DocStatus enum to the UI primitive (same mapping as the contractor's
+// own profile, so an employer sees identical status language).
+const DOC_STATUS: Record<string, UiDocStatus> = {
+  ON_FILE: 'on_file',
+  EXPIRING: 'expiring',
+  PENDING: 'pending',
+  MISSING: 'missing',
+  FAILED: 'failed',
+};
+
+const docDetail = (doc: Document): string | undefined => {
+  const parts: string[] = [];
+  if (doc.insurer) parts.push(doc.insurer);
+  if (doc.coverLimit)
+    parts.push(`£${(doc.coverLimit / 1_000_000).toFixed(0)}m`);
+  if (doc.expiresAt) parts.push(`expires ${fmtDate(doc.expiresAt)}`);
+  if (doc.status === 'PENDING') return 'checking';
+  if (doc.status === 'MISSING') return 'not added';
+  return parts.length ? parts.join(' · ') : undefined;
+};
+
+// Completeness = fraction of the expected pack on file (mirrors ContractorProfile).
+const EXPECTED_DOCS = [
+  'INCORPORATION',
+  'PI_INSURANCE',
+  'PL_INSURANCE',
+  'RIGHT_TO_WORK',
+  'CV',
+];
+const packCompleteness = (documents: Document[]): number => {
+  const onFile = new Set(
+    documents.filter((d) => d.status === 'ON_FILE').map((d) => d.type),
+  );
+  const got = EXPECTED_DOCS.filter((t) => onFile.has(t)).length;
+  return Math.round((got / EXPECTED_DOCS.length) * 100);
 };
 
 /**
@@ -55,6 +107,10 @@ type ApplicantData = {
  */
 const ApplicantProfile = ({ applicant }: { applicant: ApplicantData }) => {
   const company = applicant.limitedCompanies[0];
+  // Only show real documents (never the MISSING placeholders) in the read-only
+  // employer view.
+  const docs = applicant.documents.filter((d) => d.status !== 'MISSING');
+  const packPct = packCompleteness(applicant.documents);
 
   return (
     <div className="mt-4">
@@ -102,6 +158,33 @@ const ApplicantProfile = ({ applicant }: { applicant: ApplicantData }) => {
             status="verified"
           />
         ) : null}
+      </section>
+
+      {/* Compliance pack — the contractor's documents on file (insurance, incorp,
+          right-to-work). Read-only for the employer: we surface what's on file and
+          its status/expiry, never an IR35-status judgement. Same status language
+          the contractor sees on their own profile. */}
+      <section className="mt-6 rounded-lg border border-border bg-card p-5">
+        <div className="mb-1 flex items-center justify-between gap-3">
+          <p className="text-sm font-medium">Compliance pack</p>
+          {docs.length > 0 ? (
+            <CompletenessRing percent={packPct} label="on file" size={48} />
+          ) : null}
+        </div>
+        {docs.length === 0 ? (
+          <p className="py-2 text-sm text-muted-foreground">
+            No documents on file yet.
+          </p>
+        ) : (
+          docs.map((doc) => (
+            <DocStatusRow
+              key={doc.id}
+              name={DOC_LABEL[doc.type] ?? doc.type}
+              status={DOC_STATUS[doc.status] ?? 'pending'}
+              detail={docDetail(doc)}
+            />
+          ))
+        )}
       </section>
 
       {applicant.parsedProfile ? (
