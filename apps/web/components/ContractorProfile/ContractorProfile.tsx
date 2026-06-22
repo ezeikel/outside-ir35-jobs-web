@@ -149,6 +149,11 @@ const ContractorProfile = ({
 }) => {
   const company = data.limitedCompanies[0];
   const pct = completeness(data);
+  // A CV doc is on file but parsedProfile hasn't landed yet → worker still
+  // processing (or failed). Drives the "Processing your CV…" hint.
+  const hasCvOnFile = data.documents.some(
+    (d) => d.type === 'CV' && d.status !== 'MISSING',
+  );
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6">
@@ -263,9 +268,20 @@ const ContractorProfile = ({
             <DocumentUpload />
           </section>
 
-          {/* Parsed CV profile (contractor-supplied, shown once a CV is parsed) */}
+          {/* Parsed CV profile (contractor-supplied, shown once a CV is parsed).
+              While a CV is on file but not yet parsed, show a processing hint so
+              the contractor isn't left staring at nothing if the worker is slow or
+              down. */}
           {data.parsedProfile ? (
             <CvProfile profile={data.parsedProfile} />
+          ) : hasCvOnFile ? (
+            <section className="rounded-lg border border-dashed border-border bg-card/50 p-5">
+              <p className="text-sm font-medium">From your CV</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Processing your CV — your skills and experience will appear here
+                shortly. Refresh in a moment if it doesn’t show.
+              </p>
+            </section>
           ) : null}
 
           {/* Jobs matched to the contractor's CV (honest empty/no-CV states) */}
