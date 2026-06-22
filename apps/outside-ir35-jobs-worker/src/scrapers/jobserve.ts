@@ -1,4 +1,4 @@
-import { createStagehand } from '../browser.js';
+import { withStagehand } from '../browser.js';
 import type { ScrapedJob } from './types.js';
 
 // ScrapedJob now lives in ./types so every scraper shares one definition and
@@ -20,10 +20,11 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  * more reliable than visual/LLM extraction, and it gives us the canonical job id
  * for the sourceUrl.
  */
-export const scrapeJobserve = async (limit = 25): Promise<ScrapedJob[]> => {
-  const sh = await createStagehand();
-  let retrieveJobsBody = '';
-  try {
+export const scrapeJobserve = async (limit = 25): Promise<ScrapedJob[]> =>
+  // Held under the global browser lock so it never collides with the cwjobs
+  // Browserbase session (1 concurrent session on plan → 429 otherwise).
+  withStagehand(async (sh) => {
+    let retrieveJobsBody = '';
     const page = sh.page;
 
     // Capture the RetrieveJobs JSON response as it fires.
@@ -69,10 +70,7 @@ export const scrapeJobserve = async (limit = 25): Promise<ScrapedJob[]> => {
       `[jobserve] scraped ${jobs.length} contract listings (cap ${limit})`,
     );
     return jobs;
-  } finally {
-    await sh.close();
-  }
-};
+  });
 
 // --- deterministic parsing of the RetrieveJobs HTML fragment -----------------
 

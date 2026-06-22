@@ -1,4 +1,4 @@
-import { createStagehand } from '../browser.js';
+import { withStagehand } from '../browser.js';
 import type { ScrapedJob } from './types.js';
 
 export type { ScrapedJob };
@@ -42,9 +42,10 @@ const CARDS_JS = `(() => {
 
 export type RawCard = { title: string; href: string; text: string };
 
-export const scrapeCwjobs = async (limit = 25): Promise<ScrapedJob[]> => {
-  const sh = await createStagehand();
-  try {
+export const scrapeCwjobs = async (limit = 25): Promise<ScrapedJob[]> =>
+  // Held under the global browser lock so it never collides with the jobserve
+  // Browserbase session (1 concurrent session on plan → 429 otherwise).
+  withStagehand(async (sh) => {
     const page = sh.page;
     await page.goto(CWJOBS_CONTRACT_LIST, { waitUntil: 'domcontentloaded' });
     await sleep(3000);
@@ -66,10 +67,7 @@ export const scrapeCwjobs = async (limit = 25): Promise<ScrapedJob[]> => {
       `[cwjobs] scraped ${jobs.length} contract listings (cap ${limit})`,
     );
     return jobs;
-  } finally {
-    await sh.close();
-  }
-};
+  });
 
 // --- deterministic parsing of the CWJobs cards -------------------------------
 
