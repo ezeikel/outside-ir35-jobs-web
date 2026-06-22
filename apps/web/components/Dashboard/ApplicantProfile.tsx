@@ -12,6 +12,7 @@ import {
   VerifiedBadge,
   VerifiedFactRow,
 } from '@/components/trust';
+import { EXPECTED_DOC_TYPES } from '@/lib/contractor/trust-tier';
 
 const TIER_BADGE_LABEL: Record<ContractorTrustTier, string> = {
   SELF_DECLARED: 'Self-declared',
@@ -82,20 +83,14 @@ const docDetail = (doc: Document): string | undefined => {
   return parts.length ? parts.join(' · ') : undefined;
 };
 
-// Completeness = fraction of the expected pack on file (mirrors ContractorProfile).
-const EXPECTED_DOCS = [
-  'INCORPORATION',
-  'PI_INSURANCE',
-  'PL_INSURANCE',
-  'RIGHT_TO_WORK',
-  'CV',
-];
+// Completeness = fraction of the expected pack on file. Uses the SAME
+// EXPECTED_DOC_TYPES the trust-tier ladder gates on (shared source of truth).
 const packCompleteness = (documents: Document[]): number => {
   const onFile = new Set(
     documents.filter((d) => d.status === 'ON_FILE').map((d) => d.type),
   );
-  const got = EXPECTED_DOCS.filter((t) => onFile.has(t)).length;
-  return Math.round((got / EXPECTED_DOCS.length) * 100);
+  const got = EXPECTED_DOC_TYPES.filter((t) => onFile.has(t)).length;
+  return Math.round((got / EXPECTED_DOC_TYPES.length) * 100);
 };
 
 /**

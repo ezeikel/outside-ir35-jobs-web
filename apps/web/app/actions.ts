@@ -632,6 +632,19 @@ export const uploadContractorDocument = async (formData: FormData) => {
     triggerCvParse({ userId: session.userId, r2Key: key, mimeType: file.type });
   }
 
+  // Uploading a right-to-work document IS the confirmation — set the flag so the
+  // T3 (COMPLIANCE_CURRENT) gate can be satisfied. Without this the flag was never
+  // settable and T3 was unreachable. (Only flip on a valid, on-file doc.)
+  if (
+    type === ContractorDocType.RIGHT_TO_WORK &&
+    status === DocStatus.ON_FILE
+  ) {
+    await prisma.user.update({
+      where: { id: session.userId },
+      data: { rightToWorkConfirmed: true },
+    });
+  }
+
   await recomputeTrustTier(session.userId);
   revalidatePath('/profile');
 };

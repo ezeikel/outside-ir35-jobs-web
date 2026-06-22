@@ -16,12 +16,12 @@ const onFile = (type: ContractorDocType) => ({
   status: DocStatus.ON_FILE,
 });
 
-// A T3-complete state we can degrade in each test.
+// A T3-complete state we can degrade in each test. No INCORPORATION document —
+// incorporation is proven by the verified company (companyVerifiedAt), not a doc.
 const fullState = (): TrustTierState => ({
   companies: [verifiedCompany],
   rightToWorkConfirmed: true,
   documents: [
-    onFile(ContractorDocType.INCORPORATION),
     onFile(ContractorDocType.PI_INSURANCE),
     onFile(ContractorDocType.PL_INSURANCE),
     onFile(ContractorDocType.EL_INSURANCE),
@@ -113,5 +113,16 @@ describe('computeTrustTier', () => {
     expect(computeTrustTier(fullState())).toBe(
       ContractorTrustTier.COMPLIANCE_CURRENT,
     );
+  });
+
+  it('reaches COMPLIANCE_CURRENT WITHOUT an INCORPORATION document (proven by the verified company)', () => {
+    const s = fullState();
+    // Guard against re-adding INCORPORATION to EXPECTED_DOC_TYPES, which made T3
+    // unreachable: fullState already has no INCORPORATION doc, and the company is
+    // verified, so this must be T3.
+    expect(
+      s.documents.some((d) => d.type === ContractorDocType.INCORPORATION),
+    ).toBe(false);
+    expect(computeTrustTier(s)).toBe(ContractorTrustTier.COMPLIANCE_CURRENT);
   });
 });

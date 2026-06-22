@@ -19,9 +19,13 @@ import {
  * not claims about a role's IR35 position.
  */
 
-// The pack required for COMPLIANCE_CURRENT (matches the profile completeness ring).
+// The pack required for COMPLIANCE_CURRENT. NOTE: incorporation is NOT a doc here
+// — it's proven by the Companies House register check (companyVerifiedAt), which
+// is stronger than a self-uploaded PDF and is the only path a contractor actually
+// has. Requiring an INCORPORATION document on top made T3 unreachable. The
+// insurance certs (PI/PL/EL) are gated at T2 (INSURANCE_DOC_TYPES); T3 adds CV +
+// right-to-work in-date on top.
 export const EXPECTED_DOC_TYPES: ContractorDocType[] = [
-  ContractorDocType.INCORPORATION,
   ContractorDocType.PI_INSURANCE,
   ContractorDocType.PL_INSURANCE,
   ContractorDocType.RIGHT_TO_WORK,

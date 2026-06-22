@@ -8,6 +8,7 @@ import {
   VerifiedBadge,
   VerifiedFactRow,
 } from '@/components/trust';
+import { EXPECTED_DOC_TYPES } from '@/lib/contractor/trust-tier';
 import { tracksExpiry } from '@/lib/documents/validate';
 import AddCompanyForm from './AddCompanyForm';
 import CvProfile from './CvProfile';
@@ -112,20 +113,16 @@ const docDetail = (doc: DbDocument): string | undefined => {
   return parts.length ? parts.join(' · ') : undefined;
 };
 
-// Completeness = a simple, honest fraction of the expected pack on file.
-const EXPECTED_DOCS = [
-  'INCORPORATION',
-  'PI_INSURANCE',
-  'PL_INSURANCE',
-  'RIGHT_TO_WORK',
-  'CV',
-];
+// Completeness = a simple, honest fraction of the expected pack on file. Uses the
+// SAME EXPECTED_DOC_TYPES the trust-tier ladder gates T3 on, so the ring can't say
+// "100%" while the tier is stuck (incorporation is proven by the verified company,
+// not a doc — so it's not in this list).
 const completeness = (p: ContractorProfileData): number => {
   const onFile = new Set(
     p.documents.filter((d) => d.status === 'ON_FILE').map((d) => d.type),
   );
-  const got = EXPECTED_DOCS.filter((t) => onFile.has(t)).length;
-  return Math.round((got / EXPECTED_DOCS.length) * 100);
+  const got = EXPECTED_DOC_TYPES.filter((t) => onFile.has(t)).length;
+  return Math.round((got / EXPECTED_DOC_TYPES.length) * 100);
 };
 
 const badgeLevel = (tier: ContractorTrustTier) =>
