@@ -176,14 +176,20 @@ const ApplicantProfile = ({ applicant }: { applicant: ApplicantData }) => {
             No documents on file yet.
           </p>
         ) : (
-          docs.map((doc) => (
-            <DocStatusRow
-              key={doc.id}
-              name={DOC_LABEL[doc.type] ?? doc.type}
-              status={DOC_STATUS[doc.status] ?? 'pending'}
-              detail={docDetail(doc)}
-            />
-          ))
+          <>
+            {docs.map((doc) => (
+              <DocStatusRow
+                key={doc.id}
+                name={DOC_LABEL[doc.type] ?? doc.type}
+                status={DOC_STATUS[doc.status] ?? 'pending'}
+                detail={docDetail(doc)}
+              />
+            ))}
+            <p className="mt-3 text-xs text-muted-foreground">
+              Documents the applicant has on file. Statuses reflect the
+              applicant’s uploads, not platform verification of IR35 status.
+            </p>
+          </>
         )}
       </section>
 

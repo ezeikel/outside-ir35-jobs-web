@@ -1031,11 +1031,40 @@ export const getApplicantProfile = async (applicantId: string) => {
   });
   if (!link) return null;
 
+  // Data minimisation: select ONLY the fields the employer's ApplicantProfile
+  // renders. Never expose the contractor's email/phone/address/dob/role here, and
+  // never the documents' r2Key (the raw file pointer) — an employer sees verified
+  // facts + on-file status, not PII or the files themselves.
   return prisma.user.findUnique({
     where: { id: applicantId },
-    include: {
-      limitedCompanies: true,
-      documents: { orderBy: { createdAt: 'asc' } },
+    select: {
+      name: true,
+      trustTier: true,
+      rightToWorkConfirmed: true,
+      holdsIR35Insurance: true,
+      ir35InsuranceProvider: true,
+      parsedProfile: true,
+      limitedCompanies: {
+        select: {
+          id: true,
+          name: true,
+          vatNumber: true,
+          incorporationNumber: true,
+          companyVerifiedAt: true,
+          vatVerifiedAt: true,
+        },
+      },
+      documents: {
+        orderBy: { createdAt: 'asc' },
+        select: {
+          id: true,
+          type: true,
+          status: true,
+          insurer: true,
+          coverLimit: true,
+          expiresAt: true,
+        },
+      },
     },
   });
 };

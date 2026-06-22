@@ -16,8 +16,8 @@ const RecommendedJobs = ({ data }: { data: RecommendationResult }) => {
       <section className="rounded-lg border border-dashed border-border bg-card/50 p-5">
         <p className="text-sm font-medium">Recommended for you</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Upload your CV above and we’ll match you to outside-IR35 contracts
-          that fit your skills and experience.
+          Upload your CV above and we’ll match you to roles listed as
+          outside-IR35 by clients that fit your skills and experience.
         </p>
       </section>
     );
