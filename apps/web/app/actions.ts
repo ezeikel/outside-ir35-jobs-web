@@ -1324,7 +1324,7 @@ export const runJobAlerts = async (): Promise<{
       ir35Label: IR35_SIGNAL_LABEL[r.ir35Signal] ?? 'IR35 not stated',
     }));
 
-    const { subject, html } = buildJobAlertEmail({
+    const { subject, html } = await buildJobAlertEmail({
       jobs: alertJobs,
       searchLabel: searchLabel(s),
       siteUrl: site,
