@@ -40,6 +40,7 @@ import {
   OUTSIDE_SIGNALS,
   type SearchFilters,
   type SearchParams,
+  toStoredSearch,
 } from '@/lib/search/filters';
 import { reciprocalRankFusion } from '@/lib/search/rrf';
 import {
@@ -1317,19 +1318,6 @@ export type SavedSearchRow = {
 };
 
 // Normalize the raw SearchParams into the columns we persist (null = no constraint).
-const toStoredSearch = (params: SearchParams) => {
-  const f = normalizeFilters(params);
-  return {
-    query: f.q || null,
-    location: f.location,
-    // Store the raw ir35 intent so save/restore round-trips ('outside' | 'any' | null).
-    ir35:
-      params.ir35 === 'outside' || params.ir35 === 'any' ? params.ir35 : null,
-    mode: f.workMode,
-    minRate: f.minRate,
-  };
-};
-
 // Reconstruct SearchParams from a stored row (for matching + display).
 const storedToParams = (s: {
   query: string | null;

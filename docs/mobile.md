@@ -29,7 +29,17 @@ rule can't drift between them because both go through the same action.
 | `POST /api/mobile/auth/apple`  | verify Apple identityToken (JWKS) → upsert → mint token   | public |
 | `GET  /api/mobile/auth/me`     | resolve bearer token → current user                      | bearer |
 | `GET  /api/mobile/jobs`        | `searchJobs(params)` → mobile card DTOs                   | public |
-| `GET  /api/mobile/jobs/[id]`   | `getJob(id)` (gated on boardVisible+isActive) → detail    | public |
+| `GET  /api/mobile/jobs/[id]`   | `getJob` (gated) → detail + the caller's apply eligibility | mixed  |
+| `POST /api/mobile/onboarding`  | pick role (setUserRole logic) → updated user             | bearer |
+| `POST /api/mobile/applications`| apply to a job (shared `canApply` gate)                  | bearer |
+| `GET/POST /api/mobile/saved-searches` | list / save (FREE_SAVED_SEARCH_LIMIT + premium gate) | bearer |
+| `DELETE/PATCH /api/mobile/saved-searches/[id]` | delete / toggle alerts (owner-scoped) | bearer |
+
+The authed routes resolve the caller via `getMobileCaller(req)` and reuse the
+SAME business primitives as the web actions (`canApply`, `isPremium`,
+`toStoredSearch`, `OnboardingRoleSchema`) — so rules can't drift between
+surfaces. `/api/mobile/jobs/[id]` is "mixed": public detail, plus per-viewer
+apply eligibility when a bearer token is present.
 
 Supporting libs live in `apps/web/lib/mobile/`:
 
@@ -101,6 +111,15 @@ Server-side (on the web app's Vercel project) for token verification:
   `com.chewybytes.outsideir35.app`).
 - `AUTH_SECRET` — already set; also signs the mobile session JWT.
 
+## Done (authed surfaces)
+
+- Onboarding role picker (gated at the root — a signed-in user with no role is
+  sent to `/onboarding`).
+- In-app apply on the job detail (cover note + the server-computed eligibility:
+  apply / already-applied / sign-in / link-out).
+- Saved searches: "Save this search" on the board (contractor-only) + an Alerts
+  tab to pause/resume/delete.
+
 ## Not done yet (next phases)
 
 - `eas init` to create the Expo project, then set `updates.url` +
@@ -108,8 +127,8 @@ Server-side (on the web app's Vercel project) for token verification:
 - Real app icons / splash (current ones are generated placeholders).
 - Fonts (Inter Tight / Instrument Serif / Geist Mono) — `global.css` names the
   families; drop the `.ttf`s into `assets/fonts` + register via `expo-font`.
-- Authed surfaces: in-app apply (verified profile), saved searches + alerts,
-  premium (RevenueCat or Stripe), onboarding role picker.
+- The verified-profile surface (CV, company checks, IR35 insurance) on the
+  Profile tab; premium subscription (RevenueCat or Stripe).
 - Day-rates benchmark screen + `/api/mobile/day-rates` (honesty-gated on sample
   size, like the web).
 - Push notifications (FCM + notifee, as in go-unbeaten) for job alerts.

@@ -82,3 +82,19 @@ export const hasActiveFilters = (f: SearchFilters): boolean =>
   !!f.workMode ||
   f.minRate !== null ||
   f.postedSinceDays !== null;
+
+// Map SearchParams → the columns persisted on a SavedSearch row. Shared by the
+// web saveSearch action and the mobile /api/mobile/saved-searches route so the
+// two surfaces store identical rows (no drift between save-on-web and
+// save-on-mobile). Stores the raw ir35 intent so save/restore round-trips.
+export const toStoredSearch = (params: SearchParams) => {
+  const f = normalizeFilters(params);
+  return {
+    query: f.q || null,
+    location: f.location,
+    ir35:
+      params.ir35 === 'outside' || params.ir35 === 'any' ? params.ir35 : null,
+    mode: f.workMode,
+    minRate: f.minRate,
+  };
+};

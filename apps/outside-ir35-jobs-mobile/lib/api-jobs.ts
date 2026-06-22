@@ -27,6 +27,13 @@ export type MobileJobDetail = MobileJobCard & {
   ir35Claim: { text: string; attributedTo: string; statedAt: string } | null;
 };
 
+// Per-viewer apply eligibility, returned alongside the detail when signed in.
+export type ApplyEligibility = {
+  canApply: boolean;
+  reason?: string;
+  alreadyApplied: boolean;
+};
+
 export type JobsQuery = {
   q?: string;
   location?: string;
@@ -43,7 +50,19 @@ export const fetchJobs = async (query: JobsQuery = {}): Promise<MobileJobCard[]>
   return data.jobs;
 };
 
-export const fetchJob = async (id: string): Promise<MobileJobDetail> => {
-  const { data } = await api.get<{ job: MobileJobDetail }>(`/api/mobile/jobs/${id}`);
-  return data.job;
+export const fetchJob = async (
+  id: string,
+): Promise<{ job: MobileJobDetail; apply?: ApplyEligibility }> => {
+  const { data } = await api.get<{
+    job: MobileJobDetail;
+    apply?: ApplyEligibility;
+  }>(`/api/mobile/jobs/${id}`);
+  return data;
+};
+
+export const applyToJob = async (
+  jobId: string,
+  message?: string,
+): Promise<void> => {
+  await api.post("/api/mobile/applications", { jobId, message });
 };

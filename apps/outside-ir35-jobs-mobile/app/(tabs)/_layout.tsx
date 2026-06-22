@@ -1,5 +1,6 @@
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import {
+  faBell,
   faBriefcase,
   faChartColumn,
   faUser,
@@ -43,6 +44,15 @@ const TabsLayout = () => (
             color={color as string}
             size={size}
           />
+        ),
+      }}
+    />
+    <Tabs.Screen
+      name="alerts"
+      options={{
+        title: "Alerts",
+        tabBarIcon: ({ color, size }) => (
+          <FontAwesomeIcon icon={faBell} color={color as string} size={size} />
         ),
       }}
     />
