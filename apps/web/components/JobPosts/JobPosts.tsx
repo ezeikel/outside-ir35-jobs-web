@@ -1,10 +1,12 @@
 import { searchJobs } from '@/app/actions';
+import { auth } from '@/auth';
 import PageWrap from '@/components/PageWrap/PageWrap';
 import { JobListCard } from '@/components/trust';
 import type { SearchParams } from '@/lib/search/filters';
 import { jobToCard } from '@/utils/jobToCard';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
+import SaveSearchButton from './SaveSearchButton';
 
 const selectClass =
   'h-9 rounded-md border border-border bg-background px-3 text-sm text-muted-foreground';
@@ -15,6 +17,9 @@ const JobPosts = async ({ params = {} }: { params?: SearchParams }) => {
   const rows = await searchJobs(params);
   const jobs = rows.map(jobToCard);
   const q = params.q?.trim() ?? '';
+  // Only signed-in contractors can save a search for email alerts.
+  const session = await auth();
+  const canSave = session?.role === 'JOB_SEEKER';
 
   return (
     <PageWrap className="gap-y-8">
@@ -101,6 +106,9 @@ const JobPosts = async ({ params = {} }: { params?: SearchParams }) => {
             </select>
           </div>
         </form>
+
+        {/* Save this search → email alerts (signed-in contractors). */}
+        <SaveSearchButton params={params} canSave={canSave} />
 
         {/* Results */}
         {jobs.length === 0 ? (

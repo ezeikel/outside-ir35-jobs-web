@@ -189,10 +189,39 @@ model User {
   jobs             Job[] // jobs this user posted (role = JOB_POSTER)
   limitedCompanies LimitedCompany[]
   documents        ContractorDocument[]
+  savedSearches    SavedSearch[]
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
 
   @@map("users")
+}
+
+// A contractor's saved job search + email alert. Stores the same filter params as
+// the /jobs board (SearchParams) as discrete columns; a daily cron finds jobs
+// created since lastNotifiedAt that match and emails the contractor. We only ever
+// match jobs the board would show (active + boardVisible + the IR35 rules), so an
+// alert can never surface an Inside-IR35 role on this outside-IR35 board.
+model SavedSearch {
+  id     String @id @default(cuid())
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  // Mirrors SearchParams. Null = "no constraint on this field".
+  query    String? // keyword
+  location String?
+  ir35     String? // 'outside' (strict) | 'any' (incl. inside) | null (default: not-inside)
+  mode     String? // REMOTE | HYBRID | ON_SITE
+  minRate  Int?
+
+  // Whether the contractor wants email alerts for new matches.
+  alertsEnabled  Boolean  @default(true)
+  // High-water mark: only jobs created after this are "new" for the next alert.
+  lastNotifiedAt DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId])
+  @@map("saved_searches")
 }
 
 model LimitedCompany {

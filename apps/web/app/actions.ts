@@ -24,11 +24,14 @@ import {
   tracksExpiry,
   validateUpload,
 } from '@/lib/documents/validate';
+import { buildJobAlertEmail, IR35_SIGNAL_LABEL } from '@/lib/email/job-alert';
+import { sendEmail } from '@/lib/email/send';
 import { embedAndStoreJob } from '@/lib/search/embed-job';
 import { embedQuery } from '@/lib/search/embed-query';
 import {
   normalizeFilters,
   OUTSIDE_SIGNALS,
+  type SearchFilters,
   type SearchParams,
 } from '@/lib/search/filters';
 import { reciprocalRankFusion } from '@/lib/search/rrf';
@@ -276,15 +279,14 @@ const JOB_CARD_COLUMNS = Prisma.sql`
  * way the structured filters (rate floor, work mode, location, IR35-outside,
  * posted) apply as hard WHERE constraints. All fragments are parameterized.
  */
-export const searchJobs = async (
-  params: SearchParams,
-): Promise<JobSearchRow[]> => {
-  const f = normalizeFilters(params);
-
-  // Hard filters shared by both paths. boardVisible is the absolute gate — a job
-  // flagged not-board-visible (e.g. a worker-ingested Inside-IR35 listing) never
-  // appears on ANY board surface, even ?ir35=any. It's kept in the DB only for the
-  // /day-rates benchmark. See docs/ir35-trust-model.md.
+// Build the hard WHERE conditions for a jobs query from normalized filters. The
+// SINGLE source of truth shared by the live board (searchJobs) and the email-alert
+// matcher (runJobAlerts) — so an alert can never surface a job the board wouldn't,
+// and the outside-IR35 rules (boardVisible + INSIDE handling) can't drift between
+// the two. boardVisible is the absolute gate — a not-board-visible job (e.g. a
+// worker-ingested Inside-IR35 listing) never matches anywhere. See
+// docs/ir35-trust-model.md.
+const buildJobFilterConds = (f: SearchFilters): Prisma.Sql[] => {
   const conds: Prisma.Sql[] = [
     Prisma.sql`"isActive" = true`,
     Prisma.sql`"boardVisible" = true`,
@@ -315,7 +317,14 @@ export const searchJobs = async (
       Prisma.sql`"createdAt" >= now() - make_interval(days => ${f.postedSinceDays})`,
     );
   }
+  return conds;
+};
 
+export const searchJobs = async (
+  params: SearchParams,
+): Promise<JobSearchRow[]> => {
+  const f = normalizeFilters(params);
+  const conds = buildJobFilterConds(f);
   const where = Prisma.join(conds, ' AND ');
 
   // Hybrid ranking when a query is present: fuse lexical (FTS) + semantic
@@ -1130,4 +1139,202 @@ export const getMyApplications = async (): Promise<string[]> => {
     select: { jobId: true },
   });
   return apps.map((a) => a.jobId);
+};
+
+// ───────────────────────────── Saved searches + email alerts ────────────────
+// A contractor saves a /jobs filter; a daily cron (runJobAlerts) emails them new
+// matching jobs. Matching reuses buildJobFilterConds — the SAME conditions the live
+// board uses — so an alert can never surface a job the board wouldn't (incl. the
+// outside-IR35 rules). See docs/ir35-trust-model.md.
+
+export type SavedSearchRow = {
+  id: string;
+  query: string | null;
+  location: string | null;
+  ir35: string | null;
+  mode: string | null;
+  minRate: number | null;
+  alertsEnabled: boolean;
+  createdAt: Date;
+};
+
+// Normalize the raw SearchParams into the columns we persist (null = no constraint).
+const toStoredSearch = (params: SearchParams) => {
+  const f = normalizeFilters(params);
+  return {
+    query: f.q || null,
+    location: f.location,
+    // Store the raw ir35 intent so save/restore round-trips ('outside' | 'any' | null).
+    ir35:
+      params.ir35 === 'outside' || params.ir35 === 'any' ? params.ir35 : null,
+    mode: f.workMode,
+    minRate: f.minRate,
+  };
+};
+
+// Reconstruct SearchParams from a stored row (for matching + display).
+const storedToParams = (s: {
+  query: string | null;
+  location: string | null;
+  ir35: string | null;
+  mode: string | null;
+  minRate: number | null;
+}): SearchParams => ({
+  q: s.query ?? undefined,
+  location: s.location ?? undefined,
+  ir35: s.ir35 ?? undefined,
+  mode: s.mode ?? undefined,
+  minRate: s.minRate != null ? String(s.minRate) : undefined,
+});
+
+// Human label for a saved search, e.g. "React · London · £500+/day · outside only".
+const searchLabel = (s: {
+  query: string | null;
+  location: string | null;
+  ir35: string | null;
+  mode: string | null;
+  minRate: number | null;
+}): string => {
+  const parts: string[] = [];
+  if (s.query) parts.push(s.query);
+  if (s.location) parts.push(s.location);
+  if (s.mode) parts.push(s.mode.toLowerCase().replace('_', '-'));
+  if (s.minRate) parts.push(`£${s.minRate}+/day`);
+  if (s.ir35 === 'outside') parts.push('outside only');
+  return parts.length ? parts.join(' · ') : 'All outside-IR35 contracts';
+};
+
+export const saveSearch = async (params: SearchParams): Promise<void> => {
+  const session = await auth();
+  if (!session?.userId || session.role !== Role.JOB_SEEKER) {
+    throw new Error('Only contractors can save searches');
+  }
+  await prisma.savedSearch.create({
+    data: { userId: session.userId, ...toStoredSearch(params) },
+  });
+  revalidatePath('/alerts');
+};
+
+export const getMySavedSearches = async (): Promise<SavedSearchRow[]> => {
+  const session = await auth();
+  if (!session?.userId || session.role !== Role.JOB_SEEKER) return [];
+  return prisma.savedSearch.findMany({
+    where: { userId: session.userId },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      query: true,
+      location: true,
+      ir35: true,
+      mode: true,
+      minRate: true,
+      alertsEnabled: true,
+      createdAt: true,
+    },
+  });
+};
+
+export const deleteSavedSearch = async (id: string): Promise<void> => {
+  const session = await auth();
+  if (!session?.userId) throw new Error('Not signed in');
+  // Scope the delete to the owner — never delete by id alone.
+  await prisma.savedSearch.deleteMany({
+    where: { id, userId: session.userId },
+  });
+  revalidatePath('/alerts');
+};
+
+export const setSavedSearchAlerts = async (
+  id: string,
+  enabled: boolean,
+): Promise<void> => {
+  const session = await auth();
+  if (!session?.userId) throw new Error('Not signed in');
+  await prisma.savedSearch.updateMany({
+    where: { id, userId: session.userId },
+    data: { alertsEnabled: enabled },
+  });
+  revalidatePath('/alerts');
+};
+
+// Cron action: for every alerts-enabled saved search, find matching jobs created
+// since its lastNotifiedAt, email the contractor, and bump the high-water mark.
+// Best-effort per search — one failure never aborts the batch. Returns counts.
+export const runJobAlerts = async (): Promise<{
+  searches: number;
+  emailed: number;
+  jobsMatched: number;
+}> => {
+  const site = getSiteUrl();
+  const searches = await prisma.savedSearch.findMany({
+    where: { alertsEnabled: true, user: { role: Role.JOB_SEEKER } },
+    select: {
+      id: true,
+      query: true,
+      location: true,
+      ir35: true,
+      mode: true,
+      minRate: true,
+      lastNotifiedAt: true,
+      user: { select: { email: true } },
+    },
+  });
+
+  let emailed = 0;
+  let jobsMatched = 0;
+
+  for (const s of searches) {
+    if (!s.user.email) continue;
+    const f = normalizeFilters(storedToParams(s));
+    const conds = buildJobFilterConds(f);
+    // Only jobs created since the last alert are "new".
+    conds.push(Prisma.sql`"createdAt" > ${s.lastNotifiedAt}`);
+    const where = Prisma.join(conds, ' AND ');
+
+    type Row = {
+      id: string;
+      position: string;
+      companyName: string;
+      dayRate: number[];
+      location: Prisma.JsonValue;
+      ir35Signal: JobIR35Signal;
+    };
+    const rows = await prisma.$queryRaw<Row[]>`
+      SELECT "id", "position", "companyName", "dayRate", "location", "ir35Signal"
+      FROM "jobs"
+      WHERE ${where}
+      ORDER BY "createdAt" DESC
+      LIMIT 20`;
+
+    // Always advance the high-water mark so we don't re-scan/re-send the same
+    // window next run, even when there were no matches.
+    await prisma.savedSearch.update({
+      where: { id: s.id },
+      data: { lastNotifiedAt: new Date() },
+    });
+
+    if (rows.length === 0) continue;
+
+    const alertJobs = rows.map((r) => ({
+      id: r.id,
+      position: r.position,
+      companyName: r.companyName,
+      dayRate: r.dayRate,
+      location: (r.location as { address?: string } | null)?.address ?? null,
+      ir35Label: IR35_SIGNAL_LABEL[r.ir35Signal] ?? 'IR35 not stated',
+    }));
+
+    const { subject, html } = buildJobAlertEmail({
+      jobs: alertJobs,
+      searchLabel: searchLabel(s),
+      siteUrl: site,
+      manageUrl: `${site}/alerts`,
+    });
+
+    const res = await sendEmail({ to: s.user.email, subject, html });
+    if (res.sent) emailed += 1;
+    jobsMatched += rows.length;
+  }
+
+  return { searches: searches.length, emailed, jobsMatched };
 };

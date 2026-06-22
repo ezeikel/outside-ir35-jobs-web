@@ -22,8 +22,10 @@ const UserMenu = () => {
     );
   }
 
-  // Posters get a link to their jobs-and-applicants dashboard.
+  // Posters get a link to their jobs-and-applicants dashboard; contractors get a
+  // link to their saved-search job alerts.
   const isPoster = session.role === 'JOB_POSTER';
+  const isContractor = session.role === 'JOB_SEEKER';
 
   return (
     <div className="flex items-center gap-2">
@@ -33,6 +35,14 @@ const UserMenu = () => {
           className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline"
         >
           Dashboard
+        </Link>
+      ) : null}
+      {isContractor ? (
+        <Link
+          href="/alerts"
+          className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline"
+        >
+          Alerts
         </Link>
       ) : null}
       <Link
