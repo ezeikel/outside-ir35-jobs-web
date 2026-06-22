@@ -56,6 +56,7 @@ const PostJobForm = ({ className }: PostJobFormProps) => {
   const [howToApplyContent, setHowToApplyContent] = useState('');
   const [drafting, setDrafting] = useState(false);
   const [draftError, setDraftError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const {
     control,
     handleSubmit,
@@ -98,9 +99,21 @@ const PostJobForm = ({ className }: PostJobFormProps) => {
   const onSubmit = async (values: PostJobFormValues) => {
     // createJobPost creates the job unpublished and returns a Stripe Checkout
     // URL; the job only goes live after payment (webhook). Send the browser to
-    // Stripe's hosted checkout.
-    const { checkoutUrl } = await createJobPost(values);
-    window.location.assign(checkoutUrl);
+    // Stripe's hosted checkout. On failure (e.g. billing misconfigured) surface a
+    // message rather than leaving the button stuck on "Redirecting…".
+    setSubmitError(null);
+    try {
+      const { checkoutUrl } = await createJobPost(values);
+      window.location.assign(checkoutUrl);
+    } catch (e) {
+      // Resolve (don't re-throw) so react-hook-form clears isSubmitting and the
+      // poster can retry; the error is shown by the submit button.
+      setSubmitError(
+        e instanceof Error
+          ? e.message
+          : 'Could not start checkout. Please try again.',
+      );
+    }
   };
 
   useEffect(() => {
@@ -385,6 +398,9 @@ const PostJobForm = ({ className }: PostJobFormProps) => {
         >
           {isSubmitting ? 'Redirecting to payment…' : 'Post Job - £219'}
         </Button>
+        {submitError ? (
+          <p className="text-sm text-destructive">{submitError}</p>
+        ) : null}
         <p className="text-xs text-muted-foreground">
           You’ll be taken to secure checkout. Your listing goes live once
           payment is confirmed.

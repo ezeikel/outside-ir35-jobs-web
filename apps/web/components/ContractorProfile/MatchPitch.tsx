@@ -65,6 +65,25 @@ const MatchPitch = ({ jobId }: { jobId: string }) => {
     );
   }
 
+  if (result.status === 'error') {
+    return (
+      <div className="mt-2 flex items-center gap-3">
+        <p className="text-sm text-destructive">Couldn’t generate right now.</p>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            setResult(null);
+            run();
+          }}
+          disabled={pending}
+        >
+          Try again
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-3 rounded-md border border-border bg-background p-3">
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">

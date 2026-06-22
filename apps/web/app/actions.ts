@@ -465,6 +465,7 @@ export const getRecommendedJobs = async (): Promise<RecommendationResult> => {
 export type MatchPitchResult =
   | { status: 'no_cv' }
   | { status: 'not_premium' }
+  | { status: 'error' }
   | { status: 'ok'; whyMatched: string[]; pitch: string };
 
 export const getJobMatchAndPitch = async (
@@ -503,19 +504,25 @@ export const getJobMatchAndPitch = async (
   });
   if (!job || !job.isActive) return { status: 'no_cv' };
 
-  const result = await generateMatchAndPitch(
-    user.parsedProfile as MatchProfile,
-    {
-      position: job.position,
-      companyName: job.companyName,
-      description: job.description,
-      keywords: job.keywords,
-      dayRate: job.dayRate,
-      location: (job.location as { address?: string } | null)?.address ?? null,
-    },
-  );
-
-  return { status: 'ok', ...result };
+  try {
+    const result = await generateMatchAndPitch(
+      user.parsedProfile as MatchProfile,
+      {
+        position: job.position,
+        companyName: job.companyName,
+        description: job.description,
+        keywords: job.keywords,
+        dayRate: job.dayRate,
+        location:
+          (job.location as { address?: string } | null)?.address ?? null,
+      },
+    );
+    return { status: 'ok', ...result };
+  } catch (err) {
+    // Anthropic rate-limit / network / missing key — surface a retry, never hang.
+    console.error('[getJobMatchAndPitch] generation failed:', err);
+    return { status: 'error' };
+  }
 };
 
 export type DayRateBenchmark = {

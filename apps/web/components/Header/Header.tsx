@@ -1,8 +1,8 @@
-import { MenuIcon } from 'lucide-react';
 import Link from 'next/link';
 import cn from '@/utils/cn';
 import HeaderLogo from '../HeaderLogo/HeaderLogo';
 import { Button } from '../ui/button';
+import MobileNav from './MobileNav';
 import UserMenu from './UserMenu';
 
 interface HeaderProps {
@@ -41,6 +41,14 @@ const Header = ({ className }: HeaderProps) => (
           <li>
             <Link
               className="transition-colors hover:text-foreground"
+              href="/partners"
+            >
+              IR35 insurance
+            </Link>
+          </li>
+          <li>
+            <Link
+              className="transition-colors hover:text-foreground"
               href="/blog"
             >
               Blog
@@ -55,11 +63,7 @@ const Header = ({ className }: HeaderProps) => (
         <Link href="/job/post">Post a job</Link>
       </Button>
     </div>
-    <div className="md:hidden">
-      <Button aria-label="Open menu" variant="ghost">
-        <MenuIcon className="size-6" />
-      </Button>
-    </div>
+    <MobileNav />
   </header>
 );
 

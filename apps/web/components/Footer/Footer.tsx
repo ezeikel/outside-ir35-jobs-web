@@ -41,6 +41,14 @@ const Footer = () => (
           <li>
             <Link
               className="transition-colors hover:text-foreground"
+              href="/premium"
+            >
+              Premium
+            </Link>
+          </li>
+          <li>
+            <Link
+              className="transition-colors hover:text-foreground"
               href="/privacy"
             >
               Privacy

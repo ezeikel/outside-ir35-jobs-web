@@ -33,20 +33,33 @@ const SavedSearchItem = ({ search }: { search: SavedSearchRow }) => {
   const [pending, startTransition] = useTransition();
   const [removed, setRemoved] = useState(false);
   const [enabled, setEnabled] = useState(search.alertsEnabled);
+  const [error, setError] = useState<string | null>(null);
 
   if (removed) return null;
 
+  // Update local state only AFTER the server confirms — otherwise the UI lies
+  // (shows the new state / hides the row) while the server kept the old value.
   const toggle = () =>
     startTransition(async () => {
+      setError(null);
       const next = !enabled;
-      setEnabled(next);
-      await setSavedSearchAlerts(search.id, next);
+      try {
+        await setSavedSearchAlerts(search.id, next);
+        setEnabled(next);
+      } catch {
+        setError('Couldn’t update — try again.');
+      }
     });
 
   const remove = () =>
     startTransition(async () => {
-      setRemoved(true);
-      await deleteSavedSearch(search.id);
+      setError(null);
+      try {
+        await deleteSavedSearch(search.id);
+        setRemoved(true);
+      } catch {
+        setError('Couldn’t delete — try again.');
+      }
     });
 
   return (
@@ -61,6 +74,7 @@ const SavedSearchItem = ({ search }: { search: SavedSearchRow }) => {
         <p className="text-xs text-muted-foreground">
           {enabled ? 'Email alerts on' : 'Alerts paused'}
         </p>
+        {error ? <p className="text-xs text-destructive">{error}</p> : null}
       </div>
       <div className="flex shrink-0 gap-2">
         <Button variant="outline" size="sm" onClick={toggle} disabled={pending}>
