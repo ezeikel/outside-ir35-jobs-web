@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { RecommendationResult } from '@/app/actions';
 import {
   CompletenessRing,
@@ -236,6 +237,15 @@ const ContractorProfile = ({
               provider={data.ir35InsuranceProvider}
               expiresAt={data.ir35InsuranceExpiry}
             />
+            {!data.holdsIR35Insurance ? (
+              <p className="mt-3 text-xs text-muted-foreground">
+                Don’t have cover yet?{' '}
+                <Link href="/partners" className="text-link hover:underline">
+                  See IR35 insurance providers
+                </Link>
+                .
+              </p>
+            ) : null}
           </section>
 
           {/* Compliance pack */}

@@ -33,6 +33,14 @@ const Footer = () => (
           <li>
             <Link
               className="transition-colors hover:text-foreground"
+              href="/partners"
+            >
+              IR35 insurance
+            </Link>
+          </li>
+          <li>
+            <Link
+              className="transition-colors hover:text-foreground"
               href="/privacy"
             >
               Privacy
