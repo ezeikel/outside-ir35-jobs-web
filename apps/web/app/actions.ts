@@ -511,6 +511,70 @@ export const getDayRateBenchmarks = async (): Promise<DayRateBenchmark[]> => {
     ORDER BY count(DISTINCT id) DESC, median DESC`;
 };
 
+// ───────────────────────────── Programmatic SEO ─────────────────────────────
+// Per-skill landing pages (/contracts/[skill]) are generated ONLY for skills that
+// clear the same MIN_SAMPLE day-rate gate as /day-rates — so every programmatic
+// page is data-backed, never thin content (docs/strategy.md SEO-penalty risk).
+
+// Skills that have enough data to warrant a landing page: any skill with a
+// board-visible active job AND a benchmark clearing MIN_SAMPLE in any bucket.
+// Returns the raw skill slugs (lowercased) for generateStaticParams + the sitemap.
+export const getSeoSkills = async (): Promise<string[]> => {
+  const rows = await prisma.$queryRaw<{ skill: string }[]>`
+    WITH job_rates AS (
+      SELECT j.id, lower(trim(skill)) AS skill,
+        CASE WHEN array_length(j."dayRate", 1) >= 2
+          THEN round((j."dayRate"[1] + j."dayRate"[array_upper(j."dayRate",1)]) / 2.0)
+          ELSE j."dayRate"[1] END AS rate
+      FROM "jobs" j
+      CROSS JOIN LATERAL unnest(j."extractedSkills") AS skill
+      WHERE j."isActive" = true
+        AND j."boardVisible" = true
+        AND array_length(j."dayRate", 1) >= 1
+        AND trim(skill) <> ''
+    )
+    SELECT skill FROM job_rates
+    GROUP BY skill
+    HAVING count(DISTINCT id) >= ${MIN_SAMPLE}
+    ORDER BY count(DISTINCT id) DESC`;
+  return rows.map((r) => r.skill);
+};
+
+// The day-rate benchmark rows for ONE skill (same shape/gate as the board-wide
+// benchmark, scoped to the skill). Empty array if the skill doesn't clear the gate.
+export const getSkillBenchmark = async (
+  skill: string,
+): Promise<DayRateBenchmark[]> => {
+  const s = skill.trim().toLowerCase();
+  if (!s) return [];
+  return prisma.$queryRaw<DayRateBenchmark[]>`
+    WITH job_rates AS (
+      SELECT j.id, lower(trim(skill)) AS skill,
+        CASE
+          WHEN j."ir35Signal" = ANY(${OUTSIDE_SIGNALS}::"JobIR35Signal"[]) THEN 'OUTSIDE'
+          WHEN j."ir35Signal" = 'INSIDE'::"JobIR35Signal" THEN 'INSIDE'
+          ELSE 'UNKNOWN'
+        END AS ir35_bucket,
+        CASE WHEN array_length(j."dayRate", 1) >= 2
+          THEN round((j."dayRate"[1] + j."dayRate"[array_upper(j."dayRate",1)]) / 2.0)
+          ELSE j."dayRate"[1] END AS rate
+      FROM "jobs" j
+      CROSS JOIN LATERAL unnest(j."extractedSkills") AS skill
+      WHERE j."isActive" = true
+        AND array_length(j."dayRate", 1) >= 1
+        AND lower(trim(skill)) = ${s}
+    )
+    SELECT skill, ir35_bucket AS "ir35Bucket", count(DISTINCT id)::int AS "sampleSize",
+      round(percentile_cont(0.5) WITHIN GROUP (ORDER BY rate))::int AS median,
+      round(percentile_cont(0.25) WITHIN GROUP (ORDER BY rate))::int AS p25,
+      round(percentile_cont(0.75) WITHIN GROUP (ORDER BY rate))::int AS p75,
+      min(rate)::int AS min, max(rate)::int AS max
+    FROM job_rates
+    GROUP BY skill, ir35_bucket
+    HAVING count(DISTINCT id) >= ${MIN_SAMPLE}
+    ORDER BY count(DISTINCT id) DESC, median DESC`;
+};
+
 export const getJob = async (id: string) =>
   prisma.job.findUnique({
     where: { id },
