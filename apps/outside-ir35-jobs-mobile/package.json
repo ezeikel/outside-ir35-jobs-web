@@ -67,9 +67,10 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.85.3",
-    "react-native-css": "^3.0.4",
+    "react-native-css": "3.0.4",
     "react-native-gesture-handler": "~2.31.2",
     "react-native-reanimated": "~4.3.1",
+    "react-native-reanimated-carousel": "^4.0.3",
     "react-native-safe-area-context": "5.7.0",
     "react-native-screens": "~4.25.2",
     "react-native-svg": "15.15.4",
@@ -80,7 +81,7 @@
     "zustand": "^5.0.9"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
+    "@tailwindcss/postcss": "4.1.18",
     "@tanstack/eslint-plugin-query": "^5.61.6",
     "@types/node": "^22.10.2",
     "@types/react": "19.2.14",
@@ -89,7 +90,7 @@
     "eslint-plugin-prettier": "^5.2.1",
     "postcss": "^8",
     "prettier": "^3.4.1",
-    "tailwindcss": "^4",
+    "tailwindcss": "4.1.18",
     "typescript": "~6.0.3",
     "vitest": "^3.2.6"
   }
