@@ -115,6 +115,7 @@ Full migration plan: **[`monorepo-migration.md`](./monorepo-migration.md)**.
 | [`ai-features.md`](./ai-features.md)               | AI roadmap: launch / fast-follow / later, with implementation notes and cross-cutting rules.                       |
 | [`monorepo-migration.md`](./monorepo-migration.md) | Step-by-step pnpm + Turborepo conversion mirroring chunky-crayon, plus dependency upgrades.                        |
 | [`monetisation.md`](./monetisation.md)             | Revenue lines, pricing benchmarks, the business-expense angle, guardrails.                                         |
+| [`mobile.md`](./mobile.md)                         | The React Native / Expo app: structure, the `/api/mobile/*` layer, native Google/Apple auth + bearer tokens.       |
 
 ## Working principles for agents
 

@@ -15,7 +15,8 @@
       "!**/dist",
       "!**/.turbo",
       "!**/src/generated",
-      "!next-env.d.ts"
+      "!next-env.d.ts",
+      "!apps/outside-ir35-jobs-mobile/**"
     ]
   },
   "formatter": {
@@ -131,7 +132,8 @@
       "!.next/**",
       "!out/**",
       "!build/**",
-      "!next-env.d.ts"
+      "!next-env.d.ts",
+      "!apps/outside-ir35-jobs-mobile/**"
     ]
   },
   "javascript": {

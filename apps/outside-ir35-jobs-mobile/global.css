@@ -1,0 +1,68 @@
+@import 'tailwindcss';
+@import 'nativewind/theme';
+
+/* Design tokens mirrored from the web app's @theme (apps/web/global.css).
+   The web uses OKLCH primitives behind shadcn semantic tokens; here they're
+   resolved to hex because RN/NativeWind colour handling is most reliable with
+   hex. Anchor values (ink-950, verified, link) use the documented brand hexes
+   from the web comments; the rest of the ink ramp is the OKLCH→sRGB conversion.
+   Keep in sync with the web tokens — this is the SAME brand, not a new one.
+   See docs/ir35-trust-model.md for what the verified/aging/pending colours mean
+   (they are load-bearing: we never assert IR35 status, only checkable facts). */
+
+@theme {
+  /* ── Fonts ──
+     Inter Tight (sans), Instrument Serif (display), Geist Mono (mono) — same
+     families as web. Registered via expo-font (see app/_layout.tsx) once the
+     .ttf files are dropped into assets/fonts. */
+  --font-sans: 'InterTight-Regular';
+  --font-sans-medium: 'InterTight-Medium';
+  --font-sans-semibold: 'InterTight-SemiBold';
+  --font-sans-bold: 'InterTight-Bold';
+  --font-display: 'InstrumentSerif-Regular';
+  --font-mono: 'GeistMono-Regular';
+
+  /* ── Neutral ink ramp (the data workhorse) ── */
+  --color-ink-50: #fbfaf9;
+  --color-ink-100: #f6f5f4;
+  --color-ink-200: #e8e7e5;
+  --color-ink-300: #d6d4d1;
+  --color-ink-400: #a3a09e;
+  --color-ink-500: #767370;
+  --color-ink-600: #55524f;
+  --color-ink-700: #423f3c;
+  --color-ink-800: #282623;
+  --color-ink-900: #1a1815;
+  --color-ink-950: #17181a; /* the authority anchor */
+
+  /* ── shadcn-style semantic tokens (mapped to the ink ramp) ── */
+  --color-background: #f6f5f3; /* neutral off-white canvas */
+  --color-foreground: #17181a;
+  --color-card: #ffffff;
+  --color-card-foreground: #17181a;
+  --color-primary: #17181a;
+  --color-primary-foreground: #fbfaf9;
+  --color-secondary: #f6f5f4;
+  --color-secondary-foreground: #1a1815;
+  --color-muted: #f6f5f4;
+  --color-muted-foreground: #767370;
+  --color-accent: #f6f5f4;
+  --color-accent-foreground: #1a1815;
+  --color-border: #e8e7e5;
+  --color-input: #e8e7e5;
+  --color-ring: #17181a;
+  --color-destructive: #cc2827; /* failed state only */
+  --color-destructive-foreground: #fefefe;
+
+  /* ── Trust / verification semantic colours (the moat) ──
+     verified: forest-green, ONLY for register-verified states.
+     aging:    amber, for expiring/partial — never red unless failed.
+     link:     quiet ink-blue, secondary links/CTA tint only. */
+  --color-verified: #1f5d43;
+  --color-verified-foreground: #fefefe;
+  --color-verified-muted: #dff5e7;
+  --color-aging: #b07a20;
+  --color-aging-foreground: #fefefe;
+  --color-aging-muted: #ffebd2;
+  --color-link: #2b3a55;
+}
