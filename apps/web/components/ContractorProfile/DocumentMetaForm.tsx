@@ -69,6 +69,11 @@ const DocumentMetaForm = ({
       action={onSubmit}
       className="ml-7 mt-1 flex flex-wrap items-end gap-2"
     >
+      <p className="basis-full text-xs text-muted-foreground">
+        {insurance
+          ? 'Insurer, cover and expiry are all needed for this to count toward your compliance tier.'
+          : 'Add the expiry date so we can keep this document’s status in date.'}
+      </p>
       {insurance && (
         <>
           <input
