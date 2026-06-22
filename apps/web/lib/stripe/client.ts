@@ -34,6 +34,16 @@ export const getJobPostPriceId = (): string => {
   return priceId;
 };
 
+// The £29/mo contractor-premium recurring price (price_…). Test in dev, live in
+// prod — set per-environment so we never hardcode an id.
+export const getPremiumPriceId = (): string => {
+  const priceId = process.env.STRIPE_PREMIUM_PRICE_ID;
+  if (!priceId) {
+    throw new Error('STRIPE_PREMIUM_PRICE_ID is not set');
+  }
+  return priceId;
+};
+
 // Absolute site origin for Stripe Checkout success/cancel redirect URLs. Stripe
 // needs fully-qualified URLs. NEXTAUTH_URL is set in every environment (Auth.js
 // already relies on it); fall back to localhost for a bare dev run.

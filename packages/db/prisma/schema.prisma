@@ -268,13 +268,28 @@ model ContractorDocument {
   @@map("contractor_documents")
 }
 
+// A contractor's premium subscription (Stripe-managed). The Stripe webhook is the
+// source of truth for status/period — we never trust the client. isPremium() gates
+// premium features on status=active AND currentPeriodEnd in the future.
 model Subscription {
-  id        String           @id @default(cuid())
-  type      SubscriptionType
-  user      User             @relation(fields: [userId], references: [id])
-  userId    String           @unique
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+  id     String           @id @default(cuid())
+  type   SubscriptionType @default(PRO)
+  user   User             @relation(fields: [userId], references: [id])
+  userId String           @unique
+
+  // Stripe linkage (set/updated by the webhook). customerId is reused for the
+  // billing portal; subscriptionId + status + period mirror the Stripe object.
+  stripeCustomerId     String?   @unique
+  stripeSubscriptionId String?   @unique
+  stripePriceId        String?
+  // Mirrors Stripe's subscription.status: active | trialing | past_due | canceled
+  // | unpaid | incomplete. Plain string — we only branch on 'active'/'trialing'.
+  status               String    @default("incomplete")
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean   @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("subscriptions")
 }

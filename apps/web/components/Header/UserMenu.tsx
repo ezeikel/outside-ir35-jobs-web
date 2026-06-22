@@ -38,12 +38,20 @@ const UserMenu = () => {
         </Link>
       ) : null}
       {isContractor ? (
-        <Link
-          href="/alerts"
-          className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline"
-        >
-          Alerts
-        </Link>
+        <>
+          <Link
+            href="/alerts"
+            className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline"
+          >
+            Alerts
+          </Link>
+          <Link
+            href="/premium"
+            className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline"
+          >
+            Premium
+          </Link>
+        </>
       ) : null}
       <Link
         href="/profile"

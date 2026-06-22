@@ -16,6 +16,7 @@ import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
 import { canApply } from '@/lib/apply/eligibility';
 import { MIN_SAMPLE } from '@/lib/benchmarks/compute';
+import { isPremium } from '@/lib/contractor/premium';
 import { computeTrustTier } from '@/lib/contractor/trust-tier';
 import {
   computeDocStatus,
@@ -35,7 +36,12 @@ import {
   type SearchParams,
 } from '@/lib/search/filters';
 import { reciprocalRankFusion } from '@/lib/search/rrf';
-import { getJobPostPriceId, getSiteUrl, getStripe } from '@/lib/stripe/client';
+import {
+  getJobPostPriceId,
+  getPremiumPriceId,
+  getSiteUrl,
+  getStripe,
+} from '@/lib/stripe/client';
 import { verifyCompany } from '@/lib/verification/companies-house';
 import { verifyVat } from '@/lib/verification/vat';
 import {
@@ -1204,11 +1210,29 @@ const searchLabel = (s: {
   return parts.length ? parts.join(' · ') : 'All outside-IR35 contracts';
 };
 
+// Free contractors can keep this many saved searches; premium is unlimited. A
+// natural premium lever that ties into the alerts feature.
+const FREE_SAVED_SEARCH_LIMIT = 3;
+
 export const saveSearch = async (params: SearchParams): Promise<void> => {
   const session = await auth();
   if (!session?.userId || session.role !== Role.JOB_SEEKER) {
     throw new Error('Only contractors can save searches');
   }
+
+  const [count, sub] = await Promise.all([
+    prisma.savedSearch.count({ where: { userId: session.userId } }),
+    prisma.subscription.findUnique({
+      where: { userId: session.userId },
+      select: { status: true, currentPeriodEnd: true },
+    }),
+  ]);
+  if (count >= FREE_SAVED_SEARCH_LIMIT && !isPremium(sub)) {
+    throw new Error(
+      `Free accounts can save up to ${FREE_SAVED_SEARCH_LIMIT} searches. Upgrade to premium for unlimited job alerts.`,
+    );
+  }
+
   await prisma.savedSearch.create({
     data: { userId: session.userId, ...toStoredSearch(params) },
   });
@@ -1337,4 +1361,132 @@ export const runJobAlerts = async (): Promise<{
   }
 
   return { searches: searches.length, emailed, jobsMatched };
+};
+
+// ───────────────────────────── Premium subscription ─────────────────────────
+// Contractor premium (£29/mo, Stripe-managed). Checkout uses mode=subscription;
+// the webhook (customer.subscription.*) is the SOURCE OF TRUTH for status/period.
+// isPremium() gates features. Positioned as a business tool — never a tax-relief
+// guarantee (see docs/monetisation.md).
+
+export type MySubscription = {
+  status: string;
+  currentPeriodEnd: Date | null;
+  cancelAtPeriodEnd: boolean;
+} | null;
+
+// The signed-in contractor's subscription (or null). Used for gating + the UI.
+export const getMySubscription = async (): Promise<MySubscription> => {
+  const session = await auth();
+  if (!session?.userId || session.role !== Role.JOB_SEEKER) return null;
+  const sub = await prisma.subscription.findUnique({
+    where: { userId: session.userId },
+    select: { status: true, currentPeriodEnd: true, cancelAtPeriodEnd: true },
+  });
+  return sub;
+};
+
+// Whether the signed-in contractor currently has premium access.
+export const getIsPremium = async (): Promise<boolean> => {
+  const sub = await getMySubscription();
+  return isPremium(sub);
+};
+
+// Start (or resume) a premium subscription. Reuses an existing Stripe customer if
+// the contractor has subscribed before. Returns the Checkout URL.
+export const createSubscriptionCheckout = async (): Promise<{
+  checkoutUrl: string;
+}> => {
+  const session = await auth();
+  if (!session?.userId || session.role !== Role.JOB_SEEKER) {
+    throw new Error('Only contractors can subscribe');
+  }
+
+  const site = getSiteUrl();
+  const existing = await prisma.subscription.findUnique({
+    where: { userId: session.userId },
+    select: { stripeCustomerId: true },
+  });
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { email: true },
+  });
+
+  const checkout = await getStripe().checkout.sessions.create({
+    mode: 'subscription',
+    line_items: [{ price: getPremiumPriceId(), quantity: 1 }],
+    success_url: `${site}/premium?status=success`,
+    cancel_url: `${site}/premium?status=cancelled`,
+    // Reconcile back to the user from the webhook.
+    client_reference_id: session.userId,
+    metadata: { userId: session.userId },
+    // Reuse the customer across re-subscribes (one customer per contractor); else
+    // create one tied to their email so the billing portal works.
+    ...(existing?.stripeCustomerId
+      ? { customer: existing.stripeCustomerId }
+      : { customer_email: user?.email ?? undefined }),
+  });
+
+  if (!checkout.url) throw new Error('Stripe did not return a checkout URL');
+  return { checkoutUrl: checkout.url };
+};
+
+// Open the Stripe billing portal so the contractor can update card / cancel.
+export const getBillingPortalUrl = async (): Promise<{ url: string }> => {
+  const session = await auth();
+  if (!session?.userId) throw new Error('Not signed in');
+  const sub = await prisma.subscription.findUnique({
+    where: { userId: session.userId },
+    select: { stripeCustomerId: true },
+  });
+  if (!sub?.stripeCustomerId) throw new Error('No subscription to manage');
+
+  const portal = await getStripe().billingPortal.sessions.create({
+    customer: sub.stripeCustomerId,
+    return_url: `${getSiteUrl()}/premium`,
+  });
+  return { url: portal.url };
+};
+
+// Webhook-called: upsert a subscription from its Stripe object. Source of truth —
+// keyed on the userId in metadata (from checkout) or by stripeCustomerId. Idempotent.
+export const syncSubscriptionFromStripe = async (input: {
+  userId?: string | null;
+  stripeCustomerId: string;
+  stripeSubscriptionId: string;
+  stripePriceId: string | null;
+  status: string;
+  currentPeriodEnd: Date | null;
+  cancelAtPeriodEnd: boolean;
+}): Promise<void> => {
+  // Resolve the owning user: prefer the metadata userId; else an existing row by
+  // customer id. If neither resolves, we can't attribute it — skip.
+  let userId = input.userId ?? null;
+  if (!userId) {
+    const bySub = await prisma.subscription.findFirst({
+      where: { stripeCustomerId: input.stripeCustomerId },
+      select: { userId: true },
+    });
+    userId = bySub?.userId ?? null;
+  }
+  if (!userId) return;
+
+  const data = {
+    type: 'PRO' as const,
+    stripeCustomerId: input.stripeCustomerId,
+    stripeSubscriptionId: input.stripeSubscriptionId,
+    stripePriceId: input.stripePriceId,
+    status: input.status,
+    currentPeriodEnd: input.currentPeriodEnd,
+    cancelAtPeriodEnd: input.cancelAtPeriodEnd,
+  };
+
+  await prisma.subscription.upsert({
+    where: { userId },
+    create: { userId, ...data },
+    update: data,
+  });
+
+  revalidatePath('/premium');
+  revalidatePath('/profile');
 };
