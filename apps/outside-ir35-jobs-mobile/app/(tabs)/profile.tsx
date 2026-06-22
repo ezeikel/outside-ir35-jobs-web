@@ -1,19 +1,20 @@
-import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { faGoogle } from "@fortawesome/free-brands-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import * as AppleAuthentication from "expo-apple-authentication";
 import {
   ActivityIndicator,
   Platform,
   Pressable,
+  ScrollView,
   Text,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import VerifiedProfile from "@/components/VerifiedProfile";
 import { useAuth } from "@/contexts/AuthContext";
 
-// Profile tab: sign-in entry (Google + Apple) when signed out; account summary
-// when signed in. The verified-profile surface (CV, company checks, IR35
-// insurance) comes in the next phase — this establishes the auth gateway.
+// Profile tab: sign-in entry (Google + Apple) when signed out; account + the
+// verified compliance pack (contractors) when signed in.
 const ProfileScreen = () => {
   const insets = useSafeAreaInsets();
   const {
@@ -35,9 +36,13 @@ const ProfileScreen = () => {
 
   if (isAuthenticated && user) {
     return (
-      <View
-        className="flex-1 bg-background px-6"
-        style={{ paddingTop: insets.top + 24 }}
+      <ScrollView
+        className="flex-1 bg-background"
+        contentContainerStyle={{
+          paddingHorizontal: 24,
+          paddingTop: insets.top + 24,
+          paddingBottom: insets.bottom + 24,
+        }}
       >
         <Text className="font-display text-3xl text-foreground">
           {user.name || "Your account"}
@@ -47,11 +52,14 @@ const ProfileScreen = () => {
         {!user.onboarded ? (
           <View className="mt-4 rounded-lg border border-aging bg-aging-muted p-3">
             <Text className="text-sm text-foreground">
-              Finish setting up your account on the web to pick contractor or
-              hiring — then the full profile unlocks here.
+              Finish setting up your account to pick contractor or hiring — then
+              the full profile unlocks here.
             </Text>
           </View>
         ) : null}
+
+        {/* The verified compliance pack (contractors only). */}
+        {user.role === "JOB_SEEKER" ? <VerifiedProfile /> : null}
 
         <Pressable
           className="mt-8 rounded-lg border border-border bg-card p-4 active:opacity-80"
@@ -61,7 +69,7 @@ const ProfileScreen = () => {
             Sign out
           </Text>
         </Pressable>
-      </View>
+      </ScrollView>
     );
   }
 

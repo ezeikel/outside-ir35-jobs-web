@@ -34,6 +34,7 @@ rule can't drift between them because both go through the same action.
 | `POST /api/mobile/applications`| apply to a job (shared `canApply` gate)                  | bearer |
 | `GET/POST /api/mobile/saved-searches` | list / save (FREE_SAVED_SEARCH_LIMIT + premium gate) | bearer |
 | `DELETE/PATCH /api/mobile/saved-searches/[id]` | delete / toggle alerts (owner-scoped) | bearer |
+| `GET  /api/mobile/profile`     | `getContractorProfile` data → verified-pack DTO          | bearer |
 
 The authed routes resolve the caller via `getMobileCaller(req)` and reuse the
 SAME business primitives as the web actions (`canApply`, `isPremium`,
@@ -113,12 +114,16 @@ Server-side (on the web app's Vercel project) for token verification:
 
 ## Done (authed surfaces)
 
-- Onboarding role picker (gated at the root — a signed-in user with no role is
-  sent to `/onboarding`).
+- Onboarding — a swipeable carousel (3 value-prop slides → role picker), gated at
+  the root (a signed-in user with no role is sent to `/onboarding`).
 - In-app apply on the job detail (cover note + the server-computed eligibility:
   apply / already-applied / sign-in / link-out).
 - Saved searches: "Save this search" on the board (contractor-only) + an Alerts
   tab to pause/resume/delete.
+- Verified-profile surface (read-only) on the Profile tab for contractors:
+  `GET /api/mobile/profile` → trust tier, register-checked companies (attributed +
+  dated), compliance-pack documents with expiry status, IR35 insurance,
+  right-to-work. Upload/edit still lives on web.
 
 ## Not done yet (next phases)
 
