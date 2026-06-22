@@ -59,17 +59,24 @@ jobs:
               echo "Deps installed"
 
               # Guard: `bun install` reads pnpm-lock.yaml and has been observed to
-              # SILENTLY skip materialising some newly-added packages (it reports
-              # "no changes" while the package is absent from node_modules) — which
-              # crash-loops the worker with ERR_MODULE_NOT_FOUND. Verify the
-              # worker's runtime deps actually resolved and `bun add` any missing
-              # ones at the repo root (the only form that reliably materialises).
-              echo "Verifying worker runtime deps..."
+              # (a) SILENTLY skip materialising a newly-added package (absent from
+              # node_modules → ERR_MODULE_NOT_FOUND), AND (b) leave a STALE major
+              # version present (e.g. @ai-sdk/perplexity@1.x while package.json asks
+              # ^3 — the old v1 model spec is incompatible with ai@6 →
+              # AI_UnsupportedModelVersionError, which silently broke the blog cron).
+              # So verify each runtime dep is present AND its resolved version
+              # satisfies the requested range; `bun add` the pinned range otherwise
+              # (repo root — the only form that reliably materialises).
+              # Compare MAJOR versions only (no semver dep): the failure mode is a
+              # wrong major (1.x vs ^3), which a plain major check catches reliably.
+              echo "Verifying worker runtime deps (presence + major version)..."
               for pkg in @sanity/client @ai-sdk/perplexity @ai-sdk/anthropic @ai-sdk/openai @browserbasehq/stagehand hono; do
-                if [[ ! -d "node_modules/$pkg" ]]; then
-                  ver=$(node -p "require('./apps/outside-ir35-jobs-worker/package.json').dependencies['$pkg'] || ''")
-                  echo "  $pkg missing — installing ${ver:-latest}"
-                  /root/.bun/bin/bun add "$pkg@${ver:-latest}" || echo "  WARN: failed to add $pkg"
+                want=$(node -p "require('./apps/outside-ir35-jobs-worker/package.json').dependencies['$pkg'] || ''")
+                wantMajor=$(echo "$want" | sed -E 's/[^0-9]*([0-9]+).*/\1/')
+                ok=$(node -e "try { const v=require('$pkg/package.json').version; process.stdout.write(v.split('.')[0]); } catch(e){ process.stdout.write('missing'); }" 2>/dev/null || echo missing)
+                if [[ "$ok" == "missing" || ( -n "$wantMajor" && "$ok" != "$wantMajor" ) ]]; then
+                  echo "  $pkg resolved='$ok' wantMajor='$wantMajor' (want ${want:-latest}) — reinstalling"
+                  /root/.bun/bin/bun add "$pkg@${want:-latest}" || echo "  WARN: failed to add $pkg"
                 fi
               done
               echo "Worker deps verified"
