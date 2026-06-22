@@ -1,19 +1,54 @@
 import { db as prisma } from '@outside-ir35-jobs/db';
 import NextAuth from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
+
+// Test-only sign-in seam. Active ONLY when E2E_TEST_LOGIN === '1' (never set in
+// production), so the Playwright happy-path suite can sign in as a seeded
+// contractor/poster without driving the real Google OAuth consent screen. It
+// authenticates an *already-seeded* user by email — it never creates users and
+// never accepts a password, so even if the flag leaked it could only ever
+// "log in as" a row that already exists in this DB. When the flag is off the
+// provider isn't registered at all and this whole branch is dead code.
+const e2eLoginEnabled = process.env.E2E_TEST_LOGIN === '1';
+
+const providers = [
+  GoogleProvider({
+    clientId: process.env.GOOGLE_CLIENT_ID as string,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+  }),
+  ...(e2eLoginEnabled
+    ? [
+        CredentialsProvider({
+          id: 'e2e',
+          name: 'E2E Test Login',
+          credentials: { email: { label: 'Email', type: 'text' } },
+          async authorize(credentials) {
+            const email =
+              typeof credentials?.email === 'string' ? credentials.email : null;
+            if (!email) return null;
+            const user = await prisma.user.findUnique({ where: { email } });
+            if (!user) return null;
+            return { id: user.id, email: user.email, name: user.name };
+          },
+        }),
+      ]
+    : []),
+];
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   // Vercel auto-enables this, but a local `next start` (and the prod-build e2e
   // run) needs it set explicitly or every session lookup throws UntrustedHost.
   trustHost: true,
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-    }),
-  ],
+  providers,
   callbacks: {
     async signIn({ account, profile }) {
+      // Test-login path: the credentials authorize() already proved the user
+      // exists; let it through. (Only reachable when E2E_TEST_LOGIN === '1'.)
+      if (e2eLoginEnabled && account?.provider === 'e2e') {
+        return true;
+      }
+
       if (account?.provider !== 'google' || !profile?.email) {
         return false;
       }

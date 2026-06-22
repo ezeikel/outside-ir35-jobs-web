@@ -26,8 +26,12 @@ test('browse /jobs and open a listing without erroring', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 
   // Open the first contract card. This is the regression guard: the listing
-  // detail page must render real content, not an error boundary.
-  const firstCard = page.locator('a[href^="/job/"]').first();
+  // detail page must render real content, not an error boundary. Exclude
+  // /job/post — that's the header's "Post a job" link (also under /job/), which
+  // for a signed-out visitor bounces to /api/auth/signin, not a listing.
+  const firstCard = page
+    .locator('a[href^="/job/"]:not([href="/job/post"])')
+    .first();
   await expect(firstCard).toBeVisible({ timeout: 15_000 });
   await firstCard.click();
 

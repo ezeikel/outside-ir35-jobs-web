@@ -47,3 +47,5 @@ next-env.d.ts
 /playwright-report/
 /blob-report/
 /.playwright/
+# Signed-in storageState written by e2e global-setup — real session cookies.
+/e2e/.auth/
