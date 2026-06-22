@@ -31,7 +31,11 @@ export const runAggregation = async (
   scrape: Scraper,
   opts?: { limit?: number },
 ): Promise<AggregationResult> => {
-  const limit = opts?.limit ?? 25;
+  // 50/source/day: roughly half survive the contract prefilter, so this fills the
+  // board faster (toward the day-rate / SEO sample gates) without loosening the
+  // honest filter. Browserbase sources are serialised (withStagehand), so a bigger
+  // crawl per source doesn't risk the concurrent-session 429.
+  const limit = opts?.limit ?? 50;
   const result: AggregationResult = {
     source,
     scraped: 0,
