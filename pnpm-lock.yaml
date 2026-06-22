@@ -89,6 +89,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@ai-sdk/anthropic':
+        specifier: ^3.0.85
+        version: 3.0.85(zod@3.25.76)
       '@ai-sdk/openai':
         specifier: ^3.0.38
         version: 3.0.73(zod@3.25.76)

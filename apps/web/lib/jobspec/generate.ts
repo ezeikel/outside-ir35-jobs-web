@@ -1,7 +1,11 @@
 import 'server-only';
-import { openai } from '@ai-sdk/openai';
+import { anthropic } from '@ai-sdk/anthropic';
 import { generateObject } from 'ai';
 import { z } from 'zod';
+
+// Claude Sonnet drafts noticeably better prose than a small OpenAI model — same
+// model the worker uses for the blog/CV pipeline (ANTHROPIC_API_KEY).
+const DRAFT_MODEL = 'claude-sonnet-4-6';
 
 /**
  * AI job-spec writer for posters. Takes rough inputs and drafts a clear, attractive
@@ -62,7 +66,7 @@ export const generateJobSpec = async (
   ].filter(Boolean);
 
   const { object } = await generateObject({
-    model: openai('gpt-4o-mini'),
+    model: anthropic(DRAFT_MODEL),
     schema: DraftSchema,
     system: SYSTEM,
     prompt: `Draft a contract job spec from these inputs:\n${lines.join('\n')}`,
