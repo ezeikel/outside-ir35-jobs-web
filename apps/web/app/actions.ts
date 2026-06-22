@@ -32,6 +32,7 @@ import {
   type JobSpecDraft,
   type JobSpecInput,
 } from '@/lib/jobspec/generate';
+import { generateMatchAndPitch, type MatchProfile } from '@/lib/match/generate';
 import { embedAndStoreJob } from '@/lib/search/embed-job';
 import { embedQuery } from '@/lib/search/embed-query';
 import {
@@ -456,6 +457,65 @@ export const getRecommendedJobs = async (): Promise<RecommendationResult> => {
   }
 
   return { status: 'ok', jobs };
+};
+
+// AI "why-matched" + one-click pitch for a recommended job. PREMIUM perk (the
+// docs list AI alerts + tailoring as a premium unlock; ties to the £29 sub).
+// Constrained to the contractor's real CV facts — never invents experience.
+export type MatchPitchResult =
+  | { status: 'no_cv' }
+  | { status: 'not_premium' }
+  | { status: 'ok'; whyMatched: string[]; pitch: string };
+
+export const getJobMatchAndPitch = async (
+  jobId: string,
+): Promise<MatchPitchResult> => {
+  const session = await auth();
+  if (!session?.userId || session.role !== Role.JOB_SEEKER) {
+    return { status: 'no_cv' };
+  }
+
+  const [user, sub] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { parsedProfile: true },
+    }),
+    prisma.subscription.findUnique({
+      where: { userId: session.userId },
+      select: { status: true, currentPeriodEnd: true },
+    }),
+  ]);
+
+  if (!user?.parsedProfile) return { status: 'no_cv' };
+  if (!isPremium(sub)) return { status: 'not_premium' };
+
+  const job = await prisma.job.findUnique({
+    where: { id: jobId },
+    select: {
+      position: true,
+      companyName: true,
+      description: true,
+      keywords: true,
+      dayRate: true,
+      location: true,
+      isActive: true,
+    },
+  });
+  if (!job || !job.isActive) return { status: 'no_cv' };
+
+  const result = await generateMatchAndPitch(
+    user.parsedProfile as MatchProfile,
+    {
+      position: job.position,
+      companyName: job.companyName,
+      description: job.description,
+      keywords: job.keywords,
+      dayRate: job.dayRate,
+      location: (job.location as { address?: string } | null)?.address ?? null,
+    },
+  );
+
+  return { status: 'ok', ...result };
 };
 
 export type DayRateBenchmark = {

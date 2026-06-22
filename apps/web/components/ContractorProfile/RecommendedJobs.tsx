@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { RecommendationResult } from '@/app/actions';
 import { JobListCard } from '@/components/trust';
 import { jobToCard } from '@/utils/jobToCard';
+import MatchPitch from './MatchPitch';
 
 /**
  * "Recommended for you" — jobs matched to the contractor's parsed-CV profile by
@@ -44,6 +45,7 @@ const RecommendedJobs = ({ data }: { data: RecommendationResult }) => {
           {data.jobs.map((job) => (
             <li key={job.id}>
               <JobListCard job={jobToCard(job)} />
+              <MatchPitch jobId={job.id} />
             </li>
           ))}
         </ul>
