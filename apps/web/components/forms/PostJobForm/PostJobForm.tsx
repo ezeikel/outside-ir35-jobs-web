@@ -1,7 +1,7 @@
 import { JobIR35Signal, WorkMode } from '@outside-ir35-jobs/db/types';
 import { useEffect, useState } from 'react';
 import { useFormContext } from 'react-hook-form';
-import { createJobPost } from '@/app/actions';
+import { createJobPost, draftJobSpec } from '@/app/actions';
 import TipTapEditor from '@/components/TipTapEditor/TipTapEditor';
 import { Button } from '@/components/ui/button';
 import {
@@ -54,12 +54,46 @@ interface PostJobFormProps {
 const PostJobForm = ({ className }: PostJobFormProps) => {
   const [descriptionContent, setDescriptionContent] = useState('');
   const [howToApplyContent, setHowToApplyContent] = useState('');
+  const [drafting, setDrafting] = useState(false);
+  const [draftError, setDraftError] = useState<string | null>(null);
   const {
     control,
     handleSubmit,
     setValue,
+    getValues,
     formState: { isSubmitting },
   } = useFormContext<PostJobFormValues>();
+
+  // Draft the description / how-to-apply / keywords from the title + a few fields.
+  const draftWithAi = async () => {
+    setDraftError(null);
+    const values = getValues();
+    if (!values.position?.trim()) {
+      setDraftError('Add a role title first.');
+      return;
+    }
+    setDrafting(true);
+    try {
+      const draft = await draftJobSpec({
+        position: values.position,
+        skills: values.keywords,
+        workMode: values.workMode,
+        dayRate: Array.isArray(values.dayRate)
+          ? values.dayRate.join('–')
+          : undefined,
+        location: values.location?.address,
+      });
+      setDescriptionContent(draft.description);
+      setHowToApplyContent(draft.howToApply);
+      if (draft.keywords) setValue('keywords', draft.keywords);
+    } catch (e) {
+      setDraftError(
+        e instanceof Error ? e.message : 'Could not draft right now.',
+      );
+    } finally {
+      setDrafting(false);
+    }
+  };
 
   const onSubmit = async (values: PostJobFormValues) => {
     // createJobPost creates the job unpublished and returns a Stripe Checkout
@@ -113,9 +147,26 @@ const PostJobForm = ({ className }: PostJobFormProps) => {
         )}
       />
       <div>
-        <Label className="block mb-1" htmlFor="description">
-          Job Description
-        </Label>
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <Label htmlFor="description">Job Description</Label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={draftWithAi}
+            disabled={drafting}
+          >
+            {drafting ? 'Drafting…' : '✦ Draft with AI'}
+          </Button>
+        </div>
+        {draftError ? (
+          <p className="mb-1 text-sm text-destructive">{draftError}</p>
+        ) : null}
+        <p className="mb-2 text-xs text-muted-foreground">
+          Drafts the description, how-to-apply and keywords from your title and
+          details. It never claims a role is outside IR35 — you set your IR35
+          position below.
+        </p>
         <TipTapEditor
           content={descriptionContent}
           placeholder="Enter the job description"

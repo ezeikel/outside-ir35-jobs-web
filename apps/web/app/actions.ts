@@ -27,6 +27,11 @@ import {
 } from '@/lib/documents/validate';
 import { buildJobAlertEmail, IR35_SIGNAL_LABEL } from '@/lib/email/job-alert';
 import { sendEmail } from '@/lib/email/send';
+import {
+  generateJobSpec,
+  type JobSpecDraft,
+  type JobSpecInput,
+} from '@/lib/jobspec/generate';
 import { embedAndStoreJob } from '@/lib/search/embed-job';
 import { embedQuery } from '@/lib/search/embed-query';
 import {
@@ -573,6 +578,22 @@ export const getSkillBenchmark = async (
     GROUP BY skill, ir35_bucket
     HAVING count(DISTINCT id) >= ${MIN_SAMPLE}
     ORDER BY count(DISTINCT id) DESC, median DESC`;
+};
+
+// AI job-spec writer (poster-side). Drafts a description / how-to-apply / keywords
+// from rough inputs. JOB_POSTER only. The generator's system prompt enforces the
+// never-assert-IR35 rule; the poster still sets their IR35 position via the form.
+export const draftJobSpec = async (
+  input: JobSpecInput,
+): Promise<JobSpecDraft> => {
+  const session = await auth();
+  if (!session?.userId || session.role !== Role.JOB_POSTER) {
+    throw new Error('Only job posters can draft a spec');
+  }
+  if (!input.position?.trim()) {
+    throw new Error('Add a role title first.');
+  }
+  return generateJobSpec(input);
 };
 
 export const getJob = async (id: string) =>
