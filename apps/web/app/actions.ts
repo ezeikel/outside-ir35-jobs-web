@@ -39,6 +39,8 @@ import {
   AddCompanySchema,
   AddCompanyValues,
   DocumentMetadataSchema,
+  Ir35InsuranceSchema,
+  Ir35InsuranceValues,
   OnboardingRoleSchema,
   OnboardingRoleValues,
   PostJobFormValues,
@@ -646,6 +648,40 @@ export const uploadContractorDocument = async (formData: FormData) => {
   }
 
   await recomputeTrustTier(session.userId);
+  revalidatePath('/profile');
+};
+
+/**
+ * Record (or clear) the contractor's SELF-DECLARED IR35 / tax-investigation
+ * insurance. This is a stated fact — we can't verify a policy against a register —
+ * so it's surfaced attributed to the contractor, never as a platform guarantee.
+ * Holds=true requires provider + expiry; holds=false clears all three fields.
+ * Doesn't move the trust tier (insurance is an orthogonal badge, not a tier gate),
+ * so no recompute is needed.
+ */
+export const setIr35Insurance = async (input: Ir35InsuranceValues) => {
+  const session = await auth();
+  if (!session?.userId || session.role !== Role.JOB_SEEKER) {
+    throw new Error('Only contractors can set IR35 insurance');
+  }
+
+  const parsed = Ir35InsuranceSchema.parse(input);
+
+  await prisma.user.update({
+    where: { id: session.userId },
+    data: parsed.holds
+      ? {
+          holdsIR35Insurance: true,
+          ir35InsuranceProvider: parsed.provider ?? null,
+          ir35InsuranceExpiry: parsed.expiresAt ?? null,
+        }
+      : {
+          holdsIR35Insurance: false,
+          ir35InsuranceProvider: null,
+          ir35InsuranceExpiry: null,
+        },
+  });
+
   revalidatePath('/profile');
 };
 

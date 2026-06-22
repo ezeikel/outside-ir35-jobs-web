@@ -14,6 +14,7 @@ import AddCompanyForm from './AddCompanyForm';
 import CvProfile from './CvProfile';
 import DocumentMetaForm from './DocumentMetaForm';
 import DocumentUpload from './DocumentUpload';
+import IR35InsuranceForm from './IR35InsuranceForm';
 import RecommendedJobs from './RecommendedJobs';
 import ReverifyButton from './ReverifyButton';
 
@@ -204,12 +205,14 @@ const ContractorProfile = ({
             <AddCompanyForm />
           )}
 
-          {data.holdsIR35Insurance && (
-            <section className="rounded-lg border border-border bg-card p-5">
-              <p className="mb-1 text-sm font-medium">IR35 insurance</p>
+          <section className="rounded-lg border border-border bg-card p-5">
+            <p className="mb-1 text-sm font-medium">
+              IR35 / tax-investigation insurance
+            </p>
+            {data.holdsIR35Insurance ? (
               <VerifiedFactRow
                 source={data.ir35InsuranceProvider ?? 'IR35 cover'}
-                fact="Active tax-investigation cover"
+                fact="Holds active tax-investigation cover (self-declared)"
                 status="verified"
                 checkedOn={
                   data.ir35InsuranceExpiry
@@ -217,8 +220,18 @@ const ContractorProfile = ({
                     : undefined
                 }
               />
-            </section>
-          )}
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Add your IR35 / tax-investigation insurance to show it to
+                employers — a strong, honest trust signal.
+              </p>
+            )}
+            <IR35InsuranceForm
+              holds={data.holdsIR35Insurance}
+              provider={data.ir35InsuranceProvider}
+              expiresAt={data.ir35InsuranceExpiry}
+            />
+          </section>
 
           {/* Compliance pack */}
           <section className="rounded-lg border border-border bg-card p-5">

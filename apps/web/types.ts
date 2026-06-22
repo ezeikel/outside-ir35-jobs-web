@@ -97,3 +97,20 @@ export const AddCompanySchema = z.object({
 });
 
 export type AddCompanyValues = z.infer<typeof AddCompanySchema>;
+
+// A contractor's SELF-DECLARED IR35 / tax-investigation insurance. We can't verify
+// a policy against a register, so this is a stated fact (provider + expiry), shown
+// attributed to the contractor — never a platform guarantee. When `holds` is true,
+// provider + expiry are required; when false we clear the fields.
+export const Ir35InsuranceSchema = z
+  .object({
+    holds: z.boolean(),
+    provider: z.string().trim().min(1).max(120).optional(),
+    expiresAt: z.coerce.date().optional(),
+  })
+  .refine((v) => !v.holds || (!!v.provider && !!v.expiresAt), {
+    message: 'Provider and expiry date are required.',
+    path: ['provider'],
+  });
+
+export type Ir35InsuranceValues = z.infer<typeof Ir35InsuranceSchema>;
