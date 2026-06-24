@@ -1,4 +1,4 @@
-# Mobile app (`apps/outside-ir35-jobs-mobile`)
+# Mobile app (`apps/mobile`)
 
 > React Native / Expo app for outsideir35.jobs. Scaffolded to match the
 > conventions of the sibling Chewy Bytes apps (chunky-crayon, go-unbeaten):
@@ -73,7 +73,7 @@ searches, and premium require a session (next phase).
 ## App structure
 
 ```
-apps/outside-ir35-jobs-mobile/
+apps/mobile/
   app/                      expo-router screens (typed routes)
     _layout.tsx             Stack + Providers + global.css
     (tabs)/_layout.tsx      Jobs / Day rates / Profile

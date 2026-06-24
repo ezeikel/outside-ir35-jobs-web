@@ -47,8 +47,8 @@ mirroring the conventions of the sister project `chunky-crayon`, and bring
 outside-ir35-jobs/
 ├── apps/
 │   ├── web/                       # the existing Next app, moved in
-│   ├── outside-ir35-jobs-mobile/   # Expo / React Native (scaffolded later)
-│   └── outside-ir35-jobs-worker/   # AI worker: aggregation + blog crons
+│   ├── mobile/                 # Expo / React Native (scaffolded later)
+│   └── worker/                 # AI worker: aggregation + blog crons
 ├── packages/
 │   ├── db/        # Prisma 7 + Neon adapter
 │   ├── storage/   # R2 wrapper
@@ -130,9 +130,9 @@ Upgrade **one major per commit**, building between each:
 
 ### Later — scaffold the other apps
 
-- `apps/outside-ir35-jobs-worker` — AI worker (aggregation + blog crons,
+- `apps/worker` — AI worker (aggregation + blog crons,
   Claude + Perplexity), mirroring chunky-crayon's worker.
-- `apps/outside-ir35-jobs-mobile` — Expo / React Native, consuming the same
+- `apps/mobile` — Expo / React Native, consuming the same
   db/API.
 
 ---

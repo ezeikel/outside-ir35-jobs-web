@@ -83,7 +83,7 @@ install chromium` first).
 ## Deploy (Hetzner, mirrors chunky-crayon)
 
 1. Pull the monorepo to `/opt/outside-ir35-jobs`, `pnpm install` (or `bun install`).
-2. Create `apps/outside-ir35-jobs-worker/.env` from `.env.example`.
+2. Create `apps/worker/.env` from `.env.example`.
 3. Copy `deploy/outside-ir35-jobs-worker.service` to `/etc/systemd/system/`,
    then `systemctl daemon-reload && systemctl enable --now outside-ir35-jobs-worker`.
 4. Reverse-proxy it (nginx/Caddy) at a stable URL, and set that URL as

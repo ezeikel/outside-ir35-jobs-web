@@ -16,7 +16,7 @@
       "!**/.turbo",
       "!**/src/generated",
       "!next-env.d.ts",
-      "!apps/outside-ir35-jobs-mobile/**"
+      "!apps/mobile/**"
     ]
   },
   "formatter": {
@@ -133,7 +133,7 @@
       "!out/**",
       "!build/**",
       "!next-env.d.ts",
-      "!apps/outside-ir35-jobs-mobile/**"
+      "!apps/mobile/**"
     ]
   },
   "javascript": {

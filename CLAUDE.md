@@ -79,8 +79,8 @@ re-baseline.
 pending a rename to `outside-ir35-jobs`.
 
 - `apps/web` — Next.js 16 web app (`@outside-ir35-jobs/web`)
-- `apps/outside-ir35-jobs-mobile` — React Native / Expo app (planned, not yet scaffolded)
-- `apps/outside-ir35-jobs-worker` — AI worker for aggregation + blog crons (planned)
+- `apps/mobile` — React Native / Expo app (planned, not yet scaffolded)
+- `apps/worker` — AI worker for aggregation + blog crons (planned)
 - `packages/db` — Prisma 7 + Neon client (`@outside-ir35-jobs/db`). Server code imports
   `db`/`prisma` from the barrel; **client components import enums/types from
   `@outside-ir35-jobs/db/types`** (browser-safe — keeps the Prisma runtime out of client

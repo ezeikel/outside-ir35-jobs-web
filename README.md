@@ -53,8 +53,8 @@ A **pnpm + Turborepo monorepo** (mirroring the sister project `chunky-crayon`):
 outside-ir35-jobs/                 # repo root (renamed from outside-ir35-jobs-web)
 ├── apps/
 │   ├── web/                      # Next.js web app
-│   ├── outside-ir35-jobs-mobile/  # Expo / React Native app (later)
-│   └── outside-ir35-jobs-worker/  # AI worker: aggregation + blog crons (Claude + Perplexity)
+│   ├── mobile/                # Expo / React Native app (later)
+│   └── worker/                # AI worker: aggregation + blog crons (Claude + Perplexity)
 ├── packages/
 │   ├── db/                        # Prisma + Neon adapter (schema, client)
 │   ├── storage/                   # Cloudflare R2 wrapper (CVs, incorporation/insurance docs)

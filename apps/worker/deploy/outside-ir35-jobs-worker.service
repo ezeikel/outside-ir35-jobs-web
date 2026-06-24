@@ -5,8 +5,8 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/outside-ir35-jobs/apps/outside-ir35-jobs-worker
-EnvironmentFile=/opt/outside-ir35-jobs/apps/outside-ir35-jobs-worker/.env
+WorkingDirectory=/opt/outside-ir35-jobs/apps/worker
+EnvironmentFile=/opt/outside-ir35-jobs/apps/worker/.env
 # xvfb-run gives a headless X display for the local Playwright fallback. When
 # scraping via Browserbase (remote browser) it's harmless. Run via Bun (Hetzner).
 ExecStart=/usr/bin/xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" /root/.bun/bin/bun run src/index.ts

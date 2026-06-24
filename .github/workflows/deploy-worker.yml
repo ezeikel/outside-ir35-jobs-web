@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'apps/outside-ir35-jobs-worker/**'
+      - 'apps/worker/**'
       # The worker imports the shared Prisma client; a schema/client change must
       # redeploy + regenerate or it runs against a stale client.
       - 'packages/db/**'
@@ -48,7 +48,7 @@ jobs:
               git checkout -- . || true
               # Scope the clean to the worker dir only — never wipe the
               # gitignored worker .env or other local-only state.
-              git clean -fd apps/outside-ir35-jobs-worker/ || true
+              git clean -fd apps/worker/ || true
               git pull origin main
               echo "Code pulled"
 
@@ -71,7 +71,7 @@ jobs:
               # wrong major (1.x vs ^3), which a plain major check catches reliably.
               echo "Verifying worker runtime deps (presence + major version)..."
               for pkg in @sanity/client @ai-sdk/perplexity @ai-sdk/anthropic @ai-sdk/openai @browserbasehq/stagehand hono; do
-                want=$(node -p "require('./apps/outside-ir35-jobs-worker/package.json').dependencies['$pkg'] || ''")
+                want=$(node -p "require('./apps/worker/package.json').dependencies['$pkg'] || ''")
                 wantMajor=$(echo "$want" | sed -E 's/[^0-9]*([0-9]+).*/\1/')
                 ok=$(node -e "try { const v=require('$pkg/package.json').version; process.stdout.write(v.split('.')[0]); } catch(e){ process.stdout.write('missing'); }" 2>/dev/null || echo missing)
                 if [[ "$ok" == "missing" || ( -n "$wantMajor" && "$ok" != "$wantMajor" ) ]]; then
