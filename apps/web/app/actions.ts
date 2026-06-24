@@ -16,7 +16,7 @@ import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
 import { canApply } from '@/lib/apply/eligibility';
 import { MIN_SAMPLE } from '@/lib/benchmarks/compute';
-import { isPremium } from '@/lib/contractor/premium';
+import { isPremium, shouldProviderWriteWin } from '@/lib/contractor/premium';
 import { computeTrustTier } from '@/lib/contractor/trust-tier';
 import {
   computeDocStatus,
@@ -1671,11 +1671,24 @@ export const syncSubscriptionFromStripe = async (input: {
   }
   if (!userId) return;
 
+  // Don't let a Stripe event clobber an actively-paying RevenueCat (mobile) sub.
+  // One row per user — same provider-aware guard the RC webhook uses.
+  const existing = await prisma.subscription.findUnique({
+    where: { userId },
+    select: { provider: true, status: true, currentPeriodEnd: true },
+  });
+  if (!shouldProviderWriteWin(existing, 'STRIPE')) return;
+
   const data = {
     type: 'PRO' as const,
+    provider: 'STRIPE' as const,
     stripeCustomerId: input.stripeCustomerId,
     stripeSubscriptionId: input.stripeSubscriptionId,
     stripePriceId: input.stripePriceId,
+    // Clear the RevenueCat linkage when Stripe takes ownership so the row is
+    // never internally inconsistent.
+    revenueCatUserId: null,
+    revenueCatProductId: null,
     status: input.status,
     currentPeriodEnd: input.currentPeriodEnd,
     cancelAtPeriodEnd: input.cancelAtPeriodEnd,

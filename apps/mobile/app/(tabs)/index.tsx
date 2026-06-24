@@ -1,5 +1,6 @@
 import { FlashList } from "@shopify/flash-list";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -20,6 +21,7 @@ import { saveSearch } from "@/lib/api-searches";
 // same endpoint the web board uses, so results can never drift between surfaces.
 const JobsScreen = () => {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { isAuthenticated, user } = useAuth();
   const [query, setQuery] = useState("");
   const [submitted, setSubmitted] = useState("");
@@ -33,10 +35,17 @@ const JobsScreen = () => {
     mutationFn: () => saveSearch(submitted ? { q: submitted } : {}),
     onSuccess: () => toast.success("Saved — we’ll email you new matches."),
     onError: (e: unknown) => {
-      const msg =
-        (e as { response?: { data?: { error?: string } } })?.response?.data
-          ?.error ?? "Couldn’t save this search.";
-      toast.error(msg);
+      const err = e as {
+        response?: { status?: number; data?: { error?: string } };
+      };
+      // The free saved-search cap returns 402 — a natural paywall moment: they've
+      // experienced the value (saved 3) and hit the limit. Send them to Premium.
+      if (err?.response?.status === 402) {
+        toast.error("You’ve hit the free saved-search limit — go premium.");
+        router.push("/(tabs)/premium");
+        return;
+      }
+      toast.error(err?.response?.data?.error ?? "Couldn’t save this search.");
     },
   });
 

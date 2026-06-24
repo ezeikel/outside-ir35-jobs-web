@@ -3,6 +3,7 @@ import {
   faBell,
   faBriefcase,
   faChartColumn,
+  faStar,
   faUser,
 } from "@fortawesome/free-solid-svg-icons";
 import { Tabs } from "expo-router";
@@ -53,6 +54,15 @@ const TabsLayout = () => (
         title: "Alerts",
         tabBarIcon: ({ color, size }) => (
           <FontAwesomeIcon icon={faBell} color={color as string} size={size} />
+        ),
+      }}
+    />
+    <Tabs.Screen
+      name="premium"
+      options={{
+        title: "Premium",
+        tabBarIcon: ({ color, size }) => (
+          <FontAwesomeIcon icon={faStar} color={color as string} size={size} />
         ),
       }}
     />

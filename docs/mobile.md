@@ -37,6 +37,8 @@ rule can't drift between them because both go through the same action.
 | `GET  /api/mobile/profile`     | `getContractorProfile` data → verified-pack DTO          | bearer |
 | `POST /api/mobile/documents`   | multipart upload → `uploadDocumentForUser` (R2 + recompute) | bearer |
 | `DELETE /api/mobile/documents/[type]` | remove a doc → `deleteDocumentForUser`            | bearer |
+| `GET  /api/mobile/premium`     | authoritative premium state (isPremium) from the DB      | bearer |
+| `POST /api/webhooks/revenuecat`| RevenueCat events → upsert Subscription (provider=REVENUECAT) | shared-secret |
 
 The authed routes resolve the caller via `getMobileCaller(req)` and reuse the
 SAME business primitives as the web actions (`canApply`, `isPremium`,
@@ -141,8 +143,34 @@ Server-side (on the web app's Vercel project) for token verification:
 - Real app icons / splash (current ones are generated placeholders).
 - Fonts (Inter Tight / Instrument Serif / Geist Mono) — `global.css` names the
   families; drop the `.ttf`s into `assets/fonts` + register via `expo-font`.
-- The verified-profile surface (CV, company checks, IR35 insurance) on the
-  Profile tab; premium subscription (RevenueCat or Stripe).
 - Day-rates benchmark screen + `/api/mobile/day-rates` (honesty-gated on sample
   size, like the web).
 - Push notifications (FCM + notifee, as in go-unbeaten) for job alerts.
+
+## Premium (mobile = RevenueCat, web = Stripe)
+
+App/Play store rules forbid Stripe for in-app digital subscriptions, so mobile
+premium uses **StoreKit / Play Billing via RevenueCat**, while web stays on
+Stripe. Both write the SAME `Subscription` row (one per user, `provider`
+discriminator), and `isPremium()` reads only `{ status, currentPeriodEnd }` — so
+a sub from either channel unlocks every gate identically (incl. the mobile
+saved-searches route), and a web subscriber is recognised as premium on mobile.
+
+- `POST /api/webhooks/revenuecat` (the mobile source of truth) verifies a shared
+  secret (`REVENUECAT_WEBHOOK_AUTH`), maps the RC event → Stripe-style status +
+  period (`lib/mobile/revenuecat.ts`, unit-tested), and upserts the row by
+  `app_user_id` (= the DB user id, because the app configures RC with
+  `appUserID=userId`).
+- The app reads premium from `GET /api/mobile/premium` (the **authoritative**
+  DB state — NOT the RC client SDK), via `usePremium()`.
+- `lib/revenuecat.ts` configures RC (anchored to the user id), exposes offering /
+  purchase / restore, and fails loud if a non-dev build uses a `test_` key. The
+  Paywall + Premium tab mirror the web `/premium` copy; the saved-search limit
+  (402) routes free contractors to the paywall.
+
+**Env needed before it's live** (built but inert until provisioned — like web
+premium): `EXPO_PUBLIC_REVENUECAT_IOS_KEY` / `_ANDROID_KEY` (client), a RC
+project with an offering + the `premium` entitlement + App Store/Play
+subscription products, and `REVENUECAT_WEBHOOK_AUTH` on the web app's Vercel
+project (matched to the RC dashboard webhook auth header). outsideir35.jobs is
+not yet in the `store` CLI, so the RC project isn't provisioned.

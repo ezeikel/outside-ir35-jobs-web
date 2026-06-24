@@ -18,6 +18,7 @@ import {
   signInWithGoogle,
 } from "@/lib/api-auth";
 import { clearSession, getSessionToken, setSession } from "@/lib/auth";
+import { initializeRevenueCat } from "@/lib/revenuecat";
 
 // App-wide auth state. Browsing is public; this context is what unlocks the
 // authed surfaces (apply, alerts, premium). Sign-in is native Google / Apple →
@@ -81,6 +82,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     void refreshAuth().finally(() => setIsLoading(false));
   }, [refreshAuth]);
+
+  // Anchor RevenueCat to the DB user id so a mobile purchase keys to that user
+  // (the RC webhook reconciles by app_user_id = userId). Re-runs when the signed-
+  // in user changes; configures anonymously when signed out so the paywall can
+  // still load offerings. No-ops cleanly if no RC key is set yet.
+  useEffect(() => {
+    void initializeRevenueCat(user?.id);
+  }, [user?.id]);
 
   const finishSignIn = useCallback(
     async (res: OAuthSignInResponse) => {

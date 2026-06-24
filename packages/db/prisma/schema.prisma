@@ -30,6 +30,12 @@ enum SubscriptionType {
   PRO
 }
 
+// Which billing channel a subscription was created through.
+enum SubscriptionProvider {
+  STRIPE // Web subscriptions (Stripe Checkout)
+  REVENUECAT // Mobile subscriptions (App Store / Play Store via RevenueCat)
+}
+
 enum WorkMode {
   REMOTE
   HYBRID
@@ -277,16 +283,31 @@ model Subscription {
   user   User             @relation(fields: [userId], references: [id])
   userId String           @unique
 
-  // Stripe linkage (set/updated by the webhook). customerId is reused for the
-  // billing portal; subscriptionId + status + period mirror the Stripe object.
-  stripeCustomerId     String?   @unique
-  stripeSubscriptionId String?   @unique
+  // Which channel owns this subscription. Web subs come via Stripe; mobile subs
+  // (App Store / Play Store) come via RevenueCat. One row per user — whichever
+  // channel they subscribed through. `provider` drives "manage subscription"
+  // routing (Stripe → billing portal; RevenueCat → the OS subscription screen).
+  provider SubscriptionProvider @default(STRIPE)
+
+  // Stripe linkage (set/updated by the Stripe webhook). customerId is reused for
+  // the billing portal; subscriptionId + status + period mirror the Stripe object.
+  stripeCustomerId     String? @unique
+  stripeSubscriptionId String? @unique
   stripePriceId        String?
-  // Mirrors Stripe's subscription.status: active | trialing | past_due | canceled
-  // | unpaid | incomplete. Plain string — we only branch on 'active'/'trialing'.
-  status               String    @default("incomplete")
-  currentPeriodEnd     DateTime?
-  cancelAtPeriodEnd    Boolean   @default(false)
+
+  // RevenueCat linkage (set/updated by the RevenueCat webhook). The app_user_id
+  // RevenueCat reports IS the DB user id (RC is configured with appUserID=userId),
+  // so the webhook reconciles by userId; revenueCatUserId is kept for audit/debug.
+  revenueCatUserId    String? @unique
+  revenueCatProductId String?
+
+  // Mirrors the provider's subscription status, normalised to the Stripe-style
+  // strings isPremium() branches on: active | trialing | past_due | canceled |
+  // unpaid | incomplete. Provider-agnostic on purpose — isPremium only reads
+  // status + currentPeriodEnd, so a Stripe OR RevenueCat sub unlocks identically.
+  status            String    @default("incomplete")
+  currentPeriodEnd  DateTime?
+  cancelAtPeriodEnd Boolean   @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
