@@ -157,9 +157,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ],
     experiments: { typedRoutes: true },
     runtimeVersion: { policy: "appVersion" },
-    // NOTE: set updates.url + extra.eas.projectId after `eas init` creates the
-    // EAS project (one-time, needs the Expo account). Left unset so a local
-    // `expo start` / prebuild works before the project exists.
+    // EAS project @chewybytes/outside-ir35-jobs (created via `eas init`). The
+    // updates endpoint is the standard u.expo.dev/<projectId> form.
+    updates: { url: "https://u.expo.dev/41f0c985-1efb-4743-9cc6-f0185e430044" },
+    extra: { eas: { projectId: "41f0c985-1efb-4743-9cc6-f0185e430044" } },
   };
 
   return withModularHeaders(withGradleHeap(expoConfig)) as ExpoConfig;
