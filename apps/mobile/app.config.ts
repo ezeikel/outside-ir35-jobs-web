@@ -129,6 +129,16 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       "expo-secure-store",
       "expo-status-bar",
       "expo-image",
+      "expo-document-picker",
+      [
+        "expo-image-picker",
+        {
+          photosPermission:
+            "Allow Outside IR35 Jobs to access your photos so you can upload a scan or photo of a compliance document.",
+          cameraPermission:
+            "Allow Outside IR35 Jobs to take a photo of a compliance document to upload.",
+        },
+      ],
       "@react-native-google-signin/google-signin",
       [
         "@sentry/react-native",

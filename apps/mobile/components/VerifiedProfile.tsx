@@ -1,11 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { ActivityIndicator, Text, View } from "react-native";
+import DocumentUpload from "@/components/DocumentUpload";
 import { fetchProfile, type MobileProfile } from "@/lib/api-profile";
 
-// Read-only view of the contractor's verified compliance pack. Surfaces only
-// objective facts: the trust tier, register-checked companies (attributed +
-// dated), documents on file with expiry, IR35 insurance, right-to-work. Never an
-// IR35 assertion (docs/ir35-trust-model.md). Upload/edit lives on web for now.
+// The contractor's verified compliance pack. Surfaces only objective facts: the
+// trust tier, register-checked companies (attributed + dated), documents on file
+// with expiry, IR35 insurance, right-to-work — never an IR35 assertion
+// (docs/ir35-trust-model.md). Documents are uploadable in-app; company
+// verification + IR35-insurance editing still live on web.
 const VerifiedProfile = () => {
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile"],
@@ -39,6 +41,7 @@ const VerifiedProfile = () => {
       <TrustTier profile={profile} />
       <Companies profile={profile} />
       <Documents profile={profile} />
+      <DocumentUpload profile={profile} />
       <Compliance profile={profile} />
       <Text className="mt-6 text-center text-xs text-muted-foreground">
         These are objective, checkable facts. The platform never determines or

@@ -34,8 +34,21 @@ export type UploadValidation =
 const isAllowedMime = (mime: string): mime is AllowedMimeType =>
   (ALLOWED_MIME_TYPES as readonly string[]).includes(mime);
 
-const isDocType = (value: string): value is ContractorDocType =>
+export const isDocType = (value: string): value is ContractorDocType =>
   (ALLOWED_DOC_TYPES as string[]).includes(value);
+
+/**
+ * A client-input upload error (bad type / mime / size / no file). HTTP callers
+ * map this to 400; anything else (R2 outage, DB error) is a real 500. Lets the
+ * mobile route distinguish "your file is wrong" from "we failed" instead of
+ * masking every failure as a 400.
+ */
+export class UploadError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'UploadError';
+  }
+}
 
 /**
  * Validate an upload candidate. Returns the narrowed ContractorDocType on success

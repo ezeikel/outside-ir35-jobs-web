@@ -35,6 +35,8 @@ rule can't drift between them because both go through the same action.
 | `GET/POST /api/mobile/saved-searches` | list / save (FREE_SAVED_SEARCH_LIMIT + premium gate) | bearer |
 | `DELETE/PATCH /api/mobile/saved-searches/[id]` | delete / toggle alerts (owner-scoped) | bearer |
 | `GET  /api/mobile/profile`     | `getContractorProfile` data → verified-pack DTO          | bearer |
+| `POST /api/mobile/documents`   | multipart upload → `uploadDocumentForUser` (R2 + recompute) | bearer |
+| `DELETE /api/mobile/documents/[type]` | remove a doc → `deleteDocumentForUser`            | bearer |
 
 The authed routes resolve the caller via `getMobileCaller(req)` and reuse the
 SAME business primitives as the web actions (`canApply`, `isPremium`,
@@ -120,10 +122,17 @@ Server-side (on the web app's Vercel project) for token verification:
   apply / already-applied / sign-in / link-out).
 - Saved searches: "Save this search" on the board (contractor-only) + an Alerts
   tab to pause/resume/delete.
-- Verified-profile surface (read-only) on the Profile tab for contractors:
-  `GET /api/mobile/profile` → trust tier, register-checked companies (attributed +
+- Verified-profile surface on the Profile tab for contractors: `GET
+  /api/mobile/profile` → trust tier, register-checked companies (attributed +
   dated), compliance-pack documents with expiry status, IR35 insurance,
-  right-to-work. Upload/edit still lives on web.
+  right-to-work.
+- In-app document upload: pick a PDF (expo-document-picker) or photo
+  (expo-image-picker), client-validated against the server allow-list (PDF/PNG/
+  JPEG/WebP, 10 MB), POSTed multipart to `/api/mobile/documents` which wraps the
+  shared `uploadDocumentForUser` core (R2 put + upsert + CV-parse trigger + RTW
+  flag + trust-tier recompute). Per-doc-type rows with add/replace/remove; expiry
+  + insurer/cover collected for insurance/RTW. Company verification + IR35-
+  insurance editing still live on web.
 
 ## Not done yet (next phases)
 

@@ -20,9 +20,11 @@ import { isPremium } from '@/lib/contractor/premium';
 import { computeTrustTier } from '@/lib/contractor/trust-tier';
 import {
   computeDocStatus,
+  isDocType,
   parseCoverLimit,
   parseExpiry,
   tracksExpiry,
+  UploadError,
   validateUpload,
 } from '@/lib/documents/validate';
 import { buildJobAlertEmail, IR35_SIGNAL_LABEL } from '@/lib/email/job-alert';
@@ -720,16 +722,21 @@ export const getContractorProfile = async () => {
 // Upload a compliance-pack document to R2 and record it. One row per (user, type)
 // — re-uploading a type replaces the file. status=ON_FILE is an objective "we hold
 // this file" fact, never an IR35 assertion. Owner comes from the session.
-export const uploadContractorDocument = async (formData: FormData) => {
-  const session = await auth();
-  if (!session?.userId || session.role !== Role.JOB_SEEKER) {
-    throw new Error('Only contractors can upload documents');
-  }
-
+/**
+ * Session-agnostic upload core: takes an explicit (already-authorised) contractor
+ * userId + the multipart FormData, and does the R2 put + document upsert + CV-parse
+ * trigger + RTW flag + trust-tier recompute. Shared by the web server action
+ * (auth()-resolved) and the mobile /api/mobile/documents route
+ * (getMobileCaller-resolved) so the upload rules can't drift between surfaces.
+ */
+export const uploadDocumentForUser = async (
+  userId: string,
+  formData: FormData,
+) => {
   const rawType = String(formData.get('type') ?? '');
   const file = formData.get('file');
   if (!(file instanceof File)) {
-    throw new Error('No file provided');
+    throw new UploadError('No file provided');
   }
 
   const check = validateUpload({
@@ -738,20 +745,20 @@ export const uploadContractorDocument = async (formData: FormData) => {
     size: file.size,
   });
   if (!check.ok) {
-    throw new Error(check.error);
+    throw new UploadError(check.error);
   }
   const type: ContractorDocType = check.type;
 
   const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
   // User-scoped, random key — no leading slash (the package prepends the bucket).
   // The UUID keeps the key unguessable even though the bucket is private.
-  const key = `contractors/${session.userId}/${type.toLowerCase()}/${crypto.randomUUID()}.${ext}`;
+  const key = `contractors/${userId}/${type.toLowerCase()}/${crypto.randomUUID()}.${ext}`;
   const buffer = Buffer.from(await file.arrayBuffer());
 
   await put(key, buffer, { contentType: file.type });
 
   const existing = await prisma.contractorDocument.findUnique({
-    where: { userId_type: { userId: session.userId, type } },
+    where: { userId_type: { userId, type } },
     select: { r2Key: true, insurer: true, coverLimit: true, expiresAt: true },
   });
 
@@ -782,9 +789,9 @@ export const uploadContractorDocument = async (formData: FormData) => {
   const status = computeDocStatus(expiresAt, new Date());
 
   await prisma.contractorDocument.upsert({
-    where: { userId_type: { userId: session.userId, type } },
+    where: { userId_type: { userId, type } },
     create: {
-      userId: session.userId,
+      userId,
       type,
       r2Key: key,
       status,
@@ -799,24 +806,77 @@ export const uploadContractorDocument = async (formData: FormData) => {
   // Claude → structured profile + embedding). Fire-and-forget: best-effort, never
   // blocks or fails the upload. The profile shows on the next /profile load.
   if (type === ContractorDocType.CV) {
-    triggerCvParse({ userId: session.userId, r2Key: key, mimeType: file.type });
+    triggerCvParse({ userId, r2Key: key, mimeType: file.type });
   }
 
   // Uploading a right-to-work document IS the confirmation — set the flag so the
-  // T3 (COMPLIANCE_CURRENT) gate can be satisfied. Without this the flag was never
-  // settable and T3 was unreachable. (Only flip on a valid, on-file doc.)
-  if (
-    type === ContractorDocType.RIGHT_TO_WORK &&
-    status === DocStatus.ON_FILE
-  ) {
+  // T3 (COMPLIANCE_CURRENT) gate can be satisfied. Track the computed status BOTH
+  // ways: a fresh on-file doc confirms; a re-upload that's already EXPIRING/FAILED
+  // retracts the confirmation, so the flag never claims "confirmed" for a doc the
+  // status no longer supports.
+  if (type === ContractorDocType.RIGHT_TO_WORK) {
     await prisma.user.update({
-      where: { id: session.userId },
-      data: { rightToWorkConfirmed: true },
+      where: { id: userId },
+      data: { rightToWorkConfirmed: status === DocStatus.ON_FILE },
     });
   }
 
-  await recomputeTrustTier(session.userId);
+  await recomputeTrustTier(userId);
+  return { type, status };
+};
+
+export const uploadContractorDocument = async (formData: FormData) => {
+  const session = await auth();
+  if (!session?.userId || session.role !== Role.JOB_SEEKER) {
+    throw new Error('Only contractors can upload documents');
+  }
+  await uploadDocumentForUser(session.userId, formData);
   revalidatePath('/profile');
+};
+
+/**
+ * Session-agnostic delete core: remove one compliance-pack document for an
+ * already-authorised contractor. Owner-scoped, deletes the R2 object + the row,
+ * clears rightToWorkConfirmed if the RTW doc is removed, and recomputes the tier.
+ * Shared by the mobile DELETE /api/mobile/documents/[type] route. Returns whether
+ * a row was actually deleted.
+ */
+export const deleteDocumentForUser = async (
+  userId: string,
+  rawType: string,
+): Promise<{ deleted: boolean }> => {
+  // Guard the enum before Prisma — a non-enum [type] would otherwise throw a
+  // PrismaClientValidationError (500) instead of behaving like a missing doc.
+  if (!isDocType(rawType)) return { deleted: false };
+
+  const doc = await prisma.contractorDocument.findUnique({
+    where: { userId_type: { userId, type: rawType } },
+    select: { r2Key: true, type: true },
+  });
+  if (!doc) return { deleted: false };
+
+  if (doc.r2Key) {
+    try {
+      await del(doc.r2Key);
+    } catch {
+      // best-effort — proceed with the DB delete even if the object is gone
+    }
+  }
+
+  await prisma.contractorDocument.deleteMany({
+    where: { userId, type: doc.type },
+  });
+
+  // Removing the right-to-work doc retracts the confirmation it implied.
+  if (doc.type === ContractorDocType.RIGHT_TO_WORK) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { rightToWorkConfirmed: false },
+    });
+  }
+
+  await recomputeTrustTier(userId);
+  return { deleted: true };
 };
 
 /**
