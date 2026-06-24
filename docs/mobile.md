@@ -38,6 +38,7 @@ rule can't drift between them because both go through the same action.
 | `POST /api/mobile/documents`   | multipart upload → `uploadDocumentForUser` (R2 + recompute) | bearer |
 | `DELETE /api/mobile/documents/[type]` | remove a doc → `deleteDocumentForUser`            | bearer |
 | `GET  /api/mobile/premium`     | authoritative premium state (isPremium) from the DB      | bearer |
+| `GET  /api/mobile/day-rates`   | `getDayRateBenchmarks` (MIN_SAMPLE-gated in SQL) → DTO    | public |
 | `POST /api/webhooks/revenuecat`| RevenueCat events → upsert Subscription (provider=REVENUECAT) | shared-secret |
 
 The authed routes resolve the caller via `getMobileCaller(req)` and reuse the
@@ -149,9 +150,13 @@ keys) set in the EAS environment, and credentials (signing) on first build.
 - Real app icons / splash (current ones are generated placeholders).
 - Fonts (Inter Tight / Instrument Serif / Geist Mono) — `global.css` names the
   families; drop the `.ttf`s into `assets/fonts` + register via `expo-font`.
-- Day-rates benchmark screen + `/api/mobile/day-rates` (honesty-gated on sample
-  size, like the web).
 - Push notifications (FCM + notifee, as in go-unbeaten) for job alerts.
+
+The **day-rates** tab is done: the screen wraps `GET /api/mobile/day-rates`
+(which wraps `getDayRateBenchmarks()`, already `MIN_SAMPLE`-gated in SQL), with
+the same header + honesty disclaimer + gated empty-state copy as the web page.
+INSIDE jobs are counted on purpose (the inside-vs-outside rate gap is the point);
+the gate means a rate only shows once ≥ MIN_SAMPLE (5) listings back it.
 
 ## Premium (mobile = RevenueCat, web = Stripe)
 
