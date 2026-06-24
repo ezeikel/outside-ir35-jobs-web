@@ -2,6 +2,7 @@ import { FlashList } from "@shopify/flash-list";
 import { useQuery } from "@tanstack/react-query";
 import { ActivityIndicator, RefreshControl, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { TAB_BAR_HEIGHT } from "@/components/GlassTabBar";
 import { type DayRateRow, fetchDayRates } from "@/lib/api-day-rates";
 
 // Day-rate benchmarks — median UK day rates by skill, split by the IR35 position
@@ -86,7 +87,7 @@ const DayRatesScreen = () => {
         ListFooterComponent={<Disclaimer totalSample={data.totalSample} />}
         contentContainerStyle={{
           paddingHorizontal: 16,
-          paddingBottom: insets.bottom + 16,
+          paddingBottom: insets.bottom + 16 + TAB_BAR_HEIGHT,
         }}
         refreshControl={
           <RefreshControl refreshing={isRefetching} onRefresh={refetch} />

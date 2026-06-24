@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
+import { TAB_BAR_HEIGHT } from "@/components/GlassTabBar";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   deleteSavedSearch,
@@ -85,7 +86,7 @@ const AlertsScreen = () => {
         <ScrollView
           contentContainerStyle={{
             paddingHorizontal: 16,
-            paddingBottom: insets.bottom + 16,
+            paddingBottom: insets.bottom + 16 + TAB_BAR_HEIGHT,
           }}
         >
           {(data ?? []).map((s) => (

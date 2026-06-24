@@ -1,80 +1,28 @@
-import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
-import {
-  faBell,
-  faBriefcase,
-  faChartColumn,
-  faStar,
-  faUser,
-} from "@fortawesome/free-solid-svg-icons";
 import { Tabs } from "expo-router";
+import { GlassTabBar, type GlassTabBarProps } from "@/components/GlassTabBar";
 
-// Bottom tabs: Jobs (the board), Day rates (benchmark), Profile (auth +
-// verified profile). Mirrors the web's primary nav for contractors.
+// Bottom tabs rendered through the floating glass tab bar (CC / Titrra pattern).
+// The default bar is made absolute + transparent so each screen renders
+// full-height behind the floating pill; screens reserve TAB_BAR_HEIGHT of bottom
+// padding (see GlassTabBar) so their last content isn't hidden.
 const TabsLayout = () => (
   <Tabs
     screenOptions={{
       headerShown: false,
-      tabBarActiveTintColor: "#17181a",
-      tabBarInactiveTintColor: "#a3a09e",
       tabBarStyle: {
-        backgroundColor: "#ffffff",
-        borderTopColor: "#e8e7e5",
+        position: "absolute",
+        backgroundColor: "transparent",
+        borderTopWidth: 0,
+        elevation: 0,
       },
     }}
+    tabBar={(props) => <GlassTabBar {...(props as unknown as GlassTabBarProps)} />}
   >
-    <Tabs.Screen
-      name="index"
-      options={{
-        title: "Jobs",
-        tabBarIcon: ({ color, size }) => (
-          <FontAwesomeIcon
-            icon={faBriefcase}
-            color={color as string}
-            size={size}
-          />
-        ),
-      }}
-    />
-    <Tabs.Screen
-      name="day-rates"
-      options={{
-        title: "Day rates",
-        tabBarIcon: ({ color, size }) => (
-          <FontAwesomeIcon
-            icon={faChartColumn}
-            color={color as string}
-            size={size}
-          />
-        ),
-      }}
-    />
-    <Tabs.Screen
-      name="alerts"
-      options={{
-        title: "Alerts",
-        tabBarIcon: ({ color, size }) => (
-          <FontAwesomeIcon icon={faBell} color={color as string} size={size} />
-        ),
-      }}
-    />
-    <Tabs.Screen
-      name="premium"
-      options={{
-        title: "Premium",
-        tabBarIcon: ({ color, size }) => (
-          <FontAwesomeIcon icon={faStar} color={color as string} size={size} />
-        ),
-      }}
-    />
-    <Tabs.Screen
-      name="profile"
-      options={{
-        title: "Profile",
-        tabBarIcon: ({ color, size }) => (
-          <FontAwesomeIcon icon={faUser} color={color as string} size={size} />
-        ),
-      }}
-    />
+    <Tabs.Screen name="index" options={{ title: "Jobs" }} />
+    <Tabs.Screen name="day-rates" options={{ title: "Day rates" }} />
+    <Tabs.Screen name="alerts" options={{ title: "Alerts" }} />
+    <Tabs.Screen name="premium" options={{ title: "Premium" }} />
+    <Tabs.Screen name="profile" options={{ title: "Profile" }} />
   </Tabs>
 );
 

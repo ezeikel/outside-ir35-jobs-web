@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { TAB_BAR_HEIGHT } from "@/components/GlassTabBar";
 import VerifiedProfile from "@/components/VerifiedProfile";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -41,7 +42,7 @@ const ProfileScreen = () => {
         contentContainerStyle={{
           paddingHorizontal: 24,
           paddingTop: insets.top + 24,
-          paddingBottom: insets.bottom + 24,
+          paddingBottom: insets.bottom + 24 + TAB_BAR_HEIGHT,
         }}
       >
         <Text className="font-display text-3xl text-foreground">

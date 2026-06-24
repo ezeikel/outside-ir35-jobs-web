@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { TAB_BAR_HEIGHT } from "@/components/GlassTabBar";
 import { toast } from "sonner-native";
 import JobCard from "@/components/JobCard";
 import { useAuth } from "@/contexts/AuthContext";
@@ -102,7 +103,7 @@ const JobsScreen = () => {
           renderItem={({ item }) => <JobCard job={item} />}
           contentContainerStyle={{
             paddingHorizontal: 16,
-            paddingBottom: insets.bottom + 16,
+            paddingBottom: insets.bottom + 16 + TAB_BAR_HEIGHT,
           }}
           refreshControl={
             <RefreshControl refreshing={isRefetching} onRefresh={refetch} />

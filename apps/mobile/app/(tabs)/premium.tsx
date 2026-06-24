@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { TAB_BAR_HEIGHT } from "@/components/GlassTabBar";
 import Paywall from "@/components/Paywall";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -52,7 +53,7 @@ const PremiumScreen = () => {
       contentContainerStyle={{
         paddingHorizontal: 24,
         paddingTop: insets.top + 24,
-        paddingBottom: insets.bottom + 24,
+        paddingBottom: insets.bottom + 24 + TAB_BAR_HEIGHT,
       }}
     >
       <Text className="mb-4 text-xs font-sans-semibold uppercase tracking-wide text-muted-foreground">
