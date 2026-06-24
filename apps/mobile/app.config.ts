@@ -94,9 +94,25 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ios: {
       supportsTablet: true,
       bundleIdentifier: bundleId,
+      // Per-variant Firebase config (downloaded from the Firebase project). Falls
+      // back to the prod file if a variant-specific one isn't present.
+      googleServicesFile: existsSync(
+        join(__dirname, `./GoogleService-Info${variantSuffix}.plist`),
+      )
+        ? `./GoogleService-Info${variantSuffix}.plist`
+        : "./GoogleService-Info.plist",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         CFBundleURLTypes: [{ CFBundleURLSchemes: [googleIosClientId] }],
+        // Lets data-only FCM messages wake the app in the background to render
+        // the notifee notification.
+        UIBackgroundModes: ["remote-notification"],
+      },
+      entitlements: {
+        "aps-environment": env === "production" ? "production" : "development",
+        // notifee's iOS Notification Service Extension shares state via this App
+        // Group (the @evennit plugin derives the same name).
+        "com.apple.security.application-groups": [`group.${bundleId}.notifee`],
       },
     },
     android: {
@@ -105,6 +121,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         backgroundColor: "#F6F5F3",
       },
       package: bundleId,
+      googleServicesFile: existsSync(
+        join(__dirname, `./google-services${variantSuffix}.json`),
+      )
+        ? `./google-services${variantSuffix}.json`
+        : "./google-services.json",
     },
     web: {
       bundler: "metro",
@@ -140,6 +161,18 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         },
       ],
       "@react-native-google-signin/google-signin",
+      // Push: react-native-firebase = FCM transport, notifee = rich display.
+      // These REPLACE expo-notifications. The @evennit plugin wires the iOS
+      // Notification Service Extension + aps-environment + the notifee App Group.
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging",
+      [
+        "@evennit/notifee-expo-plugin",
+        {
+          iosDeploymentTarget: "15.1",
+          apsEnvMode: env === "production" ? "production" : "development",
+        },
+      ],
       [
         "@sentry/react-native",
         {
@@ -151,7 +184,17 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       [
         "expo-build-properties",
         {
-          android: { compileSdkVersion: 36, targetSdkVersion: 36, buildToolsVersion: "36.0.0" },
+          android: {
+            compileSdkVersion: 36,
+            targetSdkVersion: 36,
+            buildToolsVersion: "36.0.0",
+            // notifee ships its Android lib as a local AAR; point Gradle at it.
+            extraMavenRepos: [
+              "../../node_modules/@notifee/react-native/android/libs",
+            ],
+          },
+          // react-native-firebase requires static frameworks on iOS.
+          ios: { useFrameworks: "static" },
         },
       ],
     ],

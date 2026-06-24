@@ -1,6 +1,7 @@
 'use server';
 
 import {
+  AlertFrequency,
   ContractorDocType,
   type ContractorTrustTier,
   DocStatus,
@@ -35,6 +36,7 @@ import {
   type JobSpecInput,
 } from '@/lib/jobspec/generate';
 import { generateMatchAndPitch, type MatchProfile } from '@/lib/match/generate';
+import { pushToUser } from '@/lib/push/send';
 import { embedAndStoreJob } from '@/lib/search/embed-job';
 import { embedQuery } from '@/lib/search/embed-query';
 import {
@@ -1006,16 +1008,32 @@ export const setDocumentMetadata = async (
 // ON_FILE → EXPIRING (within the warn window) → FAILED (past expiry). Idempotent —
 // only writes rows whose computed status differs from what's stored. Called by the
 // cron route (which handles auth); takes no session itself.
+// Human labels for the expiry-tracking doc types (push copy). Inline — only the
+// insurance + RTW types ever reach EXPIRING.
+const DOC_EXPIRY_LABEL: Record<string, string> = {
+  PI_INSURANCE: 'professional indemnity insurance',
+  PL_INSURANCE: 'public liability insurance',
+  EL_INSURANCE: "employers' liability insurance",
+  RIGHT_TO_WORK: 'right-to-work document',
+};
+
 export const sweepDocumentExpiry = async () => {
   const now = new Date();
   const docs = await prisma.contractorDocument.findMany({
     where: { expiresAt: { not: null } },
-    select: { id: true, userId: true, expiresAt: true, status: true },
+    select: {
+      id: true,
+      userId: true,
+      type: true,
+      expiresAt: true,
+      status: true,
+    },
   });
 
   const changed: {
     id: string;
     userId: string;
+    type: ContractorDocType;
     from: DocStatus;
     to: DocStatus;
   }[] = [];
@@ -1025,6 +1043,7 @@ export const sweepDocumentExpiry = async () => {
       changed.push({
         id: doc.id,
         userId: doc.userId,
+        type: doc.type,
         from: doc.status,
         to: next,
       });
@@ -1037,6 +1056,20 @@ export const sweepDocumentExpiry = async () => {
         prisma.contractorDocument.update({
           where: { id: c.id },
           data: { status: c.to },
+        }),
+      ),
+    );
+
+    // Push when a doc newly becomes EXPIRING — the actionable "renew it" moment.
+    // (FAILED docs already lapsed; the EXPIRING heads-up is the useful one.)
+    const expiring = changed.filter((c) => c.to === DocStatus.EXPIRING);
+    await Promise.all(
+      expiring.map((c) =>
+        pushToUser({
+          userId: c.userId,
+          title: 'A compliance document is expiring',
+          body: `Your ${DOC_EXPIRY_LABEL[c.type] ?? 'document'} is expiring soon — renew it to keep your profile current.`,
+          url: '/(tabs)/profile',
         }),
       ),
     );
@@ -1304,9 +1337,24 @@ export const getApplicantProfile = async (applicantId: string) => {
   // The applicant must have an application on a job this poster owns.
   const link = await prisma.application.findFirst({
     where: { applicantId, job: { userId: session.userId } },
-    select: { id: true },
+    select: { id: true, viewedAt: true, job: { select: { position: true } } },
   });
   if (!link) return null;
+
+  // First time this poster opens the applicant → stamp viewedAt + push the
+  // contractor "your application was viewed" (exactly once, not on every view).
+  if (!link.viewedAt) {
+    await prisma.application.update({
+      where: { id: link.id },
+      data: { viewedAt: new Date() },
+    });
+    void pushToUser({
+      userId: applicantId,
+      title: 'Your application was viewed',
+      body: `A hirer opened your verified profile for “${link.job.position}”.`,
+      url: '/(tabs)/profile',
+    });
+  }
 
   // Data minimisation: select ONLY the fields the employer's ApplicantProfile
   // renders. Never expose the contractor's email/phone/address/dob/role here, and
@@ -1481,17 +1529,30 @@ export const setSavedSearchAlerts = async (
   revalidatePath('/alerts');
 };
 
-// Cron action: for every alerts-enabled saved search, find matching jobs created
-// since its lastNotifiedAt, email the contractor, and bump the high-water mark.
-// Best-effort per search — one failure never aborts the batch. Returns counts.
-export const runJobAlerts = async (): Promise<{
+// Cron action: for every alerts-enabled saved search (of the given frequencies),
+// find matching jobs created since its lastNotifiedAt, notify the contractor
+// (email + push), and bump the high-water mark. Best-effort per search — one
+// failure never aborts the batch. Returns counts.
+//
+// `frequencies` selects which saved searches run:
+//   - the daily job-alerts cron passes [DAILY, WEEKLY] (WEEKLY only on Mondays).
+//   - the aggregate-jobs cron passes [INSTANT] right after new jobs land, so
+//     'instant' means "as soon as we discover a matching job".
+export const runJobAlerts = async (
+  frequencies: AlertFrequency[] = [AlertFrequency.DAILY, AlertFrequency.WEEKLY],
+): Promise<{
   searches: number;
   emailed: number;
+  pushed: number;
   jobsMatched: number;
 }> => {
   const site = getSiteUrl();
   const searches = await prisma.savedSearch.findMany({
-    where: { alertsEnabled: true, user: { role: Role.JOB_SEEKER } },
+    where: {
+      alertsEnabled: true,
+      alertFrequency: { in: frequencies },
+      user: { role: Role.JOB_SEEKER },
+    },
     select: {
       id: true,
       query: true,
@@ -1500,15 +1561,16 @@ export const runJobAlerts = async (): Promise<{
       mode: true,
       minRate: true,
       lastNotifiedAt: true,
+      userId: true,
       user: { select: { email: true } },
     },
   });
 
   let emailed = 0;
+  let pushed = 0;
   let jobsMatched = 0;
 
   for (const s of searches) {
-    if (!s.user.email) continue;
     const f = normalizeFilters(storedToParams(s));
     const conds = buildJobFilterConds(f);
     // Only jobs created since the last alert are "new".
@@ -1538,29 +1600,46 @@ export const runJobAlerts = async (): Promise<{
     });
 
     if (rows.length === 0) continue;
-
-    const alertJobs = rows.map((r) => ({
-      id: r.id,
-      position: r.position,
-      companyName: r.companyName,
-      dayRate: r.dayRate,
-      location: (r.location as { address?: string } | null)?.address ?? null,
-      ir35Label: IR35_SIGNAL_LABEL[r.ir35Signal] ?? 'IR35 not stated',
-    }));
-
-    const { subject, html } = await buildJobAlertEmail({
-      jobs: alertJobs,
-      searchLabel: searchLabel(s),
-      siteUrl: site,
-      manageUrl: `${site}/alerts`,
-    });
-
-    const res = await sendEmail({ to: s.user.email, subject, html });
-    if (res.sent) emailed += 1;
     jobsMatched += rows.length;
+
+    const label = searchLabel(s);
+
+    // Email (if the user has one).
+    if (s.user.email) {
+      const alertJobs = rows.map((r) => ({
+        id: r.id,
+        position: r.position,
+        companyName: r.companyName,
+        dayRate: r.dayRate,
+        location: (r.location as { address?: string } | null)?.address ?? null,
+        ir35Label: IR35_SIGNAL_LABEL[r.ir35Signal] ?? 'IR35 not stated',
+      }));
+      const { subject, html } = await buildJobAlertEmail({
+        jobs: alertJobs,
+        searchLabel: label,
+        siteUrl: site,
+        manageUrl: `${site}/alerts`,
+      });
+      const res = await sendEmail({ to: s.user.email, subject, html });
+      if (res.sent) emailed += 1;
+    }
+
+    // Push to the contractor's devices. Deep-links to the board re-running this
+    // saved search (so the tap shows exactly the matches).
+    const count = rows.length;
+    const delivered = await pushToUser({
+      userId: s.userId,
+      title:
+        count === 1
+          ? 'New outside-IR35 contract'
+          : `${count} new outside-IR35 contracts`,
+      body: `Matching “${label}”`,
+      url: '/(tabs)/alerts',
+    });
+    pushed += delivered;
   }
 
-  return { searches: searches.length, emailed, jobsMatched };
+  return { searches: searches.length, emailed, pushed, jobsMatched };
 };
 
 // ───────────────────────────── Premium subscription ─────────────────────────

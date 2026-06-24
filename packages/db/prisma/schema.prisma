@@ -191,15 +191,45 @@ model User {
   parsedProfile         Json? // AI-parsed CV → structured profile
   embedding             Unsupported("vector(1536)")? // semantic match; raw-SQL only
 
-  applications     Application[]
-  jobs             Job[] // jobs this user posted (role = JOB_POSTER)
-  limitedCompanies LimitedCompany[]
-  documents        ContractorDocument[]
-  savedSearches    SavedSearch[]
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
+  applications      Application[]
+  jobs              Job[] // jobs this user posted (role = JOB_POSTER)
+  limitedCompanies  LimitedCompany[]
+  documents         ContractorDocument[]
+  savedSearches     SavedSearch[]
+  pushSubscriptions PushSubscription[]
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
 
   @@map("users")
+}
+
+// How often a saved search fires its alerts.
+enum AlertFrequency {
+  INSTANT // as soon as new matching jobs are discovered (after aggregation)
+  DAILY // once a day
+  WEEKLY // once a week (Mondays)
+}
+
+// A mobile device's FCM push token, for sending native push notifications. One
+// row per device (fcmToken unique); a user can have several (multi-device). The
+// RN app registers its token here after sign-in; the server sends data-only FCM
+// messages and prunes tokens FCM reports unregistered. Mirrors the go-unbeaten
+// PushSubscription, keyed by userId (we have real users, not anon tokens).
+model PushSubscription {
+  id       String  @id @default(cuid())
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId   String
+  fcmToken String  @unique
+  platform String // 'ios' | 'android'
+  timezone String  @default("UTC")
+  // Master opt-out for this device. Per-alert preferences live on SavedSearch.
+  enabled  Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("push_subscriptions")
 }
 
 // A contractor's saved job search + email alert. Stores the same filter params as
@@ -219,12 +249,15 @@ model SavedSearch {
   mode     String? // REMOTE | HYBRID | ON_SITE
   minRate  Int?
 
-  // Whether the contractor wants email alerts for new matches.
-  alertsEnabled  Boolean  @default(true)
+  // Whether the contractor wants alerts (email + push) for new matches.
+  alertsEnabled  Boolean        @default(true)
+  // How often alerts fire. INSTANT runs after each aggregation; DAILY/WEEKLY on
+  // the daily cron. Default DAILY (matches the prior email-only behaviour).
+  alertFrequency AlertFrequency @default(DAILY)
   // High-water mark: only jobs created after this are "new" for the next alert.
-  lastNotifiedAt DateTime @default(now())
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  lastNotifiedAt DateTime       @default(now())
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   @@index([userId])
   @@map("saved_searches")
@@ -319,14 +352,17 @@ model Subscription {
 // verified profile (+ optional cover message); one application per job per
 // applicant (the unique constraint prevents double-apply).
 model Application {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   jobId       String
-  job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  job         Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
   applicantId String
-  applicant   User     @relation(fields: [applicantId], references: [id])
+  applicant   User      @relation(fields: [applicantId], references: [id])
   message     String? // optional short cover note from the contractor
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  // First time the poster opened this applicant's profile. Null = not yet viewed;
+  // stamped once (so the "your application was viewed" push fires exactly once).
+  viewedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@unique([jobId, applicantId])
   @@map("applications")

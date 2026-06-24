@@ -6,11 +6,13 @@ import { toast } from "sonner-native";
 import { TAB_BAR_HEIGHT } from "@/components/GlassTabBar";
 import { useAuth } from "@/contexts/AuthContext";
 import {
+  type AlertFrequency,
   deleteSavedSearch,
   fetchSavedSearches,
   type SavedSearch,
   searchLabel,
   setSavedSearchAlerts,
+  setSavedSearchFrequency,
 } from "@/lib/api-searches";
 
 // Saved searches + alerts (contractor-only). Mirrors the web /alerts page.
@@ -115,36 +117,75 @@ const SavedSearchRow = ({ search }: { search: SavedSearch }) => {
     onError: () => toast.error("Couldn’t delete — try again."),
   });
 
-  const busy = toggle.isPending || remove.isPending;
+  const setFreq = useMutation({
+    mutationFn: (f: AlertFrequency) => setSavedSearchFrequency(search.id, f),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["savedSearches"] }),
+    onError: () => toast.error("Couldn’t update — try again."),
+  });
+
+  const busy = toggle.isPending || remove.isPending || setFreq.isPending;
 
   return (
-    <View className="mb-3 flex-row items-center justify-between gap-3 rounded-lg border border-border bg-card p-4">
-      <View className="min-w-0 flex-1">
-        <Text className="font-display text-lg text-foreground" numberOfLines={1}>
-          {searchLabel(search)}
-        </Text>
-        <Text className="text-xs text-muted-foreground">
-          {search.alertsEnabled ? "Email alerts on" : "Alerts paused"}
-        </Text>
-      </View>
-      <View className="flex-row gap-2">
-        <Pressable
-          className="rounded-lg border border-border px-3 py-2 active:opacity-70"
-          disabled={busy}
-          onPress={() => toggle.mutate()}
-        >
-          <Text className="text-sm text-foreground">
-            {search.alertsEnabled ? "Pause" : "Resume"}
+    <View className="mb-3 rounded-lg border border-border bg-card p-4">
+      <View className="flex-row items-center justify-between gap-3">
+        <View className="min-w-0 flex-1">
+          <Text
+            className="font-display text-lg text-foreground"
+            numberOfLines={1}
+          >
+            {searchLabel(search)}
           </Text>
-        </Pressable>
-        <Pressable
-          className="rounded-lg px-3 py-2 active:opacity-70"
-          disabled={busy}
-          onPress={() => remove.mutate()}
-        >
-          <Text className="text-sm text-destructive">Delete</Text>
-        </Pressable>
+          <Text className="text-xs text-muted-foreground">
+            {search.alertsEnabled ? "Alerts on" : "Alerts paused"}
+          </Text>
+        </View>
+        <View className="flex-row gap-2">
+          <Pressable
+            className="rounded-lg border border-border px-3 py-2 active:opacity-70"
+            disabled={busy}
+            onPress={() => toggle.mutate()}
+          >
+            <Text className="text-sm text-foreground">
+              {search.alertsEnabled ? "Pause" : "Resume"}
+            </Text>
+          </Pressable>
+          <Pressable
+            className="rounded-lg px-3 py-2 active:opacity-70"
+            disabled={busy}
+            onPress={() => remove.mutate()}
+          >
+            <Text className="text-sm text-destructive">Delete</Text>
+          </Pressable>
+        </View>
       </View>
+
+      {/* Frequency segmented control — only when alerts are on. */}
+      {search.alertsEnabled ? (
+        <View className="mt-3 flex-row rounded-lg border border-border bg-background p-0.5">
+          {(["INSTANT", "DAILY", "WEEKLY"] as const).map((f) => {
+            const active = search.alertFrequency === f;
+            return (
+              <Pressable
+                key={f}
+                className={`flex-1 rounded-md py-1.5 ${active ? "bg-primary" : ""}`}
+                disabled={busy || active}
+                onPress={() => setFreq.mutate(f)}
+              >
+                <Text
+                  className={`text-center text-xs ${active ? "font-sans-semibold text-primary-foreground" : "text-muted-foreground"}`}
+                >
+                  {f === "INSTANT"
+                    ? "Instant"
+                    : f === "DAILY"
+                      ? "Daily"
+                      : "Weekly"}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
     </View>
   );
 };

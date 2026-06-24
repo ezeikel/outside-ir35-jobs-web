@@ -3,6 +3,8 @@ import type { JobsQuery } from "@/lib/api-jobs";
 
 // Saved searches + alerts. Mirrors the web /alerts surface.
 
+export type AlertFrequency = "INSTANT" | "DAILY" | "WEEKLY";
+
 export type SavedSearch = {
   id: string;
   query: string | null;
@@ -11,6 +13,7 @@ export type SavedSearch = {
   mode: string | null;
   minRate: number | null;
   alertsEnabled: boolean;
+  alertFrequency: AlertFrequency;
   createdAt: string;
 };
 
@@ -38,6 +41,13 @@ export const setSavedSearchAlerts = async (
   alertsEnabled: boolean,
 ): Promise<void> => {
   await api.patch(`/api/mobile/saved-searches/${id}`, { alertsEnabled });
+};
+
+export const setSavedSearchFrequency = async (
+  id: string,
+  alertFrequency: AlertFrequency,
+): Promise<void> => {
+  await api.patch(`/api/mobile/saved-searches/${id}`, { alertFrequency });
 };
 
 // Human label for a saved search — mirrors the web's searchLabel().

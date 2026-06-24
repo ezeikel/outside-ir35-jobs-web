@@ -1,10 +1,10 @@
-import { db as prisma } from '@outside-ir35-jobs/db';
+import { AlertFrequency, db as prisma } from '@outside-ir35-jobs/db';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getMobileCaller } from '@/lib/mobile/auth';
 
-// Delete or toggle alerts on one saved search. Owner-scoped (never by id alone),
-// mirroring the web deleteSavedSearch / setSavedSearchAlerts actions.
+// Delete a saved search, or update its alert settings (on/off + frequency).
+// Owner-scoped (never by id alone), mirroring the web saved-search actions.
 export const runtime = 'nodejs';
 
 export const DELETE = async (
@@ -22,7 +22,15 @@ export const DELETE = async (
   return NextResponse.json({ ok: true });
 };
 
-const PatchBody = z.object({ alertsEnabled: z.boolean() });
+// Either field may be sent. At least one is required.
+const PatchBody = z
+  .object({
+    alertsEnabled: z.boolean().optional(),
+    alertFrequency: z.nativeEnum(AlertFrequency).optional(),
+  })
+  .refine(
+    (v) => v.alertsEnabled !== undefined || v.alertFrequency !== undefined,
+  );
 
 export const PATCH = async (
   req: Request,
@@ -36,13 +44,20 @@ export const PATCH = async (
   const parsed = PatchBody.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json(
-      { error: 'alertsEnabled (boolean) required' },
+      { error: 'alertsEnabled (boolean) and/or alertFrequency required' },
       { status: 400 },
     );
   }
+  const data: { alertsEnabled?: boolean; alertFrequency?: AlertFrequency } = {};
+  if (parsed.data.alertsEnabled !== undefined) {
+    data.alertsEnabled = parsed.data.alertsEnabled;
+  }
+  if (parsed.data.alertFrequency !== undefined) {
+    data.alertFrequency = parsed.data.alertFrequency;
+  }
   await prisma.savedSearch.updateMany({
     where: { id, userId: caller.userId },
-    data: { alertsEnabled: parsed.data.alertsEnabled },
+    data,
   });
   return NextResponse.json({ ok: true });
 };

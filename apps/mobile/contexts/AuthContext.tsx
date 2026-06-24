@@ -18,6 +18,7 @@ import {
   signInWithGoogle,
 } from "@/lib/api-auth";
 import { clearSession, getSessionToken, setSession } from "@/lib/auth";
+import { registerForPush } from "@/lib/push";
 import { initializeRevenueCat } from "@/lib/revenuecat";
 
 // App-wide auth state. Browsing is public; this context is what unlocks the
@@ -89,6 +90,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // still load offerings. No-ops cleanly if no RC key is set yet.
   useEffect(() => {
     void initializeRevenueCat(user?.id);
+  }, [user?.id]);
+
+  // Register this device for push once signed in (the subscribe endpoint is
+  // bearer-authed, so it needs the session). No-ops on a simulator / when denied.
+  useEffect(() => {
+    if (user?.id) void registerForPush();
   }, [user?.id]);
 
   const finishSignIn = useCallback(

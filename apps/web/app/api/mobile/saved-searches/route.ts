@@ -33,6 +33,7 @@ export const GET = async (req: Request) => {
       mode: true,
       minRate: true,
       alertsEnabled: true,
+      alertFrequency: true,
       createdAt: true,
     },
   });
@@ -79,6 +80,7 @@ export const POST = async (req: Request) => {
       mode: true,
       minRate: true,
       alertsEnabled: true,
+      alertFrequency: true,
       createdAt: true,
     },
   });

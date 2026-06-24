@@ -1,6 +1,6 @@
 {
   "name": "@outside-ir35-jobs/mobile",
-  "main": "./index.ts",
+  "main": "./index.js",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -37,7 +37,10 @@
     "@fortawesome/free-brands-svg-icons": "^7.2.0",
     "@fortawesome/free-solid-svg-icons": "^7.2.0",
     "@fortawesome/react-native-fontawesome": "^1.0.0",
+    "@notifee/react-native": "^9.1.8",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-firebase/app": "^24.1.1",
+    "@react-native-firebase/messaging": "^24.1.1",
     "@react-native-google-signin/google-signin": "^16.1.1",
     "@sentry/react-native": "~8.12.0",
     "@shopify/flash-list": "2.0.2",
@@ -84,6 +87,7 @@
     "zustand": "^5.0.9"
   },
   "devDependencies": {
+    "@evennit/notifee-expo-plugin": "^3.8.0",
     "@tailwindcss/postcss": "4.1.18",
     "@tanstack/eslint-plugin-query": "^5.61.6",
     "@types/node": "^22.10.2",
