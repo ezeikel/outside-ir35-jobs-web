@@ -136,10 +136,16 @@ Server-side (on the web app's Vercel project) for token verification:
   + insurer/cover collected for insurance/RTW. Company verification + IR35-
   insurance editing still live on web.
 
+## EAS
+
+The EAS project exists: **`@chewybytes/outside-ir35-jobs`** (id
+`41f0c985-1efb-4743-9cc6-f0185e430044`), wired into `app.config.ts`
+(`extra.eas.projectId` + `updates.url`). `eas build` / `update` / `submit` are
+unblocked. A real device build still needs the per-build env (Google/RevenueCat
+keys) set in the EAS environment, and credentials (signing) on first build.
+
 ## Not done yet (next phases)
 
-- `eas init` to create the Expo project, then set `updates.url` +
-  `extra.eas.projectId` in `app.config.ts`.
 - Real app icons / splash (current ones are generated placeholders).
 - Fonts (Inter Tight / Instrument Serif / Geist Mono) — `global.css` names the
   families; drop the `.ttf`s into `assets/fonts` + register via `expo-font`.
