@@ -158,6 +158,40 @@ the same header + honesty disclaimer + gated empty-state copy as the web page.
 INSIDE jobs are counted on purpose (the inside-vs-outside rate gap is the point);
 the gate means a rate only shows once ≥ MIN_SAMPLE (5) listings back it.
 
+## Push notifications (FCM + notifee)
+
+Native push for job-alert matches (instant / daily / weekly), application views,
+and doc expiry — FCM transport + notifee rich display (the CC/GU pattern).
+
+- Server: `lib/push/fcm.ts` (FCM HTTP v1 via a base64 `FCM_SERVICE_ACCOUNT`,
+  data-only payloads) + `lib/push/send.ts` (`pushToUser`, prunes dead tokens).
+  `POST /api/mobile/push/subscribe` registers a device token (bearer-auth).
+  `runJobAlerts(frequencies[])` pushes alongside email; the daily `job-alerts`
+  cron runs DAILY (+ WEEKLY on Mondays), a new `instant-alerts` cron (30 4, just
+  after aggregation) runs INSTANT. Doc-expiry + application-viewed pushes too.
+- Mobile: `@react-native-firebase` + `@notifee` + `@evennit/notifee-expo-plugin`;
+  `index.js` background handlers; `lib/push.ts` (register after sign-in,
+  displayFcmMessage on the `alerts` channel); `_layout` deep-links a tap to
+  `data.url`. Instant/daily/weekly segmented control on the Alerts tab.
+
+**Firebase project (provisioned via gcloud + the Firebase REST API):**
+- GCP/Firebase project **`outsideir35-jobs`** (number `879908866637`) under the
+  chewybytes org. APIs enabled: firebase, fcm, cloudresourcemanager.
+- Apps registered: iOS dev/prod/internal + Android dev (Android prod/internal
+  still to register — hit the app-creation rate limit; do later before those
+  builds).
+- `FCM_SERVICE_ACCOUNT` = base64 of a `firebase-adminsdk-fbsvc@…` key, set on
+  Vercel **production** (verified: the SA mints an FCM token + the send API
+  returns 400 INVALID_ARGUMENT for a dummy token = auth works).
+- Config files downloaded to `apps/mobile/`: `GoogleService-Info-dev.plist` +
+  `google-services-dev.json` (gitignored — per-machine; upload to EAS as file
+  secrets for cloud builds).
+
+**Still manual (Apple console only):** upload an **APNs auth key** (.p8) to the
+Firebase project's Cloud Messaging settings so iOS push actually delivers — Apple
+doesn't expose APNs key creation via CLI. Also register the prod/internal Android
+apps + download their configs before those builds.
+
 ## Premium (mobile = RevenueCat, web = Stripe)
 
 App/Play store rules forbid Stripe for in-app digital subscriptions, so mobile
