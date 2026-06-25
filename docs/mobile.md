@@ -91,7 +91,7 @@ apps/mobile/
   lib/                      api (axios), auth (secure-store), api-auth, api-jobs, format
   providers.tsx             QueryClient + PostHog + Auth + Toaster + gesture/safe-area
   global.css                NativeWind @theme — tokens mirrored from web (hex)
-  app.config.ts             per-env identity (com.chewybytes.outsideir35.app[.dev|.internal])
+  app.config.ts             per-env identity (com.chewybytes.outsideir35jobs.app[.dev|.internal])
   eas.json                  dev / preview / production build profiles
 ```
 
@@ -114,7 +114,7 @@ Server-side (on the web app's Vercel project) for token verification:
   `GOOGLE_MOBILE_ANDROID_CLIENT_ID` — accepted Google idToken audiences
   (falls back to the existing `GOOGLE_CLIENT_ID`).
 - `APPLE_BUNDLE_IDS` — comma-separated accepted Apple audiences (defaults to
-  `com.chewybytes.outsideir35.app`).
+  `com.chewybytes.outsideir35jobs.app`).
 - `AUTH_SECRET` — already set; also signs the mobile session JWT.
 
 ## Done (authed surfaces)

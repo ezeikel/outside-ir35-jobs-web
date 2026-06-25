@@ -68,10 +68,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
   const bundleId =
     env === "production"
-      ? "com.chewybytes.outsideir35.app"
+      ? "com.chewybytes.outsideir35jobs.app"
       : env === "preview"
-        ? "com.chewybytes.outsideir35.app.internal"
-        : "com.chewybytes.outsideir35.app.dev";
+        ? "com.chewybytes.outsideir35jobs.app.internal"
+        : "com.chewybytes.outsideir35jobs.app.dev";
 
   // Per-variant icons if present, else fall back to the prod icon (existsSync
   // guard means a missing badged icon never breaks a dev/preview build).

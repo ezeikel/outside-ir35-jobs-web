@@ -53,7 +53,7 @@ const appleJwks = createRemoteJWKSet(
 );
 
 const appleAudiences = (): string[] =>
-  (process.env.APPLE_BUNDLE_IDS ?? 'com.chewybytes.outsideir35.app')
+  (process.env.APPLE_BUNDLE_IDS ?? 'com.chewybytes.outsideir35jobs.app')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
