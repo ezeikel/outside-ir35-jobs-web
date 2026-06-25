@@ -94,13 +94,17 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ios: {
       supportsTablet: true,
       bundleIdentifier: bundleId,
-      // Per-variant Firebase config (downloaded from the Firebase project). Falls
-      // back to the prod file if a variant-specific one isn't present.
-      googleServicesFile: existsSync(
-        join(__dirname, `./GoogleService-Info${variantSuffix}.plist`),
-      )
-        ? `./GoogleService-Info${variantSuffix}.plist`
-        : "./GoogleService-Info.plist",
+      // Firebase iOS config (FCM/APNs). iOS plists are PER bundle id, so each
+      // variant has its own (the Firebase project registers app/.dev/.internal).
+      // EAS injects the right one per environment via the GOOGLE_SERVICES_PLIST
+      // file secret (uploaded into the matching EAS env); locally we fall back to
+      // the matching variant plist so `expo run:ios` builds any variant. All
+      // gitignored.
+      googleServicesFile:
+        process.env.GOOGLE_SERVICES_PLIST ??
+        (existsSync(join(__dirname, `./GoogleService-Info${variantSuffix}.plist`))
+          ? `./GoogleService-Info${variantSuffix}.plist`
+          : "./GoogleService-Info.plist"),
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         CFBundleURLTypes: [{ CFBundleURLSchemes: [googleIosClientId] }],
@@ -121,11 +125,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         backgroundColor: "#F6F5F3",
       },
       package: bundleId,
-      googleServicesFile: existsSync(
-        join(__dirname, `./google-services${variantSuffix}.json`),
-      )
-        ? `./google-services${variantSuffix}.json`
-        : "./google-services.json",
+      // Firebase Android config (FCM). EAS injects the right one per environment
+      // via the GOOGLE_SERVICES_JSON file secret; locally we fall back to the
+      // matching variant file. Gitignored.
+      googleServicesFile:
+        process.env.GOOGLE_SERVICES_JSON ??
+        (existsSync(join(__dirname, `./google-services${variantSuffix}.json`))
+          ? `./google-services${variantSuffix}.json`
+          : "./google-services.json"),
     },
     web: {
       bundler: "metro",

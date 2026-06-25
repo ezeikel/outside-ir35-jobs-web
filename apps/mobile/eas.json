@@ -10,6 +10,7 @@
     },
     "development": {
       "extends": "base",
+      "environment": "development",
       "developmentClient": true,
       "distribution": "internal",
       "channel": "development",
@@ -19,6 +20,7 @@
     },
     "preview": {
       "extends": "base",
+      "environment": "preview",
       "distribution": "internal",
       "channel": "preview",
       "android": { "buildType": "apk" },
@@ -28,6 +30,7 @@
     },
     "production": {
       "extends": "base",
+      "environment": "production",
       "distribution": "store",
       "channel": "production",
       "env": { "EXPO_PUBLIC_ENVIRONMENT": "production" },
@@ -38,7 +41,8 @@
     "production": {
       "ios": {
         "appleId": "developer@chewybytes.com",
-        "appleTeamId": "HGX827L49J"
+        "appleTeamId": "HGX827L49J",
+        "ascAppId": "6784110879"
       },
       "android": {
         "serviceAccountKeyPath": "./google-service-account.json",

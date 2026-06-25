@@ -19,9 +19,10 @@ web-build/
 # Google Play service-account key (used by eas.json submit.production.android).
 # Never commit it.
 google-service-account.json
-# Firebase / Google Sign-In native config (if added later)
-GoogleService-Info.plist
-google-services.json
+# Firebase / Google Sign-In native config (FCM/APNs). Contains API keys — never
+# commit. Glob covers the per-variant files too (-dev / -preview / -internal).
+GoogleService-Info*.plist
+google-services*.json
 
 # Metro
 .metro-health-check*
