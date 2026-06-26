@@ -63,12 +63,10 @@ export const initializeRevenueCat = async (userId?: string): Promise<boolean> =>
   }
 
   try {
-    // INFO (not DEBUG) in dev: DEBUG makes the RC SDK log an offerings-fetch
-    // failure as a console.error, which RN's LogBox promotes to a fullscreen
-    // redbox on every launch while the store products don't exist yet (no ASC
-    // IAPs). The failure is expected + handled (getOfferings returns null), so we
-    // don't want it to interrupt. INFO keeps useful logs without the redbox.
-    if (__DEV__) Purchases.setLogLevel(LOG_LEVEL.INFO);
+    // (The offerings-empty console.error that RC logs while ASC IAPs don't yet
+    // exist is filtered from LogBox in _layout so it doesn't redbox; DEBUG here
+    // is fine for actual debugging.)
+    if (__DEV__) Purchases.setLogLevel(LOG_LEVEL.DEBUG);
     await Purchases.configure({ apiKey, appUserID: userId });
     isConfigured = true;
     configuredUserId = userId ?? null;
