@@ -1,10 +1,19 @@
 import { faGoogle } from "@fortawesome/free-brands-svg-icons";
-import { faPlus } from "@fortawesome/free-solid-svg-icons";
+import {
+  faEnvelope,
+  faFileLines,
+  faPlus,
+  faRightFromBracket,
+  faShieldHalved,
+  faStar,
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
-import { useRouter } from "expo-router";
+import * as Application from "expo-application";
 import * as AppleAuthentication from "expo-apple-authentication";
+import { useRouter } from "expo-router";
 import {
   ActivityIndicator,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -13,8 +22,27 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TAB_BAR_HEIGHT } from "@/components/GlassTabBar";
+import SettingsRow, { SettingsSection } from "@/components/SettingsRow";
 import VerifiedProfile from "@/components/VerifiedProfile";
 import { useAuth } from "@/contexts/AuthContext";
+
+const SITE = "https://www.outsideir35.jobs";
+const SUPPORT_EMAIL = "hello@chewybytes.com";
+const ASC_APP_ID = "6784110879";
+
+// "1.0.0 (3)" — native version + build number, falling back to the JS-config
+// version if the native values aren't available (e.g. Expo Go, which we don't
+// ship, but be safe).
+const versionLabel = (): string => {
+  const v = Application.nativeApplicationVersion ?? "1.0.0";
+  const b = Application.nativeBuildVersion;
+  return b ? `${v} (${b})` : v;
+};
+
+const ROLE_LABEL: Record<string, string> = {
+  JOB_SEEKER: "Contractor",
+  JOB_POSTER: "Hiring",
+};
 
 // Profile tab: sign-in entry (Google + Apple) when signed out; account + the
 // verified compliance pack (contractors) when signed in.
@@ -76,6 +104,8 @@ const ProfileScreen = () => {
           <Pressable
             className="mt-6 flex-row items-center justify-center gap-2 rounded-lg bg-primary p-4 active:opacity-90"
             onPress={() => router.push("/post-job")}
+            accessibilityRole="button"
+            accessibilityLabel="Post a contract"
           >
             <FontAwesomeIcon icon={faPlus} color="#fbfaf9" size={16} />
             <Text className="font-sans-semibold text-primary-foreground">
@@ -84,14 +114,73 @@ const ProfileScreen = () => {
           </Pressable>
         ) : null}
 
-        <Pressable
-          className="mt-8 rounded-lg border border-border bg-card p-4 active:opacity-80"
-          onPress={signOut}
-        >
-          <Text className="text-center font-sans-semibold text-foreground">
-            Sign out
+        {/* Account */}
+        <SettingsSection title="Account">
+          <SettingsRow
+            title="Email"
+            subtitle={user.email}
+            showChevron={false}
+          />
+          {user.role && ROLE_LABEL[user.role] ? (
+            <SettingsRow
+              title="Account type"
+              subtitle={ROLE_LABEL[user.role]}
+              showChevron={false}
+            />
+          ) : null}
+          <SettingsRow
+            icon={faRightFromBracket}
+            title="Sign out"
+            onPress={signOut}
+            destructive
+            showChevron={false}
+            isLast
+          />
+        </SettingsSection>
+
+        {/* Support */}
+        <SettingsSection title="Support">
+          <SettingsRow
+            icon={faEnvelope}
+            title="Contact us"
+            subtitle={SUPPORT_EMAIL}
+            onPress={() =>
+              Linking.openURL(
+                `mailto:${SUPPORT_EMAIL}?subject=Outside%20IR35%20Jobs%20app`,
+              )
+            }
+          />
+          <SettingsRow
+            icon={faStar}
+            title="Rate the app"
+            onPress={() =>
+              Linking.openURL(
+                `itms-apps://apps.apple.com/app/id${ASC_APP_ID}?action=write-review`,
+              )
+            }
+          />
+          <SettingsRow
+            icon={faShieldHalved}
+            title="Privacy policy"
+            onPress={() => Linking.openURL(`${SITE}/privacy`)}
+          />
+          <SettingsRow
+            icon={faFileLines}
+            title="Terms of service"
+            onPress={() => Linking.openURL(`${SITE}/terms`)}
+            isLast
+          />
+        </SettingsSection>
+
+        {/* Version footer */}
+        <View className="mt-8 items-center gap-1">
+          <Text className="text-xs text-muted-foreground">
+            Outside IR35 Jobs
           </Text>
-        </Pressable>
+          <Text className="text-xs text-muted-foreground">
+            Version {versionLabel()}
+          </Text>
+        </View>
       </ScrollView>
     );
   }
