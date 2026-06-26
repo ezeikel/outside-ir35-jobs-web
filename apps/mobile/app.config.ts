@@ -204,6 +204,24 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           ios: { useFrameworks: "static" },
         },
       ],
+      // Local StoreKit testing for `expo run:ios`: copies the .storekit into ios/
+      // and wires it into the generated scheme's Run action so RevenueCat resolves
+      // job_post_v1 / premium_sub_monthly_v1 in the SIMULATOR with no App Store
+      // Connect. Re-runs on every prebuild (survives `expo prebuild --clean`).
+      // NON-PRODUCTION ONLY: dev + preview run on simulators (no real ASC). RC is
+      // inert in the dev variant, so this matters for the PREVIEW variant (which
+      // has an RC key) — run preview locally to exercise the purchase UI.
+      // PRODUCTION (TestFlight/store) uses real ASC and must NEVER ship a test
+      // config — the plugin only touches the Run/Launch action, but we exclude it
+      // from prod entirely for safety.
+      ...(env !== "production"
+        ? [
+            [
+              "./plugins/withStoreKitConfig",
+              { relativePath: "ios-config/OutsideIR35Jobs.storekit" },
+            ] as [string, { relativePath: string }],
+          ]
+        : []),
     ],
     experiments: { typedRoutes: true },
     runtimeVersion: { policy: "appVersion" },

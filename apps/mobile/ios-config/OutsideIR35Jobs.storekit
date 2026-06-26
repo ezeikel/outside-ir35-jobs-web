@@ -1,0 +1,66 @@
+{
+  "identifier" : "7F2B3C4D",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "219.00",
+      "familyShareable" : false,
+      "internalID" : "A1B2C3D4",
+      "localizations" : [
+        {
+          "description" : "Post one outside-IR35 contract listing, live for 30 days.",
+          "displayName" : "Job Post",
+          "locale" : "en_GB"
+        }
+      ],
+      "productID" : "job_post_v1",
+      "referenceName" : "Job Post",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : {
+
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "B2C3D4E5",
+      "localizations" : [
+
+      ],
+      "name" : "Premium",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "29.00",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "C3D4E5F6",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Outside IR35 Jobs Premium, billed monthly.",
+              "displayName" : "Premium Monthly",
+              "locale" : "en_GB"
+            }
+          ],
+          "productID" : "premium_sub_monthly_v1",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Premium Monthly",
+          "subscriptionGroupID" : "B2C3D4E5",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 2,
+    "minor" : 0
+  }
+}
