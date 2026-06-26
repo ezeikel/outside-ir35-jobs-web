@@ -92,6 +92,28 @@ export const getPremiumOffering =
     }
   };
 
+// The RC offering identifier (lookup_key) holding the one-time job-post product.
+// Not the current offering (that's `default` = premium); fetched by id from
+// getOfferings().all. Keep in sync with the RC dashboard.
+const JOB_POSTS_OFFERING_ID = "job_posts";
+
+/**
+ * The first purchasable package in the job-posts offering (the £219 one-time job
+ * post), or null if unavailable. Distinct from the premium offering — a job post
+ * is a per-post consumable, not a subscription/entitlement.
+ */
+export const getJobPostPackage =
+  async (): Promise<PurchasesPackage | null> => {
+    if (!(await ensureConfigured())) return null;
+    try {
+      const offerings = await Purchases.getOfferings();
+      const offering = offerings.all[JOB_POSTS_OFFERING_ID];
+      return offering?.availablePackages?.[0] ?? null;
+    } catch {
+      return null;
+    }
+  };
+
 /** Buy a package. Returns the resulting CustomerInfo, or null on cancel/failure. */
 export const purchasePackage = async (
   pkg: PurchasesPackage,

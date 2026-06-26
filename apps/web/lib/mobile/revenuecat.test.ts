@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { isPremium } from '@/lib/contractor/premium';
 import {
   mapRevenueCatEvent,
+  mapRevenueCatJobPurchase,
   type RevenueCatEvent,
 } from '@/lib/mobile/revenuecat';
 
@@ -105,5 +106,88 @@ describe('mapRevenueCatEvent', () => {
       }),
     );
     expect(sync).toBeNull();
+  });
+
+  // A job-post purchase must NOT be treated as a subscription (it falls through
+  // to null here) — it's handled by mapRevenueCatJobPurchase instead.
+  it('ignores a NON_RENEWING_PURCHASE (handled as a job post, not a sub)', () => {
+    expect(
+      mapRevenueCatEvent(
+        baseEvent({ type: 'NON_RENEWING_PURCHASE', product_id: 'job_post_v1' }),
+      ),
+    ).toBeNull();
+  });
+});
+
+describe('mapRevenueCatJobPurchase', () => {
+  it('maps a job-post NON_RENEWING_PURCHASE to a reconcilable purchase', () => {
+    const purchase = mapRevenueCatJobPurchase(
+      baseEvent({
+        type: 'NON_RENEWING_PURCHASE',
+        product_id: 'job_post_v1',
+        transaction_id: 'txn_abc',
+      }),
+    );
+    expect(purchase).toEqual({
+      userId: 'user_123',
+      transactionId: 'txn_abc',
+      productId: 'job_post_v1',
+    });
+  });
+
+  it('maps the internal product variant too', () => {
+    const purchase = mapRevenueCatJobPurchase(
+      baseEvent({
+        type: 'NON_RENEWING_PURCHASE',
+        product_id: 'job_post_internal_v1',
+        transaction_id: 'txn_xyz',
+      }),
+    );
+    expect(purchase?.productId).toBe('job_post_internal_v1');
+  });
+
+  it('ignores subscription events (only NON_RENEWING_PURCHASE counts)', () => {
+    expect(
+      mapRevenueCatJobPurchase(
+        baseEvent({
+          type: 'INITIAL_PURCHASE',
+          product_id: 'job_post_v1',
+          transaction_id: 'txn_abc',
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  it('ignores a NON_RENEWING_PURCHASE of a non-job product (e.g. some other consumable)', () => {
+    expect(
+      mapRevenueCatJobPurchase(
+        baseEvent({
+          type: 'NON_RENEWING_PURCHASE',
+          product_id: 'something_else_v1',
+          transaction_id: 'txn_abc',
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  it('ignores a job purchase with no transaction id (can’t reconcile)', () => {
+    expect(
+      mapRevenueCatJobPurchase(
+        baseEvent({ type: 'NON_RENEWING_PURCHASE', product_id: 'job_post_v1' }),
+      ),
+    ).toBeNull();
+  });
+
+  it('ignores anonymous ids', () => {
+    expect(
+      mapRevenueCatJobPurchase(
+        baseEvent({
+          type: 'NON_RENEWING_PURCHASE',
+          app_user_id: '$RCAnonymousID:abc',
+          product_id: 'job_post_v1',
+          transaction_id: 'txn_abc',
+        }),
+      ),
+    ).toBeNull();
   });
 });

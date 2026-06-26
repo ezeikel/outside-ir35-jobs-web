@@ -36,6 +36,9 @@ export type RevenueCatEvent = {
   environment?: 'SANDBOX' | 'PRODUCTION';
   store?: 'APP_STORE' | 'PLAY_STORE' | 'AMAZON' | 'STRIPE' | 'PROMOTIONAL';
   cancel_reason?: string;
+  // The store's unique transaction id (always present on purchase events). Used
+  // to reconcile a one-time job-post purchase → its Job, idempotently.
+  transaction_id?: string;
 };
 
 export type RevenueCatWebhookBody = {
@@ -52,6 +55,46 @@ export type RevenueCatSync = {
   currentPeriodEnd: Date | null;
   cancelAtPeriodEnd: boolean;
 } | null;
+
+// Store identifiers (RC dashboard / ASC) of the one-time job-post product, prod
+// + internal variant. A NON_RENEWING_PURCHASE of one of these is a paid job post
+// (not a premium subscription) — it flips a PENDING Job to PAID rather than
+// touching the Subscription row. Keep in sync with the RC dashboard.
+export const JOB_POST_PRODUCT_IDS = new Set([
+  'job_post_v1',
+  'job_post_internal_v1',
+]);
+
+// A job-post purchase to reconcile, or null if the event isn't one. The
+// transaction_id is the store's unique id — stored on the Job for idempotency so
+// RC's at-least-once delivery can't double-publish.
+export type RevenueCatJobPurchase = {
+  userId: string;
+  transactionId: string;
+  productId: string;
+} | null;
+
+/**
+ * Map a RevenueCat webhook event to a job-post purchase, or null if it isn't a
+ * NON_RENEWING_PURCHASE of a job-post product. The webhook stamps the
+ * transaction id on the user's pending job and flips it to PAID.
+ */
+export const mapRevenueCatJobPurchase = (
+  event: RevenueCatEvent,
+): RevenueCatJobPurchase => {
+  if (event.type !== 'NON_RENEWING_PURCHASE') return null;
+  if (!event.app_user_id) return null;
+  if (event.app_user_id.startsWith('$RCAnonymousID:')) return null;
+  if (!event.product_id || !JOB_POST_PRODUCT_IDS.has(event.product_id)) {
+    return null;
+  }
+  if (!event.transaction_id) return null;
+  return {
+    userId: event.app_user_id,
+    transactionId: event.transaction_id,
+    productId: event.product_id,
+  };
+};
 
 const statusForEvent = (
   type: RevenueCatEventType,

@@ -16,6 +16,7 @@ import FormField from "@/components/FormField";
 import RichTextField from "@/components/RichTextField";
 import { useAuth } from "@/contexts/AuthContext";
 import { type PostJobInput, postJob } from "@/lib/api-jobs";
+import { getJobPostPackage, purchasePackage } from "@/lib/revenuecat";
 
 // Post a contract from mobile (posters only). Mirrors the web PostJobForm but
 // mobile-focused: the description + how-to-apply are Enriched rich text (HTML out,
@@ -63,19 +64,35 @@ const PostJobScreen = () => {
   const [attested, setAttested] = useState(false);
 
   const post = useMutation({
-    mutationFn: (input: PostJobInput) => postJob(input),
-    onSuccess: () => {
-      // TODO(revenuecat): once RC is provisioned, run the StoreKit/Play purchase
-      // for the £219 job-post product here using the returned jobId, then the RC
-      // webhook flips paymentStatus → PAID + isActive=true. For now the job is
-      // created PENDING and we tell the poster payment is the next step.
-      toast.success("Draft created — payment is the next step.");
-      router.back();
+    // 1) Create the unpaid (PENDING) job → get its id. 2) Purchase the one-time
+    // job-post product via RevenueCat (StoreKit/Play). The RC webhook then flips
+    // the poster's newest pending job → PAID + live (reconciled by app_user_id +
+    // the store transaction id). DB is the source of truth — we don't trust the
+    // client to mark it paid.
+    mutationFn: async (input: PostJobInput) => {
+      const { jobId } = await postJob(input);
+      const pkg = await getJobPostPackage();
+      if (!pkg) {
+        throw new Error("Job-post payment isn’t available right now.");
+      }
+      const info = await purchasePackage(pkg);
+      // null = the user cancelled the App Store sheet. The job stays PENDING (a
+      // future "finish payment" can retry); treat as a soft no-op, not an error.
+      return { jobId, purchased: info !== null };
+    },
+    onSuccess: (result) => {
+      if (result.purchased) {
+        toast.success("Payment received — your contract is going live.");
+        router.back();
+      } else {
+        toast("Saved as a draft — finish payment to go live.");
+      }
     },
     onError: (e: unknown) => {
       const msg =
         (e as { response?: { data?: { error?: string } } })?.response?.data
-          ?.error ?? "Couldn’t create the listing — try again.";
+          ?.error ??
+        (e instanceof Error ? e.message : "Couldn’t post the contract.");
       toast.error(msg);
     },
   });

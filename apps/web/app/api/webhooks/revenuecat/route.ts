@@ -2,8 +2,10 @@ import { timingSafeEqual } from 'node:crypto';
 import { db as prisma } from '@outside-ir35-jobs/db';
 import { NextResponse } from 'next/server';
 import { shouldProviderWriteWin } from '@/lib/contractor/premium';
+import { publishPaidJob } from '@/lib/jobs/publish-paid-job';
 import {
   mapRevenueCatEvent,
+  mapRevenueCatJobPurchase,
   type RevenueCatWebhookBody,
 } from '@/lib/mobile/revenuecat';
 
@@ -45,6 +47,20 @@ export const POST = async (req: Request) => {
   const event = body?.event;
   if (!event?.type) {
     return NextResponse.json({ error: 'Missing event' }, { status: 400 });
+  }
+
+  // One-time job-post purchase (NON_RENEWING_PURCHASE of a job_post product) —
+  // the MOBILE equivalent of the Stripe checkout webhook for a web post. Flip the
+  // poster's PENDING job to PAID + live, reconciling on the store transaction id
+  // (idempotent — RC delivers at-least-once). This is NOT a premium subscription,
+  // so it never touches the Subscription row.
+  const jobPurchase = mapRevenueCatJobPurchase(event);
+  if (jobPurchase) {
+    const result = await publishPaidJob({
+      userId: jobPurchase.userId,
+      transactionId: jobPurchase.transactionId,
+    });
+    return NextResponse.json({ ok: true, job: result });
   }
 
   const sync = mapRevenueCatEvent(event);
