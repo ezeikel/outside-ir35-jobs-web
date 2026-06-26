@@ -54,12 +54,18 @@ const ProfileScreen = () => {
         <Text className="mt-1 text-sm text-muted-foreground">{user.email}</Text>
 
         {!user.onboarded ? (
-          <View className="mt-4 rounded-lg border border-aging bg-aging-muted p-3">
+          <Pressable
+            className="mt-4 rounded-lg border border-aging bg-aging-muted p-3 active:opacity-80"
+            onPress={() => router.push("/onboarding")}
+          >
             <Text className="text-sm text-foreground">
-              Finish setting up your account to pick contractor or hiring — then
-              the full profile unlocks here.
+              Finish setting up — pick contractor or hiring to unlock your full
+              profile.
             </Text>
-          </View>
+            <Text className="mt-1 text-xs font-sans-semibold text-foreground">
+              Set up now →
+            </Text>
+          </Pressable>
         ) : null}
 
         {/* The verified compliance pack (contractors only). */}
@@ -98,7 +104,7 @@ const ProfileScreen = () => {
       <Text className="font-display text-3xl text-foreground">Sign in</Text>
       <Text className="mt-2 text-sm text-muted-foreground">
         Sign in to apply with your verified profile, save searches, and get
-        alerts for new outside-IR35 contracts.
+        alerts for new Outside IR35 contracts.
       </Text>
 
       <View className="mt-8 gap-3">

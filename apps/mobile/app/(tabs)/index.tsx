@@ -18,7 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { fetchJobs } from "@/lib/api-jobs";
 import { saveSearch } from "@/lib/api-searches";
 
-// The board. Browse outside-IR35 contracts (public, no auth). Search filters the
+// The board. Browse Outside IR35 contracts (public, no auth). Search filters the
 // same endpoint the web board uses, so results can never drift between surfaces.
 const JobsScreen = () => {
   const insets = useSafeAreaInsets();
@@ -60,7 +60,7 @@ const JobsScreen = () => {
           Contracts
         </Text>
         <Text className="mt-1 text-sm text-muted-foreground">
-          Roles where the client states an outside-IR35 position. We never assert
+          Roles where the client states an Outside IR35 position. We never assert
           status ourselves.
         </Text>
         <TextInput

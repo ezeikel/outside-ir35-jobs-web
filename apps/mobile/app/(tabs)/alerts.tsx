@@ -40,7 +40,7 @@ const AlertsScreen = () => {
     return (
       <Empty insetTop={insets.top}>
         <Text className="text-center text-muted-foreground">
-          Sign in to save searches and get emailed new outside-IR35 contracts.
+          Sign in to save searches and get emailed new Outside IR35 contracts.
         </Text>
         <Pressable
           className="mt-6 rounded-lg bg-primary px-5 py-3 active:opacity-90"

@@ -36,8 +36,8 @@ const INTRO_SLIDES = [
   {
     icon: faBriefcase,
     iconColor: "#17181a",
-    title: "Only outside-IR35",
-    body: "One board with just outside-IR35 contracts — day rate, work mode and the client's IR35 position shown up front.",
+    title: "Only Outside IR35",
+    body: "One board with just Outside IR35 contracts — day rate, work mode and the client's IR35 position shown up front.",
   },
   {
     icon: faIdBadge,
@@ -89,10 +89,14 @@ const PaginationDot = ({
 
 const OnboardingCarousel = ({
   submitting,
-  onSubmitRole,
+  alreadySignedIn,
+  onPickRole,
+  onSkip,
 }: {
   submitting: boolean;
-  onSubmitRole: (input: OnboardingInput) => void;
+  alreadySignedIn: boolean;
+  onPickRole: (input: OnboardingInput, provider: "google" | "apple") => void;
+  onSkip: () => void;
 }) => {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -164,7 +168,9 @@ const OnboardingCarousel = ({
             <RolePickerSlide
               isActive={current === ROLE_SLIDE_INDEX}
               submitting={submitting}
-              onSubmit={onSubmitRole}
+              alreadySignedIn={alreadySignedIn}
+              onPickRole={onPickRole}
+              onSkip={onSkip}
             />
           </View>
         </AnimatedScrollView>

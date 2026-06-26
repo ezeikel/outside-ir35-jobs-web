@@ -8,12 +8,12 @@ import {
 } from "@expo-google-fonts/inter-tight";
 import notifee, { EventType } from "@notifee/react-native";
 import { useFonts } from "expo-font";
-import { Stack, usePathname, useRouter } from "expo-router";
+import { Redirect, Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useEffect, useState } from "react";
 import Providers from "@/providers";
+import { useOnboardingStore } from "@/stores/onboardingStore";
 import "@/global.css";
 
 // Hold the splash until fonts are ready so the UI doesn't flash system-font text.
@@ -50,24 +50,6 @@ const NotificationRouter = () => {
   return null;
 };
 
-// Sends a signed-in-but-not-onboarded user to the role picker. Runs inside
-// Providers so useAuth is available. Browsing while signed-out is fine — the gate
-// only fires once a session exists without a role.
-const OnboardingGate = () => {
-  const { isLoading, isAuthenticated, user } = useAuth();
-  const router = useRouter();
-  const pathname = usePathname();
-
-  useEffect(() => {
-    if (isLoading) return;
-    if (isAuthenticated && user && !user.onboarded && pathname !== "/onboarding") {
-      router.replace("/onboarding");
-    }
-  }, [isLoading, isAuthenticated, user, pathname, router]);
-
-  return null;
-};
-
 // Root layout: app-wide providers + a Stack. Tabs live under (tabs); detail +
 // modal screens push on top. Light UI only (matches web).
 const RootLayout = () => {
@@ -83,6 +65,21 @@ const RootLayout = () => {
     "GeistMono-Regular": GeistMono_400Regular,
   });
 
+  // First-launch onboarding gate. `hasCompleted` persists in AsyncStorage and
+  // rehydrates asynchronously — wait for hydration before deciding, so a
+  // returning user who's already onboarded never flashes the carousel.
+  const hasCompleted = useOnboardingStore((s) => s.hasCompleted);
+  const [storeHydrated, setStoreHydrated] = useState(
+    useOnboardingStore.persist.hasHydrated(),
+  );
+  useEffect(() => {
+    const unsub = useOnboardingStore.persist.onFinishHydration(() =>
+      setStoreHydrated(true),
+    );
+    if (useOnboardingStore.persist.hasHydrated()) setStoreHydrated(true);
+    return unsub;
+  }, []);
+
   useEffect(() => {
     if (fontsLoaded) void SplashScreen.hideAsync();
   }, [fontsLoaded]);
@@ -92,7 +89,9 @@ const RootLayout = () => {
   return (
     <Providers>
       <StatusBar style="dark" />
-      <OnboardingGate />
+      {/* First launch (hydrated + not yet completed) → the intro carousel,
+          BEFORE sign-in. Browsing is public; onboarding is a one-time intro. */}
+      {storeHydrated && !hasCompleted ? <Redirect href="/onboarding" /> : null}
       <NotificationRouter />
       <Stack
         screenOptions={{
