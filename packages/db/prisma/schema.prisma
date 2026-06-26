@@ -139,9 +139,9 @@ model Job {
   // The poster who owns this job (role = JOB_POSTER). Nullable: legacy/seed jobs
   // and future AGGREGATED (scraped) listings have no owner. SetNull so deleting a
   // poster doesn't delete their jobs.
-  postedBy        User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
-  userId          String?
-  isActive        Boolean          @default(true)
+  postedBy                User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId                  String?
+  isActive                Boolean          @default(true)
   // Whether this job may appear on a PUBLIC board surface (default /jobs,
   // homepage, recommendations). Distinct from isActive (= live/not expired): an
   // explicit Inside-IR35 listing is kept in the DB — the /day-rates inside-vs-
@@ -149,19 +149,25 @@ model Job {
   // outside-IR35 board (docs/ir35-trust-model.md: INSIDE is "not our niche").
   // The worker sets this false for ir35Signal=INSIDE; defense-in-depth alongside
   // the web-side ir35Signal<>INSIDE gate. Benchmarks query on isActive only.
-  boardVisible    Boolean          @default(true)
+  boardVisible            Boolean          @default(true)
   // Payment state. Defaults to FREE so aggregated/scraped + legacy/seed jobs need
   // no change (we never charge for index entries). The native createJobPost action
   // overrides to PENDING and creates the job isActive=false; the Stripe webhook
   // flips it to PAID + isActive=true on checkout.session.completed.
-  paymentStatus   JobPaymentStatus @default(FREE)
-  // The Stripe Checkout Session id for a native post, so the webhook can reconcile
-  // the payment back to its job. Null for FREE jobs.
-  stripeSessionId String?          @unique
-  duration        Int              @default(30) // job post duration in days
-  applications    Application[]
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  paymentStatus           JobPaymentStatus @default(FREE)
+  // The Stripe Checkout Session id for a native WEB post, so the Stripe webhook
+  // can reconcile the payment back to its job. Null for FREE jobs.
+  stripeSessionId         String?          @unique
+  // The RevenueCat transaction id for a native MOBILE post (StoreKit/Play, since
+  // App Store rules forbid Stripe in-app). The RC webhook reconciles payment →
+  // job the same way stripeSessionId does on web. DB is the source of truth for
+  // payment across both providers (mirrors the premium Subscription dual-provider
+  // model). Null for FREE + web/Stripe jobs.
+  revenueCatTransactionId String?          @unique
+  duration                Int              @default(30) // job post duration in days
+  applications            Application[]
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
 
   @@map("jobs")
 }
