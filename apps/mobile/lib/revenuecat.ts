@@ -22,6 +22,17 @@ const API_KEYS = {
   android: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY,
 };
 
+// RevenueCat is inert in DEVELOPMENT (the .app.dev bundle has NO RevenueCat app
+// registered — RC only has the prod .app and preview .app.internal apps). On a
+// simulator / local dev build, configuring RC with a non-matching key just
+// produces a bundle-id mismatch and the noisy "offerings could not be fetched"
+// console.error (a LogBox redbox in dev that never happens in prod). So we skip
+// RC entirely in dev; preview + production configure normally. Mirrors the
+// go-unbeaten / titrra pattern. (We deliberately do NOT set the RC key in the
+// development EAS env / local .env, so this is belt-and-braces.)
+const RC_ENABLED =
+  (process.env.EXPO_PUBLIC_ENVIRONMENT ?? "development") !== "development";
+
 let isConfigured = false;
 let configuredUserId: string | null = null;
 
@@ -32,6 +43,9 @@ let configuredUserId: string | null = null;
  * crashing).
  */
 export const initializeRevenueCat = async (userId?: string): Promise<boolean> => {
+  // Dev / simulator: RC intentionally inert (no .dev RevenueCat app exists).
+  if (!RC_ENABLED) return false;
+
   if (isConfigured) {
     // Already configured. If we now know a user id but RC is on a different/anon
     // id, alias the existing customer to it so a purchase keys to the DB user.

@@ -12,16 +12,9 @@ import { Redirect, Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import { LogBox } from "react-native";
 import Providers from "@/providers";
 import { useOnboardingStore } from "@/stores/onboardingStore";
 import "@/global.css";
-
-// The RevenueCat SDK logs an offerings-fetch failure via console.error, which
-// RN's LogBox promotes to a fullscreen redbox on every launch while the store
-// products don't exist yet (no ASC IAPs provisioned). It's expected + handled
-// (getOfferings returns null), so don't let it interrupt the dev experience.
-LogBox.ignoreLogs([/Error fetching offerings/, /OfferingsManager/]);
 
 // Hold the splash until fonts are ready so the UI doesn't flash system-font text.
 // The NativeWind theme (global.css @theme) names these families — every one the
