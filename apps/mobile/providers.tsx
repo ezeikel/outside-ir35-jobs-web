@@ -29,8 +29,31 @@ const Providers = ({ children }: { children: ReactNode }) => {
           <AuthProvider>
             <BottomSheetProvider>
               {children}
-              {/* Toast host — last so toasts render above any sheet. */}
-              <Toaster />
+              {/* Toast host — last so toasts render above any sheet. Brand-
+                  styled: light surface, ink text, Inter Tight. ALL transient
+                  feedback goes through sonner (no Alert.alert); destructive
+                  confirms use ConfirmSheet. */}
+              <Toaster
+                position="top-center"
+                offset={60}
+                theme="light"
+                toastOptions={{
+                  style: {
+                    backgroundColor: "#ffffff",
+                    borderColor: "#e8e7e5",
+                    borderWidth: 1,
+                    borderRadius: 14,
+                  },
+                  titleStyle: {
+                    fontFamily: "InterTight-SemiBold",
+                    color: "#17181a",
+                  },
+                  descriptionStyle: {
+                    fontFamily: "InterTight-Regular",
+                    color: "#767370",
+                  },
+                }}
+              />
             </BottomSheetProvider>
           </AuthProvider>
         </QueryClientProvider>

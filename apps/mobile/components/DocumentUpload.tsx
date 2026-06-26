@@ -2,13 +2,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   Text,
   TextInput,
   View,
 } from "react-native";
 import { toast } from "sonner-native";
+import ConfirmSheet from "@/components/ConfirmSheet";
 import {
   deleteDocument,
   type PickedFile,
@@ -62,6 +62,7 @@ const DocRow = ({
 }) => {
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [picked, setPicked] = useState<PickedFile | null>(null);
   const [insurer, setInsurer] = useState("");
   const [coverLimit, setCoverLimit] = useState("");
@@ -118,12 +119,7 @@ const DocRow = ({
     }
   };
 
-  const confirmRemove = () => {
-    Alert.alert("Remove document", `Remove your ${label}?`, [
-      { text: "Cancel", style: "cancel" },
-      { text: "Remove", style: "destructive", onPress: () => remove.mutate() },
-    ]);
-  };
+  const confirmRemove = () => setConfirmOpen(true);
 
   // Toggle the expiry form; clear any picked file + metadata when collapsing so a
   // stale selection can't carry into the next time the row is opened.
@@ -141,7 +137,8 @@ const DocRow = ({
   const busy = upload.isPending || remove.isPending;
 
   return (
-    <View className="mb-2 rounded-lg border border-border bg-card p-3">
+    <>
+      <View className="mb-2 rounded-lg border border-border bg-card p-3">
       <View className="flex-row items-center justify-between">
         <View className="min-w-0 flex-1 pr-3">
           <Text className="font-sans-semibold text-foreground">{label}</Text>
@@ -247,7 +244,16 @@ const DocRow = ({
           </Pressable>
         </View>
       ) : null}
-    </View>
+      </View>
+      <ConfirmSheet
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        title="Remove document"
+        description={`Remove your ${label}? You can upload it again any time.`}
+        confirmLabel="Remove"
+        onConfirm={() => remove.mutate()}
+      />
+    </>
   );
 };
 

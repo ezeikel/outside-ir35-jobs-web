@@ -1,4 +1,11 @@
-import { InterTight_600SemiBold } from "@expo-google-fonts/inter-tight";
+import { GeistMono_400Regular } from "@expo-google-fonts/geist-mono";
+import { InstrumentSerif_400Regular } from "@expo-google-fonts/instrument-serif";
+import {
+  InterTight_400Regular,
+  InterTight_500Medium,
+  InterTight_600SemiBold,
+  InterTight_700Bold,
+} from "@expo-google-fonts/inter-tight";
 import notifee, { EventType } from "@notifee/react-native";
 import { useFonts } from "expo-font";
 import { Stack, usePathname, useRouter } from "expo-router";
@@ -9,8 +16,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import Providers from "@/providers";
 import "@/global.css";
 
-// Hold the splash until fonts are ready so the UI doesn't flash system-font text
-// (the tab bar uses InterTight-SemiBold — the web app's brand font).
+// Hold the splash until fonts are ready so the UI doesn't flash system-font text.
+// The NativeWind theme (global.css @theme) names these families — every one the
+// app references must be loaded here or that class silently falls back to the
+// system font: InterTight (body/UI weights) + Instrument Serif (display headings,
+// font-display) + Geist Mono (font-mono).
 void SplashScreen.preventAutoHideAsync();
 
 // Deep-links a notification tap to its `data.url`. Handles a cold-start tap (the
@@ -61,9 +71,17 @@ const OnboardingGate = () => {
 // Root layout: app-wide providers + a Stack. Tabs live under (tabs); detail +
 // modal screens push on top. Light UI only (matches web).
 const RootLayout = () => {
-  // The family name "InterTight-SemiBold" matches the fontFamily the tab bar
-  // (and any future branded text) references.
-  const [fontsLoaded] = useFonts({ "InterTight-SemiBold": InterTight_600SemiBold });
+  // Keys MUST match the family names in global.css @theme (--font-sans*,
+  // --font-display, --font-mono) — that's what NativeWind's font-* classes
+  // resolve to at runtime.
+  const [fontsLoaded] = useFonts({
+    "InterTight-Regular": InterTight_400Regular,
+    "InterTight-Medium": InterTight_500Medium,
+    "InterTight-SemiBold": InterTight_600SemiBold,
+    "InterTight-Bold": InterTight_700Bold,
+    "InstrumentSerif-Regular": InstrumentSerif_400Regular,
+    "GeistMono-Regular": GeistMono_400Regular,
+  });
 
   useEffect(() => {
     if (fontsLoaded) void SplashScreen.hideAsync();

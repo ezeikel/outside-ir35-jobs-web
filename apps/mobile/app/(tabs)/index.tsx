@@ -57,7 +57,7 @@ const JobsScreen = () => {
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       <View className="px-4 pb-2 pt-2">
         <Text className="font-display text-3xl text-foreground">
-          Outside-IR35 contracts
+          Contracts
         </Text>
         <Text className="mt-1 text-sm text-muted-foreground">
           Roles where the client states an outside-IR35 position. We never assert
