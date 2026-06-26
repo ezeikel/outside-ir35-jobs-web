@@ -37,19 +37,19 @@ const INTRO_SLIDES = [
     icon: faBriefcase,
     iconColor: "#17181a",
     title: "Only Outside IR35",
-    body: "One board with just Outside IR35 contracts — day rate, work mode and the client's IR35 position shown up front.",
+    body: "One board with just Outside IR35 contracts. Day rate, work mode and the client's IR35 position shown up front.",
   },
   {
     icon: faIdBadge,
     iconColor: "#1f5d43",
     title: "Verify once",
-    body: "Build your compliance pack once — company, insurance, right-to-work — and share it in a tap instead of re-sending it to every agency.",
+    body: "Build your compliance pack once (company, insurance, right-to-work) and share it in a tap instead of re-sending it to every agency.",
   },
   {
     icon: faShieldHalved,
     iconColor: "#2b3a55",
     title: "Honest by design",
-    body: "We never claim a role is outside IR35 — only what the client states, attributed and dated. The SDS stays the client's call.",
+    body: "We never claim a role is outside IR35. We show only what the client states, attributed and dated. The SDS stays the client's call.",
   },
 ];
 

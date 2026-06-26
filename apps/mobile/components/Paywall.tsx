@@ -92,12 +92,12 @@ const Paywall = () => {
       // Optimistic: RC says it's active immediately; the backend catches up via
       // the webhook, which pollUntilPremium waits for.
       if (hasActiveEntitlement(info)) {
-        toast.success("You’re premium — thanks!");
+        toast.success("You’re premium. Thanks!");
       }
       const confirmed = await pollUntilPremium();
       if (!confirmed) {
         toast.error(
-          "Payment went through — your premium will appear in a moment.",
+          "Payment went through. Your premium will appear in a moment.",
         );
       }
     } catch {
@@ -171,8 +171,8 @@ const Paywall = () => {
         Win and deliver more contracts
       </Text>
       <Text className="mt-2 text-sm text-muted-foreground">
-        A business tool for limited-company contractors — unlimited job alerts
-        and an AI explanation + tailored pitch for every matched role.
+        A business tool for limited-company contractors: unlimited job alerts
+        and an AI explanation plus a tailored pitch for every matched role.
       </Text>
 
       <View className="mt-5 flex-row items-end">
@@ -212,7 +212,7 @@ const Paywall = () => {
           <Text className="text-center font-sans-semibold text-primary-foreground">
             {offeringLoaded && !pkg
               ? "Unavailable right now"
-              : `Subscribe${priceLabel ? ` — ${priceLabel}/month` : " — £29/month"}`}
+              : `Subscribe${priceLabel ? ` · ${priceLabel}/month` : " · £29/month"}`}
           </Text>
         )}
       </Pressable>

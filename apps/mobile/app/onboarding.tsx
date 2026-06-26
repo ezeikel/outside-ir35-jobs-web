@@ -65,7 +65,7 @@ const OnboardingScreen = () => {
       }
       await finishWithRole(input);
     } catch {
-      toast.error("Couldn’t finish setting up — try again.");
+      toast.error("Couldn’t finish setting up. Try again.");
     } finally {
       setSubmitting(false);
     }

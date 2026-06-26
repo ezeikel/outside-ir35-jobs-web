@@ -69,7 +69,7 @@ const AlertsScreen = () => {
       <View className="px-6 pb-2">
         <Text className="font-display text-3xl text-foreground">Job alerts</Text>
         <Text className="mt-1 text-sm text-muted-foreground">
-          Searches you’ve saved. We email you new matching contracts — pause or
+          Searches you’ve saved. We email you new matching contracts. Pause or
           delete any alert.
         </Text>
       </View>
@@ -107,21 +107,21 @@ const SavedSearchRow = ({ search }: { search: SavedSearch }) => {
     mutationFn: () => setSavedSearchAlerts(search.id, !search.alertsEnabled),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["savedSearches"] }),
-    onError: () => toast.error("Couldn’t update — try again."),
+    onError: () => toast.error("Couldn’t update. Try again."),
   });
 
   const remove = useMutation({
     mutationFn: () => deleteSavedSearch(search.id),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["savedSearches"] }),
-    onError: () => toast.error("Couldn’t delete — try again."),
+    onError: () => toast.error("Couldn’t delete. Try again."),
   });
 
   const setFreq = useMutation({
     mutationFn: (f: AlertFrequency) => setSavedSearchFrequency(search.id, f),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["savedSearches"] }),
-    onError: () => toast.error("Couldn’t update — try again."),
+    onError: () => toast.error("Couldn’t update. Try again."),
   });
 
   const busy = toggle.isPending || remove.isPending || setFreq.isPending;

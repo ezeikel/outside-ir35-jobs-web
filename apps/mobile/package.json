@@ -80,6 +80,7 @@
     "react-native-css": "3.0.4",
     "react-native-enriched": "^0.8.1",
     "react-native-gesture-handler": "~2.31.2",
+    "react-native-keyboard-controller": "1.21.6",
     "react-native-purchases": "^9.15.2",
     "react-native-reanimated": "~4.3.1",
     "react-native-safe-area-context": "5.7.0",

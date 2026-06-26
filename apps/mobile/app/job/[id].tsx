@@ -83,7 +83,7 @@ const JobDetailScreen = () => {
           <Text className="text-sm text-foreground">{job.ir35Claim.text}</Text>
           <Text className="mt-1 text-xs text-muted-foreground">
             Stated by {job.ir35Claim.attributedTo}. The platform does not
-            determine or verify IR35 status — the SDS is the client’s legal
+            determine or verify IR35 status; the SDS is the client’s legal
             responsibility.
           </Text>
         </View>
@@ -131,7 +131,7 @@ const ApplyControl = ({
   const mutation = useMutation({
     mutationFn: () => applyToJob(jobId, note),
     onSuccess: () => {
-      toast.success("Applied — the poster can see your verified profile.");
+      toast.success("Applied. The poster can see your verified profile.");
       void queryClient.invalidateQueries({ queryKey: ["job", jobId] });
     },
     onError: (e: unknown) => {
@@ -175,7 +175,7 @@ const ApplyControl = ({
     return (
       <View className="mt-6 rounded-lg border border-verified bg-verified-muted p-4">
         <Text className="text-center text-sm text-foreground">
-          ✓ You’ve applied — the poster can see your verified profile.
+          ✓ You’ve applied. The poster can see your verified profile.
         </Text>
       </View>
     );
@@ -209,7 +209,7 @@ const ApplyControl = ({
           )}
         </Pressable>
         <Text className="mt-2 text-center text-xs text-muted-foreground">
-          One tap — share your verified compliance pack.
+          One tap to share your verified compliance pack.
         </Text>
       </View>
     );

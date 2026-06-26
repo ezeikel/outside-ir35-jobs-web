@@ -52,7 +52,7 @@ const VerifiedProfile = () => {
 };
 
 const dateLabel = (iso: string | null): string =>
-  iso ? new Date(iso).toLocaleDateString("en-GB") : "—";
+  iso ? new Date(iso).toLocaleDateString("en-GB") : "-";
 
 const Section = ({
   title,
@@ -130,11 +130,11 @@ const CheckLine = ({
 }) =>
   verifiedAt ? (
     <Text className="text-xs text-verified">
-      ✓ {label} — confirmed {dateLabel(verifiedAt)}
+      ✓ {label} confirmed {dateLabel(verifiedAt)}
     </Text>
   ) : (
     <Text className="text-xs text-muted-foreground">
-      {label} — not yet checked
+      {label}: not yet checked
     </Text>
   );
 

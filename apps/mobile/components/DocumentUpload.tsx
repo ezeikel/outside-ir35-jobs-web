@@ -52,7 +52,7 @@ const DocumentUpload = ({ profile }: { profile: MobileProfile }) => {
       </Text>
       <Text className="mb-3 text-xs text-muted-foreground">
         Upload a PDF or photo of each document. We hold the file as a checkable
-        fact — never a claim about IR35 status.
+        fact, never a claim about IR35 status.
       </Text>
       {UPLOADABLE_DOC_TYPES.map((dt) => (
         <DocRow
@@ -125,7 +125,7 @@ const DocRow = ({
       toast.success(`${label} removed.`);
       void queryClient.invalidateQueries({ queryKey: ["profile"] });
     },
-    onError: () => toast.error("Couldn’t remove — try again."),
+    onError: () => toast.error("Couldn’t remove. Try again."),
   });
 
   const choose = async (kind: "file" | "photo") => {

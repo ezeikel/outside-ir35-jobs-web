@@ -74,7 +74,7 @@ const RichTextField = ({
   );
 
   return (
-    <View className="gap-1">
+    <View className="gap-2">
       <Text className="text-xs font-sans-medium text-muted-foreground">
         {label}
       </Text>

@@ -34,7 +34,7 @@ const JobsScreen = () => {
 
   const save = useMutation({
     mutationFn: () => saveSearch(submitted ? { q: submitted } : {}),
-    onSuccess: () => toast.success("Saved — we’ll email you new matches."),
+    onSuccess: () => toast.success("Saved. We’ll email you new matches."),
     onError: (e: unknown) => {
       const err = e as {
         response?: { status?: number; data?: { error?: string } };
@@ -42,7 +42,7 @@ const JobsScreen = () => {
       // The free saved-search cap returns 402 — a natural paywall moment: they've
       // experienced the value (saved 3) and hit the limit. Send them to Premium.
       if (err?.response?.status === 402) {
-        toast.error("You’ve hit the free saved-search limit — go premium.");
+        toast.error("You’ve hit the free saved-search limit. Go premium.");
         router.push("/(tabs)/premium");
         return;
       }

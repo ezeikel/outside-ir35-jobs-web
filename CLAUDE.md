@@ -148,6 +148,14 @@ ESLint 9 flat config (`eslint.config.mjs`, `eslint-config-airbnb-extended` +
 `import-x` + `@stylistic`). `pnpm lint` / `pnpm lint:fix`. Prettier via
 `eslint-plugin-prettier`.
 
+## Copy style
+
+**No em-dashes (—) in user-facing content** — anywhere a user reads it (UI copy,
+toasts, placeholders, onboarding, paywall, listings, marketing, blog, push, app
+store). They read as AI-written. Use a full stop, a colon, parentheses, or a
+middot (·) for separators instead. Code comments are exempt. (en-dashes in numeric
+ranges like "£100–£200" are fine.)
+
 ## Documentation
 
 `docs/` holds permanent reference. The platform/strategy docs there are the source

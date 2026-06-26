@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { PostHogProvider } from "posthog-react-native";
 import type { ReactNode } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Toaster } from "sonner-native";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -20,7 +21,8 @@ const POSTHOG_HOST =
 const Providers = ({ children }: { children: ReactNode }) => {
   const tree = (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
+      <KeyboardProvider>
+        <SafeAreaProvider>
         {/* QueryClientProvider must wrap AuthProvider (it calls
             useQueryClient) and BottomSheetProvider (sheets portal their content
             up, so any sheet rendering a query consumer needs the client above
@@ -57,7 +59,8 @@ const Providers = ({ children }: { children: ReactNode }) => {
             </BottomSheetProvider>
           </AuthProvider>
         </QueryClientProvider>
-      </SafeAreaProvider>
+        </SafeAreaProvider>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 

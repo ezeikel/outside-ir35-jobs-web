@@ -2,13 +2,8 @@ import { useForm } from "@tanstack/react-form";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
 import { z } from "zod";
@@ -82,10 +77,10 @@ const PostJobScreen = () => {
     },
     onSuccess: (result) => {
       if (result.purchased) {
-        toast.success("Payment received — your contract is going live.");
+        toast.success("Payment received. Your contract is going live.");
         router.back();
       } else {
-        toast("Saved as a draft — finish payment to go live.");
+        toast("Saved as a draft. Finish payment to go live.");
       }
     },
     onError: (e: unknown) => {
@@ -160,7 +155,7 @@ const PostJobScreen = () => {
 
   return (
     <View className="flex-1 bg-background">
-      <ScrollView
+      <KeyboardAwareScrollView
         contentContainerStyle={{
           paddingTop: insets.top + 12,
           paddingHorizontal: 20,
@@ -169,6 +164,9 @@ const PostJobScreen = () => {
         }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        // Keep the focused field (and the controls just below it) above the
+        // keyboard so the bottom of the form stays reachable.
+        bottomOffset={24}
       >
         <Text className="font-display text-3xl text-foreground">
           Post a contract
@@ -317,7 +315,7 @@ const PostJobScreen = () => {
                 <ActivityIndicator color="#fbfaf9" />
               ) : (
                 <Text className="text-center font-sans-semibold text-primary-foreground">
-                  Continue — £219
+                  Continue · £219
                 </Text>
               )}
             </Pressable>
@@ -328,7 +326,7 @@ const PostJobScreen = () => {
           Payment is taken through your App Store account. Your listing goes live
           once payment is confirmed.
         </Text>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 };

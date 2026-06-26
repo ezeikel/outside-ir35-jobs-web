@@ -27,7 +27,7 @@ const DayRatesScreen = () => {
         Contract day rates
       </Text>
       <Text className="mt-2 text-sm text-muted-foreground">
-        Median UK day rates by skill, from contracts aggregated on this board —
+        Median UK day rates by skill, from contracts aggregated on this board,
         split by the IR35 position each listing states. We never assert a role’s
         IR35 status; we only report what the listing claims.
       </Text>
@@ -69,7 +69,7 @@ const DayRatesScreen = () => {
           </Text>
           <Text className="mt-2 text-center text-sm text-muted-foreground">
             We publish a day rate only once a skill has at least {data.minSample}{" "}
-            live listings — so the numbers mean something. The board is still
+            live listings, so the numbers mean something. The board is still
             filling. Check back soon.
           </Text>
         </View>
@@ -131,7 +131,7 @@ const Disclaimer = ({ totalSample }: { totalSample: number }) => (
     Based on {totalSample} live listing{totalSample === 1 ? "" : "s"} aggregated
     on this board, grouped by skill and the IR35 position the listing states. Day
     rates are midpoints of any stated range. This is a snapshot of current
-    listings, not a market authority — sanity-check against your own sources.
+    listings, not a market authority. Sanity-check against your own sources.
   </Text>
 );
 

@@ -19,8 +19,8 @@ const PremiumScreen = () => {
         style={{ paddingTop: insets.top }}
       >
         <Text className="text-center text-muted-foreground">
-          Sign in to go premium — unlimited alerts, full rate data, and AI
-          match explanations.
+          Sign in to go premium: unlimited alerts and an AI explanation plus a
+          tailored pitch on every matched role.
         </Text>
         <Pressable
           className="mt-6 rounded-lg bg-primary px-5 py-3 active:opacity-90"

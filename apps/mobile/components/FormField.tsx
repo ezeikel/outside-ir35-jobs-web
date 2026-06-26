@@ -30,12 +30,12 @@ const FormField = ({
       : null;
 
   return (
-    <View className="gap-1">
+    <View className="gap-2">
       <Text className="text-xs font-sans-medium text-muted-foreground">
         {label}
       </Text>
       <TextInput
-        className={`rounded-lg border bg-background px-3 py-2 text-sm text-foreground ${
+        className={`rounded-lg border bg-background px-3 py-3 text-sm text-foreground ${
           error ? "border-destructive" : "border-border"
         }`}
         placeholder={placeholder}

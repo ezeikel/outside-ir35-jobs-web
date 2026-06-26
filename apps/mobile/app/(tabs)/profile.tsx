@@ -87,7 +87,7 @@ const ProfileScreen = () => {
             onPress={() => router.push("/onboarding")}
           >
             <Text className="text-sm text-foreground">
-              Finish setting up — pick contractor or hiring to unlock your full
+              Finish setting up. Pick contractor or hiring to unlock your full
               profile.
             </Text>
             <Text className="mt-1 text-xs font-sans-semibold text-foreground">
