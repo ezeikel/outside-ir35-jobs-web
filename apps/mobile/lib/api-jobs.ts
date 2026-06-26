@@ -66,3 +66,36 @@ export const applyToJob = async (
 ): Promise<void> => {
   await api.post("/api/mobile/applications", { jobId, message });
 };
+
+// Posting a contract from mobile. The body mirrors POST /api/mobile/jobs (which
+// wraps the shared createUnpaidJob primitive). The job is created PENDING +
+// isActive=false; the returned jobId is then paid for via RevenueCat and goes
+// live on the RC webhook. `description` + `howToApply` are HTML strings (from the
+// Enriched editor), matching the web TipTap output.
+export type PostJobInput = {
+  companyName: string;
+  position: string;
+  description: string;
+  keywords: string;
+  location: {
+    address: string;
+    placeId: string;
+    coordinates: { lat: number | null; lng: number | null };
+  };
+  companyLogo?: string;
+  dayRate: [number] | [number, number];
+  howToApply: string;
+  applicationEmail: string;
+  workMode: "REMOTE" | "HYBRID" | "ON_SITE";
+  ir35Signal?: string;
+};
+
+export const postJob = async (
+  input: PostJobInput,
+): Promise<{ jobId: string; paymentStatus: string }> => {
+  const { data } = await api.post<{ jobId: string; paymentStatus: string }>(
+    "/api/mobile/jobs",
+    input,
+  );
+  return data;
+};

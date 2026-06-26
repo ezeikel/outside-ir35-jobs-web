@@ -111,26 +111,33 @@ const recomputeTrustTier = async (userId: string): Promise<boolean> => {
  * outside-IR35 board — see docs/ir35-trust-model.md), consistent with aggregated
  * INSIDE handling.
  */
-export const createJobPost = async ({
-  position,
-  companyName,
-  location,
-  dayRate,
-  workMode,
-  ir35Signal,
-  description,
-  keywords,
-  companyLogo,
-  howToApply,
-  applicationEmail,
-}: PostJobFormValues): Promise<{ checkoutUrl: string }> => {
-  // Only signed-in posters may create jobs; the owner comes from the session,
-  // never the client payload.
-  const session = await auth();
-  if (!session?.userId || session.role !== Role.JOB_POSTER) {
-    throw new Error('Only job posters can create jobs');
-  }
-
+// The auth-free core of posting a job: create the listing UNPUBLISHED + awaiting
+// payment, attributed to `userId`. Shared by the web action (createJobPost →
+// Stripe) and the mobile route (POST /api/mobile/jobs → RevenueCat) so the DB
+// write is identical across both providers — the "routes wrap actions" rule
+// (mirrors the uploadDocumentForUser extraction). No embedding yet — that runs on
+// payment confirmation so unpaid drafts never enter search. Callers own auth +
+// the role check (web via session, mobile via the bearer caller) and the
+// provider-specific payment step.
+export const createUnpaidJob = async (
+  userId: string,
+  {
+    position,
+    companyName,
+    location,
+    dayRate,
+    workMode,
+    ir35Signal,
+    description,
+    keywords,
+    companyLogo,
+    howToApply,
+    applicationEmail,
+  }: Omit<
+    PostJobFormValues,
+    'ir35Attested' | 'companyTwitter' | 'companyEmail' | 'invoiceAddress'
+  >,
+) => {
   // keywords arrive as a free-text string (e.g. "React, Node.js"); the column is
   // String[]. Split on commas, trim, drop blanks.
   const keywordList = keywords
@@ -140,9 +147,7 @@ export const createJobPost = async ({
 
   const resolvedSignal = ir35Signal ?? 'UNKNOWN';
 
-  // Create the job UNPUBLISHED + awaiting payment. No embedding yet — that runs
-  // on payment confirmation so unpaid drafts never enter search.
-  const job = await prisma.job.create({
+  return prisma.job.create({
     data: {
       position,
       companyName,
@@ -161,14 +166,27 @@ export const createJobPost = async ({
       howToApply,
       applicationEmail,
       // Attribute the job to its poster.
-      userId: session.userId,
-      // Unpublished until Stripe confirms payment.
+      userId,
+      // Unpublished until the provider's webhook confirms payment.
       isActive: false,
       paymentStatus: 'PENDING',
     },
   });
+};
 
-  const checkoutUrl = await createJobCheckoutSession(job.id, position);
+export const createJobPost = async (
+  values: PostJobFormValues,
+): Promise<{ checkoutUrl: string }> => {
+  // Only signed-in posters may create jobs; the owner comes from the session,
+  // never the client payload.
+  const session = await auth();
+  if (!session?.userId || session.role !== Role.JOB_POSTER) {
+    throw new Error('Only job posters can create jobs');
+  }
+
+  const job = await createUnpaidJob(session.userId, values);
+
+  const checkoutUrl = await createJobCheckoutSession(job.id, values.position);
   return { checkoutUrl };
 };
 

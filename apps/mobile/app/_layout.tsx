@@ -114,6 +114,18 @@ const RootLayout = () => {
             animation: "slide_from_right",
           }}
         />
+        <Stack.Screen
+          name="post-job"
+          options={{
+            headerShown: true,
+            headerTitle: "",
+            headerBackTitle: "Profile",
+            headerTintColor: "#17181a",
+            headerStyle: { backgroundColor: "#f6f5f3" },
+            headerShadowVisible: false,
+            animation: "slide_from_right",
+          }}
+        />
       </Stack>
     </Providers>
   );

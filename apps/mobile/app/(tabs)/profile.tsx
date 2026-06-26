@@ -1,5 +1,7 @@
 import { faGoogle } from "@fortawesome/free-brands-svg-icons";
+import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
+import { useRouter } from "expo-router";
 import * as AppleAuthentication from "expo-apple-authentication";
 import {
   ActivityIndicator,
@@ -18,6 +20,7 @@ import { useAuth } from "@/contexts/AuthContext";
 // verified compliance pack (contractors) when signed in.
 const ProfileScreen = () => {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const {
     isLoading,
     isAuthenticated,
@@ -61,6 +64,19 @@ const ProfileScreen = () => {
 
         {/* The verified compliance pack (contractors only). */}
         {user.role === "JOB_SEEKER" ? <VerifiedProfile /> : null}
+
+        {/* Posting entry (hiring accounts only — they have no board tab). */}
+        {user.role === "JOB_POSTER" && user.onboarded ? (
+          <Pressable
+            className="mt-6 flex-row items-center justify-center gap-2 rounded-lg bg-primary p-4 active:opacity-90"
+            onPress={() => router.push("/post-job")}
+          >
+            <FontAwesomeIcon icon={faPlus} color="#fbfaf9" size={16} />
+            <Text className="font-sans-semibold text-primary-foreground">
+              Post a contract
+            </Text>
+          </Pressable>
+        ) : null}
 
         <Pressable
           className="mt-8 rounded-lg border border-border bg-card p-4 active:opacity-80"
