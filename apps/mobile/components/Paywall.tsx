@@ -1,3 +1,5 @@
+import { faCircleCheck } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import {
@@ -182,11 +184,19 @@ const Paywall = () => {
         ) : null}
       </View>
 
-      <View className="mt-5 gap-2">
+      <View className="mt-5 gap-3">
         {PERKS.map((perk) => (
-          <View key={perk} className="flex-row gap-2">
-            <Text className="text-verified">✓</Text>
-            <Text className="flex-1 text-sm text-foreground">{perk}</Text>
+          <View key={perk} className="flex-row items-start gap-3">
+            <View className="mt-0.5">
+              <FontAwesomeIcon
+                icon={faCircleCheck}
+                size={18}
+                color="#1f5d43"
+              />
+            </View>
+            <Text className="flex-1 text-sm leading-5 text-foreground">
+              {perk}
+            </Text>
           </View>
         ))}
       </View>
