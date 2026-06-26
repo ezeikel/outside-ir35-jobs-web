@@ -32,6 +32,7 @@
     "doctor": "npx react-doctor@latest"
   },
   "dependencies": {
+    "@expo-google-fonts/inter-tight": "^0.4.2",
     "@expo/vector-icons": "^15.0.3",
     "@fortawesome/fontawesome-svg-core": "^7.2.0",
     "@fortawesome/free-brands-svg-icons": "^7.2.0",
