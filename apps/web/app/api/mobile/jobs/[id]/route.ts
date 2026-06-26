@@ -39,7 +39,7 @@ export const GET = async (
     });
     const verdict = canApply({
       viewerId: caller.userId,
-      viewerRole: caller.role,
+      viewerOnboarded: caller.onboarded,
       jobSource: job.source,
       jobIsActive: job.isActive,
       jobOwnerId: job.userId,

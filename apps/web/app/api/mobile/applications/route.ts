@@ -19,9 +19,9 @@ const Body = z.object({
 
 const REASON_MESSAGES: Record<string, string> = {
   not_signed_in: 'Please sign in to apply.',
-  not_contractor: 'Only contractors can apply.',
+  not_onboarded: 'Finish setting up your account to apply.',
   aggregated:
-    'This role is from an external source — apply on the original listing.',
+    'This role is from an external source. Apply on the original listing.',
   inactive: 'This role is no longer accepting applications.',
   own_job: 'You cannot apply to your own job.',
   already_applied: 'You have already applied to this role.',
@@ -54,7 +54,7 @@ export const POST = async (req: Request) => {
 
   const verdict = canApply({
     viewerId: caller.userId,
-    viewerRole: caller.role,
+    viewerOnboarded: caller.onboarded,
     jobSource: job.source,
     jobIsActive: job.isActive,
     jobOwnerId: job.userId,

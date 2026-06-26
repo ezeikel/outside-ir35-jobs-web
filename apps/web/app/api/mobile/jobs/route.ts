@@ -1,4 +1,4 @@
-import { JobIR35Signal, Role, WorkMode } from '@outside-ir35-jobs/db/types';
+import { JobIR35Signal, WorkMode } from '@outside-ir35-jobs/db/types';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createUnpaidJob, searchJobs } from '@/app/actions';
@@ -62,9 +62,10 @@ export const POST = async (req: Request) => {
   if (!caller) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  if (caller.role !== Role.JOB_POSTER) {
+  // Dual-capability: any onboarded user may post (role is just a default view).
+  if (!caller.onboarded) {
     return NextResponse.json(
-      { error: 'Only job posters can create jobs' },
+      { error: 'Finish setting up your account to post a contract' },
       { status: 403 },
     );
   }

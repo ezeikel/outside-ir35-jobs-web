@@ -177,11 +177,11 @@ export const createUnpaidJob = async (
 export const createJobPost = async (
   values: PostJobFormValues,
 ): Promise<{ checkoutUrl: string }> => {
-  // Only signed-in posters may create jobs; the owner comes from the session,
-  // never the client payload.
+  // Any onboarded signed-in user may create jobs (dual-capability — role is just
+  // a default view); the owner comes from the session, never the client payload.
   const session = await auth();
-  if (!session?.userId || session.role !== Role.JOB_POSTER) {
-    throw new Error('Only job posters can create jobs');
+  if (!session?.userId || !session.onboarded) {
+    throw new Error('Finish setting up your account to post a contract');
   }
 
   const job = await createUnpaidJob(session.userId, values);
@@ -677,8 +677,8 @@ export const draftJobSpec = async (
   input: JobSpecInput,
 ): Promise<JobSpecDraft> => {
   const session = await auth();
-  if (!session?.userId || session.role !== Role.JOB_POSTER) {
-    throw new Error('Only job posters can draft a spec');
+  if (!session?.userId || !session.onboarded) {
+    throw new Error('Finish setting up your account to draft a spec');
   }
   if (!input.position?.trim()) {
     throw new Error('Add a role title first.');
@@ -1238,7 +1238,7 @@ export const createApplication = async (
 
   const verdict = canApply({
     viewerId: session?.userId ?? null,
-    viewerRole: session?.role ?? null,
+    viewerOnboarded: session?.onboarded ?? false,
     jobSource: job.source,
     jobIsActive: job.isActive,
     jobOwnerId: job.userId,
@@ -1247,9 +1247,9 @@ export const createApplication = async (
   if (!verdict.ok) {
     const messages: Record<string, string> = {
       not_signed_in: 'Please sign in to apply.',
-      not_contractor: 'Only contractors can apply.',
+      not_onboarded: 'Finish setting up your account to apply.',
       aggregated:
-        'This role is from an external source — apply on the original listing.',
+        'This role is from an external source. Apply on the original listing.',
       inactive: 'This role is no longer accepting applications.',
       own_job: 'You cannot apply to your own job.',
       already_applied: 'You have already applied to this role.',
@@ -1299,7 +1299,9 @@ export type DashboardJob = {
  */
 export const getMyJobsWithApplicants = async (): Promise<DashboardJob[]> => {
   const session = await auth();
-  if (!session?.userId || session.role !== Role.JOB_POSTER) {
+  // Dual-capability: anyone onboarded can have posted jobs. A user with none
+  // simply gets an empty list (the query is scoped to session.userId).
+  if (!session?.userId || !session.onboarded) {
     return [];
   }
 
@@ -1348,7 +1350,7 @@ export const getMyJobsWithApplicants = async (): Promise<DashboardJob[]> => {
  */
 export const getApplicantProfile = async (applicantId: string) => {
   const session = await auth();
-  if (!session?.userId || session.role !== Role.JOB_POSTER) {
+  if (!session?.userId || !session.onboarded) {
     return null;
   }
 

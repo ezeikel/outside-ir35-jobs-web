@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { type CanApplyInput, canApply } from './eligibility';
 
 const base: CanApplyInput = {
-  viewerId: 'u_seeker',
-  viewerRole: 'JOB_SEEKER',
+  viewerId: 'u_viewer',
+  viewerOnboarded: true,
   jobSource: 'NATIVE',
   jobIsActive: true,
   jobOwnerId: 'u_poster',
@@ -11,7 +11,7 @@ const base: CanApplyInput = {
 };
 
 describe('canApply', () => {
-  it('allows a contractor to apply to an active native job they do not own', () => {
+  it('allows any onboarded user to apply to an active native job they do not own', () => {
     expect(canApply(base)).toEqual({ ok: true });
   });
 
@@ -22,10 +22,10 @@ describe('canApply', () => {
     });
   });
 
-  it('rejects a non-contractor (e.g. a poster)', () => {
-    expect(canApply({ ...base, viewerRole: 'JOB_POSTER' })).toEqual({
+  it('rejects a not-yet-onboarded viewer', () => {
+    expect(canApply({ ...base, viewerOnboarded: false })).toEqual({
       ok: false,
-      reason: 'not_contractor',
+      reason: 'not_onboarded',
     });
   });
 
@@ -43,8 +43,8 @@ describe('canApply', () => {
     });
   });
 
-  it('rejects applying to your own job', () => {
-    expect(canApply({ ...base, jobOwnerId: 'u_seeker' })).toEqual({
+  it('rejects applying to your own job (the dual-capability self-apply guard)', () => {
+    expect(canApply({ ...base, jobOwnerId: 'u_viewer' })).toEqual({
       ok: false,
       reason: 'own_job',
     });
@@ -57,13 +57,13 @@ describe('canApply', () => {
     });
   });
 
-  it('checks role before job fields (a non-contractor on an aggregated job is not_contractor)', () => {
+  it('checks onboarding before job fields (a not-onboarded viewer on an aggregated job is not_onboarded)', () => {
     expect(
       canApply({
         ...base,
-        viewerRole: 'JOB_POSTER',
+        viewerOnboarded: false,
         jobSource: 'AGGREGATED',
       }),
-    ).toEqual({ ok: false, reason: 'not_contractor' });
+    ).toEqual({ ok: false, reason: 'not_onboarded' });
   });
 });

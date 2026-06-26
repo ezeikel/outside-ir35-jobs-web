@@ -65,7 +65,7 @@ const JobPost = async ({ id }: JobPostProps) => {
       : false;
   const eligibility = canApply({
     viewerId: session?.userId ?? null,
-    viewerRole: session?.role ?? null,
+    viewerOnboarded: session?.onboarded ?? false,
     jobSource: job.source,
     jobIsActive: job.isActive,
     jobOwnerId: job.userId,

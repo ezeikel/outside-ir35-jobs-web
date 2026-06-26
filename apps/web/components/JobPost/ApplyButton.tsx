@@ -53,11 +53,10 @@ const ApplyButton = ({
     );
   }
 
-  // A poster viewing their own job, or a non-contractor: no apply control.
+  // Own job, or a not-yet-onboarded viewer: no apply control.
   if (
     !eligibility.ok &&
-    (eligibility.reason === 'own_job' ||
-      eligibility.reason === 'not_contractor')
+    (eligibility.reason === 'own_job' || eligibility.reason === 'not_onboarded')
   ) {
     return null;
   }

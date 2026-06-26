@@ -1,4 +1,4 @@
-import type { JobSource, Role } from '@outside-ir35-jobs/db/types';
+import type { JobSource } from '@outside-ir35-jobs/db/types';
 
 /**
  * Pure eligibility check for applying to a job on-platform. Shared by the
@@ -6,14 +6,16 @@ import type { JobSource, Role } from '@outside-ir35-jobs/db/types';
  * the right state). A silent bug here would let someone apply to the wrong thing,
  * so it's unit-tested.
  *
- * On-platform apply is only for NATIVE, active jobs the contractor doesn't own
- * and hasn't already applied to. AGGREGATED jobs have no owner to receive the
- * application — those link out to the source instead (handled in the UI).
+ * DUAL-CAPABILITY: any onboarded user may apply (role is just a default VIEW, not
+ * a capability) — a user who also posts can still apply to OTHER people's roles.
+ * What's blocked is applying to your OWN job, to an inactive/aggregated job, or
+ * twice. AGGREGATED jobs have no owner to receive the application — those link out
+ * to the source instead (handled in the UI).
  */
 
 export type ApplyReason =
   | 'not_signed_in'
-  | 'not_contractor'
+  | 'not_onboarded'
   | 'aggregated' // external listing — apply at source, not here
   | 'inactive'
   | 'own_job'
@@ -26,7 +28,9 @@ export type ApplyEligibility =
 export type CanApplyInput = {
   // Viewer (the would-be applicant).
   viewerId: string | null;
-  viewerRole: Role | null;
+  // Whether the viewer has finished onboarding (picked a default role). A
+  // not-yet-onboarded user is mid-signup, not eligible to act yet.
+  viewerOnboarded: boolean;
   // The job.
   jobSource: JobSource;
   jobIsActive: boolean;
@@ -37,10 +41,7 @@ export type CanApplyInput = {
 
 export const canApply = (input: CanApplyInput): ApplyEligibility => {
   if (!input.viewerId) return { ok: false, reason: 'not_signed_in' };
-  // Only contractors (JOB_SEEKER) apply. (Role is a string enum at runtime.)
-  if (input.viewerRole !== 'JOB_SEEKER') {
-    return { ok: false, reason: 'not_contractor' };
-  }
+  if (!input.viewerOnboarded) return { ok: false, reason: 'not_onboarded' };
   if (input.jobSource !== 'NATIVE') return { ok: false, reason: 'aggregated' };
   if (!input.jobIsActive) return { ok: false, reason: 'inactive' };
   if (input.jobOwnerId && input.jobOwnerId === input.viewerId) {
