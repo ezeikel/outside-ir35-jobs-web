@@ -51,6 +51,7 @@ const OnboardingPaywall = ({ onContinue }: { onContinue: () => void }) => {
           className="p-3 active:opacity-70"
           onPress={onContinue}
           accessibilityRole="button"
+          accessibilityLabel="Maybe later"
         >
           <Text className="text-center font-sans-semibold text-base text-muted-foreground">
             Maybe later

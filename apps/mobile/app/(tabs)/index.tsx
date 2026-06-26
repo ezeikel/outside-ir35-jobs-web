@@ -78,6 +78,8 @@ const JobsScreen = () => {
             className="mt-2 self-start rounded-lg border border-border bg-card px-3 py-2 active:opacity-70"
             disabled={save.isPending}
             onPress={() => save.mutate()}
+            accessibilityRole="button"
+            accessibilityLabel="Save this search and get alerts"
           >
             <Text className="text-sm text-foreground">
               {save.isPending ? "Saving…" : "＋ Save this search & get alerts"}

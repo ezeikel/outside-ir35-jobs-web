@@ -240,6 +240,8 @@ const DocRow = ({
               className="flex-1 rounded-lg border border-border px-3 py-2 active:opacity-70"
               disabled={busy}
               onPress={() => choose("file")}
+              accessibilityRole="button"
+              accessibilityLabel={`Choose a ${label} file`}
             >
               <Text className="text-center text-sm text-foreground">
                 Choose file
@@ -249,6 +251,8 @@ const DocRow = ({
               className="flex-1 rounded-lg border border-border px-3 py-2 active:opacity-70"
               disabled={busy}
               onPress={() => choose("photo")}
+              accessibilityRole="button"
+              accessibilityLabel={`Take or choose a ${label} photo`}
             >
               <Text className="text-center text-sm text-foreground">
                 Take/choose photo

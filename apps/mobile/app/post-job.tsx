@@ -283,6 +283,9 @@ const PostJobScreen = () => {
         <Pressable
           className="mt-1 flex-row items-start gap-3 active:opacity-80"
           onPress={() => setAttested((v) => !v)}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: attested }}
+          accessibilityLabel="I confirm this reflects the client’s stated IR35 position"
         >
           <View
             className={`mt-0.5 h-5 w-5 items-center justify-center rounded border ${
