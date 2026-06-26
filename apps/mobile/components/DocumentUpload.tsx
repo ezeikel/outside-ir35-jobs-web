@@ -1,14 +1,11 @@
+import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { toast } from "sonner-native";
+import { z } from "zod";
 import ConfirmSheet from "@/components/ConfirmSheet";
+import FormField from "@/components/FormField";
 import {
   deleteDocument,
   type PickedFile,
@@ -18,6 +15,27 @@ import {
 } from "@/lib/api-documents";
 import type { MobileProfile } from "@/lib/api-profile";
 import { pickDocumentFile, pickImageFile } from "@/lib/pick-document";
+
+// Validation for the expiry-doc metadata. Insurer + cover are optional (RTW docs
+// don't show them); when given, cover must be a plain number and expiry must be a
+// real YYYY-MM-DD date. Empty strings are allowed (optional), so we guard format
+// only when there's a value.
+const metaSchema = z.object({
+  insurer: z.string(),
+  coverLimit: z
+    .string()
+    .refine((v) => v === "" || /^\d+$/.test(v.trim()), "Numbers only (e.g. 1000000)"),
+  expiresAt: z
+    .string()
+    .refine(
+      (v) => v === "" || /^\d{4}-\d{2}-\d{2}$/.test(v.trim()),
+      "Use YYYY-MM-DD",
+    )
+    .refine(
+      (v) => v === "" || !Number.isNaN(Date.parse(v.trim())),
+      "Not a real date",
+    ),
+});
 
 // Per-doc-type upload control on the verified profile. Each compliance-pack type
 // is a row: shows on-file/expiry when present, and an Add/Replace action that
@@ -64,28 +82,15 @@ const DocRow = ({
   const [expanded, setExpanded] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [picked, setPicked] = useState<PickedFile | null>(null);
-  const [insurer, setInsurer] = useState("");
-  const [coverLimit, setCoverLimit] = useState("");
-  const [expiresAt, setExpiresAt] = useState(""); // YYYY-MM-DD
 
   const upload = useMutation({
-    mutationFn: (file: PickedFile) => {
-      const meta: UploadMeta | undefined = tracksExpiry
-        ? {
-            insurer: insurer.trim() || undefined,
-            coverLimit: coverLimit.trim() || undefined,
-            expiresAt: expiresAt.trim() || undefined,
-          }
-        : undefined;
-      return uploadDocument(docType, file, meta);
-    },
+    mutationFn: ({ file, meta }: { file: PickedFile; meta?: UploadMeta }) =>
+      uploadDocument(docType, file, meta),
     onSuccess: () => {
       toast.success(`${label} uploaded.`);
       setExpanded(false);
       setPicked(null);
-      setInsurer("");
-      setCoverLimit("");
-      setExpiresAt("");
+      form.reset();
       void queryClient.invalidateQueries({ queryKey: ["profile"] });
     },
     onError: (e: unknown) => {
@@ -94,6 +99,23 @@ const DocRow = ({
           ?.error ??
         (e instanceof Error ? e.message : "Upload failed.");
       toast.error(msg);
+    },
+  });
+
+  // Metadata form for expiry-tracking docs (insurer / cover / expiry). Validated
+  // with zod on change; submit fires the upload with the picked file + trimmed
+  // values. Non-expiry docs skip this entirely and upload immediately on pick.
+  const form = useForm({
+    defaultValues: { insurer: "", coverLimit: "", expiresAt: "" },
+    validators: { onChange: metaSchema },
+    onSubmit: ({ value }) => {
+      if (!picked) return;
+      const meta: UploadMeta = {
+        insurer: value.insurer.trim() || undefined,
+        coverLimit: value.coverLimit.trim() || undefined,
+        expiresAt: value.expiresAt.trim() || undefined,
+      };
+      upload.mutate({ file: picked, meta });
     },
   });
 
@@ -113,7 +135,7 @@ const DocRow = ({
       if (!file) return;
       setPicked(file);
       // Non-expiry docs upload immediately; expiry docs wait for the metadata.
-      if (!tracksExpiry) upload.mutate(file);
+      if (!tracksExpiry) upload.mutate({ file });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn’t pick that file.");
     }
@@ -127,9 +149,7 @@ const DocRow = ({
     setExpanded((open) => {
       if (open) {
         setPicked(null);
-        setInsurer("");
-        setCoverLimit("");
-        setExpiresAt("");
+        form.reset();
       }
       return !open;
     });
@@ -179,31 +199,37 @@ const DocRow = ({
         <View className="mt-3 gap-2">
           {docType !== "RIGHT_TO_WORK" ? (
             <>
-              <TextInput
-                className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
-                placeholder="Insurer (e.g. Qdos, Markel)"
-                placeholderTextColor="#a3a09e"
-                value={insurer}
-                onChangeText={setInsurer}
-              />
-              <TextInput
-                className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
-                placeholder="Cover limit in £ (e.g. 1000000)"
-                placeholderTextColor="#a3a09e"
-                keyboardType="number-pad"
-                value={coverLimit}
-                onChangeText={setCoverLimit}
-              />
+              <form.Field name="insurer">
+                {(field) => (
+                  <FormField
+                    field={field}
+                    label="Insurer"
+                    placeholder="e.g. Qdos, Markel"
+                  />
+                )}
+              </form.Field>
+              <form.Field name="coverLimit">
+                {(field) => (
+                  <FormField
+                    field={field}
+                    label="Cover limit (£)"
+                    placeholder="e.g. 1000000"
+                    keyboardType="number-pad"
+                  />
+                )}
+              </form.Field>
             </>
           ) : null}
-          <TextInput
-            className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
-            placeholder="Expiry date (YYYY-MM-DD)"
-            placeholderTextColor="#a3a09e"
-            value={expiresAt}
-            onChangeText={setExpiresAt}
-            autoCapitalize="none"
-          />
+          <form.Field name="expiresAt">
+            {(field) => (
+              <FormField
+                field={field}
+                label="Expiry date"
+                placeholder="YYYY-MM-DD"
+                autoCapitalize="none"
+              />
+            )}
+          </form.Field>
           {picked ? (
             <Text className="text-xs text-muted-foreground">
               Selected: {picked.name}
@@ -229,19 +255,23 @@ const DocRow = ({
               </Text>
             </Pressable>
           </View>
-          <Pressable
-            className={`rounded-lg p-3 ${picked ? "bg-primary active:opacity-90" : "bg-ink-300"}`}
-            disabled={!picked || busy}
-            onPress={() => picked && upload.mutate(picked)}
-          >
-            {upload.isPending ? (
-              <ActivityIndicator color="#fbfaf9" size="small" />
-            ) : (
-              <Text className="text-center font-sans-semibold text-primary-foreground">
-                Upload
-              </Text>
+          <form.Subscribe selector={(s) => s.canSubmit}>
+            {(canSubmit) => (
+              <Pressable
+                className={`rounded-lg p-3 ${picked && canSubmit ? "bg-primary active:opacity-90" : "bg-ink-300"}`}
+                disabled={!picked || !canSubmit || busy}
+                onPress={() => void form.handleSubmit()}
+              >
+                {upload.isPending ? (
+                  <ActivityIndicator color="#fbfaf9" size="small" />
+                ) : (
+                  <Text className="text-center font-sans-semibold text-primary-foreground">
+                    Upload
+                  </Text>
+                )}
+              </Pressable>
             )}
-          </Pressable>
+          </form.Subscribe>
         </View>
       ) : null}
       </View>
