@@ -1,13 +1,13 @@
 import { faHeart, faRectangleList } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { FlashList } from "@shopify/flash-list";
+import { useQuery } from "@tanstack/react-query";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
   RefreshControl,
-  ScrollView,
   Text,
   View,
 } from "react-native";
@@ -17,6 +17,7 @@ import JobCard from "@/components/JobCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedJobs } from "@/hooks/useSavedJobs";
 import { useViewMode } from "@/hooks/useViewMode";
+import { fetchApplications } from "@/lib/api-applications";
 
 // "My jobs" (seeker) / "My posts" (hiring). Mode-aware. Seekers get Saved +
 // Applications sub-tabs; hirers get their listings. The data surfaces (saved
@@ -146,20 +147,84 @@ const MyJobsScreen = () => {
       {tab === "saved" ? (
         <SavedTab bottomInset={insets.bottom + TAB_BAR_HEIGHT} />
       ) : (
-        <ScrollView
-          contentContainerStyle={{
-            flexGrow: 1,
-            paddingBottom: insets.bottom + TAB_BAR_HEIGHT,
-          }}
-        >
-          <EmptyState
-            icon={faRectangleList}
-            title="No applications yet"
-            body="Contracts you apply to will appear here so you can track them."
-          />
-        </ScrollView>
+        <ApplicationsTab bottomInset={insets.bottom + TAB_BAR_HEIGHT} />
       )}
     </View>
+  );
+};
+
+// Applications list — jobs the contractor has applied to, with applied date and a
+// "Viewed" badge once the poster has opened the application.
+const ApplicationsTab = ({ bottomInset }: { bottomInset: number }) => {
+  const {
+    data: applications = [],
+    isLoading,
+    isRefetching,
+    refetch,
+  } = useQuery({
+    queryKey: ["applications"],
+    queryFn: fetchApplications,
+  });
+
+  useFocusEffect(
+    useCallback(() => {
+      void refetch();
+    }, [refetch]),
+  );
+
+  if (isLoading) {
+    return (
+      <View className="flex-1 items-center justify-center">
+        <ActivityIndicator color="#17181a" />
+      </View>
+    );
+  }
+
+  if (applications.length === 0) {
+    return (
+      <EmptyState
+        icon={faRectangleList}
+        title="No applications yet"
+        body="Contracts you apply to will appear here so you can track them."
+      />
+    );
+  }
+
+  return (
+    <FlashList
+      data={applications}
+      keyExtractor={(item) => item.id}
+      renderItem={({ item }) => (
+        <View>
+          <JobCard
+            job={item.job}
+            saved={false}
+            canSave={false}
+            onToggleSave={() => {}}
+          />
+          <View className="-mt-2 mb-3 flex-row items-center gap-2 px-1">
+            <Text className="text-xs text-muted-foreground">
+              Applied {new Date(item.appliedAt).toLocaleDateString("en-GB")}
+            </Text>
+            {item.viewed ? (
+              <View className="rounded-full bg-secondary px-2 py-0.5">
+                <Text className="text-xs font-sans-medium text-secondary-foreground">
+                  Viewed
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+      )}
+      contentContainerStyle={{
+        paddingHorizontal: 16,
+        paddingTop: 12,
+        paddingBottom: bottomInset + 16,
+      }}
+      refreshControl={
+        <RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />
+      }
+    />
   );
 };
 

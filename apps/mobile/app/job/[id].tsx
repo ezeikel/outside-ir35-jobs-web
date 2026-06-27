@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
+import RichText from "@/components/RichText";
 import SaveHeart from "@/components/SaveHeart";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSavedJobs } from "@/hooks/useSavedJobs";
@@ -105,9 +106,15 @@ const JobDetailScreen = () => {
       <Text className="mt-6 font-sans-semibold text-base text-foreground">
         About the role
       </Text>
-      <Text className="mt-2 text-sm leading-6 text-foreground">
-        {job.descriptionText || "No description provided."}
-      </Text>
+      {job.descriptionHtml?.trim() ? (
+        <View className="mt-2">
+          <RichText html={job.descriptionHtml} />
+        </View>
+      ) : (
+        <Text className="mt-2 text-sm leading-6 text-foreground">
+          {job.descriptionText || "No description provided."}
+        </Text>
+      )}
 
       <ApplyControl
         jobId={job.id}

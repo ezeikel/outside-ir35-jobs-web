@@ -63,7 +63,7 @@ export default defineConfig({
     // the /api/mobile/* endpoints directly with the token global-setup minted.
     {
       name: 'mobile-api',
-      testMatch: /mobile-(saved-jobs|cvs)\.spec\.ts/,
+      testMatch: /mobile-(saved-jobs|cvs|applications)\.spec\.ts/,
     },
   ],
   // Run against a PRODUCTION build, not `next dev`. The jsdom ERR_REQUIRE_ESM
