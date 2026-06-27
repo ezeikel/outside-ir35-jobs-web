@@ -21,12 +21,12 @@ const onFile = (type: ContractorDocType) => ({
 const fullState = (): TrustTierState => ({
   companies: [verifiedCompany],
   rightToWorkConfirmed: true,
+  hasCV: true,
   documents: [
     onFile(ContractorDocType.PI_INSURANCE),
     onFile(ContractorDocType.PL_INSURANCE),
     onFile(ContractorDocType.EL_INSURANCE),
     onFile(ContractorDocType.RIGHT_TO_WORK),
-    onFile(ContractorDocType.CV),
   ],
 });
 
@@ -37,6 +37,7 @@ describe('computeTrustTier', () => {
         companies: [],
         documents: [],
         rightToWorkConfirmed: false,
+        hasCV: false,
       }),
     ).toBe(ContractorTrustTier.SELF_DECLARED);
   });
@@ -47,6 +48,7 @@ describe('computeTrustTier', () => {
         companies: [{ companyVerifiedAt: new Date(), vatVerifiedAt: null }],
         documents: [],
         rightToWorkConfirmed: false,
+        hasCV: false,
       }),
     ).toBe(ContractorTrustTier.SELF_DECLARED);
   });
@@ -63,6 +65,7 @@ describe('computeTrustTier', () => {
         companies: [verifiedCompany],
         documents: [],
         rightToWorkConfirmed: false,
+        hasCV: false,
       }),
     ).toBe(ContractorTrustTier.IDENTITY_VERIFIED);
   });
@@ -85,7 +88,15 @@ describe('computeTrustTier', () => {
 
   it('is DOCUMENTS_ON_FILE when an expected doc is missing', () => {
     const s = fullState();
-    s.documents = s.documents.filter((d) => d.type !== ContractorDocType.CV);
+    s.documents = s.documents.filter(
+      (d) => d.type !== ContractorDocType.RIGHT_TO_WORK,
+    );
+    expect(computeTrustTier(s)).toBe(ContractorTrustTier.DOCUMENTS_ON_FILE);
+  });
+
+  it('is DOCUMENTS_ON_FILE when no CV is on file', () => {
+    const s = fullState();
+    s.hasCV = false;
     expect(computeTrustTier(s)).toBe(ContractorTrustTier.DOCUMENTS_ON_FILE);
   });
 

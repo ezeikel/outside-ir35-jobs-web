@@ -71,6 +71,17 @@ export const POST = async (request: Request) => {
         }
         break;
       }
+      // A mobile job-posting paid via the native Stripe Payment Sheet (PaymentIntent,
+      // not Checkout) → publish the job. The jobId rides in the PI metadata. Same
+      // idempotent fulfilment as the web checkout path.
+      case 'payment_intent.succeeded': {
+        const pi = event.data.object as Stripe.PaymentIntent;
+        const jobId = pi.metadata?.jobId;
+        if (jobId) {
+          await fulfilJobPayment(jobId);
+        }
+        break;
+      }
       // Subscription lifecycle → sync our Subscription row (source of truth).
       case 'customer.subscription.created':
       case 'customer.subscription.updated':

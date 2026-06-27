@@ -1,4 +1,3 @@
-import { Role } from '@outside-ir35-jobs/db/types';
 import { NextResponse } from 'next/server';
 import { deleteDocumentForUser } from '@/app/actions';
 import { getMobileCaller } from '@/lib/mobile/auth';
@@ -16,9 +15,9 @@ export const DELETE = async (
   if (!caller) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
-  if (caller.role !== Role.JOB_SEEKER) {
+  if (!caller.onboarded) {
     return NextResponse.json(
-      { error: 'Only contractors can remove documents' },
+      { error: 'Finish setting up your account to remove documents' },
       { status: 403 },
     );
   }

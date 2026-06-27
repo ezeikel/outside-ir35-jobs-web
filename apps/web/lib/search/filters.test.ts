@@ -50,16 +50,17 @@ describe('normalizeFilters', () => {
 
   it('sets ir35Outside only for "outside"', () => {
     expect(normalizeFilters({ ir35: 'outside' }).ir35Outside).toBe(true);
+    // 'any' is no longer a thing — it's not strict-outside.
     expect(normalizeFilters({ ir35: 'any' }).ir35Outside).toBe(false);
   });
 
-  it('hides INSIDE by default, and on strict-outside, but not on ?ir35=any', () => {
+  it('ALWAYS hides INSIDE — outside-IR35 board, no opt-in', () => {
     // default board (no param): outside + unknown, INSIDE hidden
     expect(normalizeFilters({}).ir35ExcludeInside).toBe(true);
     // strict outside still excludes inside
     expect(normalizeFilters({ ir35: 'outside' }).ir35ExcludeInside).toBe(true);
-    // explicit "show everything" opts INSIDE back in
-    expect(normalizeFilters({ ir35: 'any' }).ir35ExcludeInside).toBe(false);
+    // a leftover/hand-crafted ?ir35=any can NO LONGER surface inside.
+    expect(normalizeFilters({ ir35: 'any' }).ir35ExcludeInside).toBe(true);
   });
 
   it('hasActiveFilters detects any constraint', () => {

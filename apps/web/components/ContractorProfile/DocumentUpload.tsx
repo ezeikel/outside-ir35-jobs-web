@@ -11,14 +11,16 @@ import { DOC_LABEL } from './ContractorProfile';
 // The documents a contractor self-uploads to their pack. Excludes the types
 // proven by official-register checks (INCORPORATION + VAT_CERTIFICATE are verified
 // via the company against Companies House / HMRC — a self-uploaded PDF would be
-// weaker and ambiguous vs the register check) and the catch-all OTHER.
-const REGISTER_VERIFIED = new Set<ContractorDocType>([
+// weaker and ambiguous vs the register check), the catch-all OTHER, and CV (CVs
+// are multi-version now and upload via their own flow, not this dropdown).
+const EXCLUDED = new Set<ContractorDocType>([
   ContractorDocType.INCORPORATION,
   ContractorDocType.VAT_CERTIFICATE,
   ContractorDocType.OTHER,
+  ContractorDocType.CV,
 ]);
 const DOC_TYPES = Object.values(ContractorDocType).filter(
-  (t) => !REGISTER_VERIFIED.has(t),
+  (t) => !EXCLUDED.has(t),
 );
 
 const SubmitButton = () => {

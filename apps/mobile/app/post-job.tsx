@@ -1,3 +1,4 @@
+import { useStripe } from "@stripe/stripe-react-native";
 import { useForm } from "@tanstack/react-form";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -10,16 +11,20 @@ import { z } from "zod";
 import FormField from "@/components/FormField";
 import RichTextField from "@/components/RichTextField";
 import { useAuth } from "@/contexts/AuthContext";
-import { type PostJobInput, postJob } from "@/lib/api-jobs";
-import { getJobPostPackage, purchasePackage } from "@/lib/revenuecat";
+import {
+  createJobPaymentIntent,
+  type PostJobInput,
+  postJob,
+} from "@/lib/api-jobs";
 
-// Post a contract from mobile (posters only). Mirrors the web PostJobForm but
+// Post a contract from mobile (any onboarded user). Mirrors the web PostJobForm but
 // mobile-focused: the description + how-to-apply are Enriched rich text (HTML out,
-// round-trips with web TipTap). On submit the job is created PENDING via the
-// shared createUnpaidJob primitive; payment then goes through RevenueCat (the
-// mobile provider — Stripe is web-only per App Store rules) and the RC webhook
-// publishes it. The RC purchase is the one piece still stubbed (RevenueCat isn't
-// provisioned yet — see the TODO below).
+// round-trips with web TipTap). On submit the job is created PENDING via the shared
+// createUnpaidJob primitive, then paid for with the NATIVE Stripe Payment Sheet —
+// a recruiter pays £219 on a company card in-app and gets a VAT invoice (unlike
+// StoreKit, which is a personal Apple ID + Apple's 30% cut). The Stripe webhook
+// (payment_intent.succeeded) publishes the job. DB is the source of truth — we
+// never trust the client to mark it paid.
 
 const WORK_MODES = [
   { value: "REMOTE", label: "Remote" },
@@ -47,6 +52,7 @@ const PostJobScreen = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
   // Rich-text + picker fields live outside the TanStack form (the editor is
   // uncontrolled / native; pickers are simple state). The form validates the
@@ -59,24 +65,40 @@ const PostJobScreen = () => {
   const [attested, setAttested] = useState(false);
 
   const post = useMutation({
-    // 1) Create the unpaid (PENDING) job → get its id. 2) Purchase the one-time
-    // job-post product via RevenueCat (StoreKit/Play). The RC webhook then flips
-    // the poster's newest pending job → PAID + live (reconciled by app_user_id +
-    // the store transaction id). DB is the source of truth — we don't trust the
-    // client to mark it paid.
+    // 1) Create the unpaid (PENDING) job → get its id. 2) Open the native Stripe
+    // Payment Sheet for £219 (company card / Apple Pay, VAT invoice). The Stripe
+    // webhook (payment_intent.succeeded) then flips the job → PAID + live. DB is
+    // the source of truth — we don't trust the client to mark it paid.
     mutationFn: async (input: PostJobInput) => {
       const { jobId } = await postJob(input);
-      const pkg = await getJobPostPackage();
-      if (!pkg) {
-        throw new Error("Job-post payment isn’t available right now.");
+      const intent = await createJobPaymentIntent(jobId);
+
+      const init = await initPaymentSheet({
+        merchantDisplayName: "Outside IR35 Jobs",
+        paymentIntentClientSecret: intent.paymentIntentClientSecret,
+        customerId: intent.customerId,
+        customerEphemeralKeySecret: intent.ephemeralKeySecret,
+        allowsDelayedPaymentMethods: false,
+        applePay: { merchantCountryCode: "GB" },
+        googlePay: { merchantCountryCode: "GB", testEnv: true },
+      });
+      if (init.error) {
+        throw new Error(init.error.message);
       }
-      const info = await purchasePackage(pkg);
-      // null = the user cancelled the App Store sheet. The job stays PENDING (a
-      // future "finish payment" can retry); treat as a soft no-op, not an error.
-      return { jobId, purchased: info !== null };
+
+      const { error } = await presentPaymentSheet();
+      if (error) {
+        // Canceled is a soft no-op — the job stays PENDING (a future "finish
+        // payment" can retry). Any other error surfaces.
+        if (error.code === "Canceled") {
+          return { jobId, paid: false };
+        }
+        throw new Error(error.message);
+      }
+      return { jobId, paid: true };
     },
     onSuccess: (result) => {
-      if (result.purchased) {
+      if (result.paid) {
         toast.success("Payment received. Your contract is going live.");
         router.back();
       } else {
@@ -130,18 +152,19 @@ const PostJobScreen = () => {
     },
   });
 
-  // Posters only.
-  if (user?.role !== "JOB_POSTER") {
+  // Any onboarded user can post (dual-capability). A signed-out / not-yet-
+  // onboarded user is sent back to finish setup first.
+  if (!user?.onboarded) {
     return (
       <View
         className="flex-1 items-center justify-center bg-background px-8"
         style={{ paddingTop: insets.top }}
       >
         <Text className="text-center font-display text-2xl text-foreground">
-          Posting is for hiring accounts
+          Finish setting up first
         </Text>
         <Text className="mt-2 text-center text-sm text-muted-foreground">
-          Switch to a hiring account to post a contract.
+          Complete your account setup, then you can post a contract.
         </Text>
         <Pressable
           className="mt-6 rounded-lg border border-border px-5 py-3 active:opacity-70"
@@ -323,8 +346,8 @@ const PostJobScreen = () => {
         </form.Subscribe>
 
         <Text className="text-center text-xs text-muted-foreground">
-          Payment is taken through your App Store account. Your listing goes live
-          once payment is confirmed.
+          Pay securely by card (company cards welcome). You’ll get a receipt, and
+          your listing goes live once payment clears.
         </Text>
       </KeyboardAwareScrollView>
     </View>

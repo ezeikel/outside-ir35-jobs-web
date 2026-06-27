@@ -26,6 +26,7 @@ import {
   parseExpiry,
   tracksExpiry,
   UploadError,
+  validateCvFile,
   validateUpload,
 } from '@/lib/documents/validate';
 import { buildJobAlertEmail, IR35_SIGNAL_LABEL } from '@/lib/email/job-alert';
@@ -71,23 +72,27 @@ import {
 // every export in a 'use server' file is a client-callable action). Called after
 // any change that can move the tier: upload, metadata edit, expiry sweep.
 const recomputeTrustTier = async (userId: string): Promise<boolean> => {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      trustTier: true,
-      rightToWorkConfirmed: true,
-      limitedCompanies: {
-        select: { companyVerifiedAt: true, vatVerifiedAt: true },
+  const [user, cvCount] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        trustTier: true,
+        rightToWorkConfirmed: true,
+        limitedCompanies: {
+          select: { companyVerifiedAt: true, vatVerifiedAt: true },
+        },
+        documents: { select: { type: true, status: true } },
       },
-      documents: { select: { type: true, status: true } },
-    },
-  });
+    }),
+    prisma.contractorCV.count({ where: { userId } }),
+  ]);
   if (!user) return false;
 
   const next = computeTrustTier({
     companies: user.limitedCompanies,
     documents: user.documents,
     rightToWorkConfirmed: user.rightToWorkConfirmed,
+    hasCV: cvCount > 0,
   });
 
   if (next === user.trustTier) return false;
@@ -232,6 +237,99 @@ const createJobCheckoutSession = async (
 };
 
 /**
+ * Create a Stripe PaymentIntent for the native mobile Payment Sheet. Mobile takes
+ * card details in-app (no browser bounce) so a recruiter can pay £219 on a company
+ * card and get a VAT invoice — unlike StoreKit, which is a personal Apple ID with
+ * Apple's 30% cut. The amount comes from the SAME Stripe Price the web checkout
+ * uses (single source of truth — no hardcoded £219). We also mint a Customer +
+ * ephemeral key so the sheet can offer saved cards / Apple Pay. The jobId rides in
+ * the PI metadata; the webhook (payment_intent.succeeded) publishes the job. Owner-
+ * scoped: only the job's poster can pay for it, and only while it's PENDING.
+ */
+export const createJobPaymentIntentForUser = async (
+  userId: string,
+  jobId: string,
+): Promise<{
+  paymentIntentClientSecret: string;
+  customerId: string;
+  ephemeralKeySecret: string;
+  publishableKey: string;
+  amount: number;
+  currency: string;
+}> => {
+  const job = await prisma.job.findFirst({
+    where: { id: jobId, userId },
+    select: { id: true, position: true, paymentStatus: true },
+  });
+  if (!job) throw new Error('Job not found');
+  if (job.paymentStatus !== 'PENDING') {
+    throw new Error('This job is not awaiting payment');
+  }
+
+  // The app initialises StripeProvider with the build-time publishable key, so
+  // this is optional here — returned as a convenience when set.
+  const publishableKey = process.env.STRIPE_PUBLISHABLE_KEY ?? '';
+
+  const stripe = getStripe();
+
+  // Pull the amount + currency from the job-post Price so the native sheet always
+  // charges exactly what the web checkout does.
+  const price = await stripe.prices.retrieve(getJobPostPriceId());
+  if (price.unit_amount == null) {
+    throw new Error('Job-post price has no fixed amount');
+  }
+
+  // A Customer is required for the ephemeral key (saved cards / Apple Pay). Reuse
+  // the user's email so Stripe groups their payments; created fresh per intent is
+  // fine for one-off posts (we don't persist the customer for job posts).
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true, name: true },
+  });
+  const customer = await stripe.customers.create({
+    email: user?.email ?? undefined,
+    name: user?.name ?? undefined,
+    metadata: { userId },
+  });
+
+  // The ephemeral key's apiVersion must match the version the mobile Stripe SDK
+  // pins. We pin the server SDK's own LatestApiVersion so the two stay in lockstep
+  // with the installed stripe package (currently 2024-04-10).
+  const ephemeralKey = await stripe.ephemeralKeys.create(
+    { customer: customer.id },
+    { apiVersion: '2024-04-10' },
+  );
+
+  const intent = await stripe.paymentIntents.create({
+    amount: price.unit_amount,
+    currency: price.currency,
+    customer: customer.id,
+    description: `Job posting: ${job.position}`.slice(0, 1000),
+    // The webhook publishes the job off this.
+    metadata: { jobId: job.id, userId },
+    automatic_payment_methods: { enabled: true },
+  });
+  if (!intent.client_secret) {
+    throw new Error('Stripe did not return a client secret');
+  }
+
+  // Persist the PI id on the job so we can reconcile / retry if needed.
+  await prisma.job.update({
+    where: { id: job.id },
+    data: { stripeSessionId: intent.id },
+  });
+
+  return {
+    paymentIntentClientSecret: intent.client_secret,
+    customerId: customer.id,
+    ephemeralKeySecret: ephemeralKey.secret as string,
+    publishableKey,
+    amount: price.unit_amount,
+    currency: price.currency,
+  };
+};
+
+/**
  * Publish a job whose Stripe payment has completed. Called by the webhook on
  * checkout.session.completed, keyed on the jobId carried in the session metadata
  * (race-proof: doesn't depend on stripeSessionId having been persisted before the
@@ -334,8 +432,10 @@ const buildJobFilterConds = (f: SearchFilters): Prisma.Sql[] => {
       Prisma.sql`"ir35Signal" = ANY(${OUTSIDE_SIGNALS}::"JobIR35Signal"[])`,
     );
   } else if (f.ir35ExcludeInside) {
-    // Belt-and-braces with boardVisible: explicit INSIDE never shows by default.
-    // (?ir35=any drops this clause but boardVisible still blocks hidden INSIDE.)
+    // Belt-and-braces with boardVisible: explicit INSIDE never shows. This branch
+    // always runs (ir35ExcludeInside is now always true — no include-inside option
+    // on an outside-IR35 board), so inside is excluded by both this clause and the
+    // boardVisible=false gate.
     conds.push(Prisma.sql`"ir35Signal" <> 'INSIDE'::"JobIR35Signal"`);
   }
   if (f.minRate !== null) {
@@ -445,7 +545,7 @@ const RECOMMEND_LIMIT = 8;
  */
 export const getRecommendedJobs = async (): Promise<RecommendationResult> => {
   const session = await auth();
-  if (!session?.userId || session.role !== Role.JOB_SEEKER) {
+  if (!session?.userId || !session.onboarded) {
     return { status: 'no_cv' };
   }
 
@@ -495,7 +595,7 @@ export const getJobMatchAndPitch = async (
   jobId: string,
 ): Promise<MatchPitchResult> => {
   const session = await auth();
-  if (!session?.userId || session.role !== Role.JOB_SEEKER) {
+  if (!session?.userId || !session.onboarded) {
     return { status: 'no_cv' };
   }
 
@@ -726,7 +826,7 @@ export const setUserRole = async (input: OnboardingRoleValues) => {
 // leaking a stranger's compliance pack to any visitor — removed.)
 export const getContractorProfile = async () => {
   const session = await auth();
-  if (!session?.userId || session.role !== Role.JOB_SEEKER) {
+  if (!session?.userId || !session.onboarded) {
     return null;
   }
 
@@ -735,6 +835,17 @@ export const getContractorProfile = async () => {
     include: {
       limitedCompanies: true,
       documents: { orderBy: { createdAt: 'asc' } },
+      cvs: {
+        orderBy: [{ isActive: 'desc' }, { createdAt: 'desc' }],
+        select: {
+          id: true,
+          name: true,
+          status: true,
+          isActive: true,
+          parsedProfile: true,
+          createdAt: true,
+        },
+      },
     },
   });
 };
@@ -822,12 +933,8 @@ export const uploadDocumentForUser = async (
     update: { r2Key: key, status, insurer, coverLimit, expiresAt },
   });
 
-  // A CV upload kicks off background parsing on the worker (fetch from R2 →
-  // Claude → structured profile + embedding). Fire-and-forget: best-effort, never
-  // blocks or fails the upload. The profile shows on the next /profile load.
-  if (type === ContractorDocType.CV) {
-    triggerCvParse({ userId, r2Key: key, mimeType: file.type });
-  }
+  // (CVs are no longer compliance docs — they upload via uploadCVForUser into the
+  // ContractorCV table, which triggers parsing there.)
 
   // Uploading a right-to-work document IS the confirmation — set the flag so the
   // T3 (COMPLIANCE_CURRENT) gate can be satisfied. Track the computed status BOTH
@@ -847,10 +954,254 @@ export const uploadDocumentForUser = async (
 
 export const uploadContractorDocument = async (formData: FormData) => {
   const session = await auth();
-  if (!session?.userId || session.role !== Role.JOB_SEEKER) {
-    throw new Error('Only contractors can upload documents');
+  if (!session?.userId || !session.onboarded) {
+    throw new Error('Finish setting up your account to upload documents');
   }
   await uploadDocumentForUser(session.userId, formData);
+  revalidatePath('/profile');
+};
+
+/* ------------------------------------------------------------------ *
+ * CVs — multiple named versions. Each is parsed independently; one is *
+ * `isActive` and drives User.parsedProfile/embedding (job matching).  *
+ * ------------------------------------------------------------------ */
+
+const MAX_CVS = 10;
+const DEFAULT_CV_NAME = 'My CV';
+
+// A CV the contractor sees: never exposes the r2Key (private). `parsed` is true
+// once the worker has filled parsedProfile.
+export type MyCV = {
+  id: string;
+  name: string;
+  status: DocStatus;
+  isActive: boolean;
+  parsed: boolean;
+  createdAt: string;
+};
+
+const toMyCV = (cv: {
+  id: string;
+  name: string;
+  status: DocStatus;
+  isActive: boolean;
+  parsedProfile: unknown;
+  createdAt: Date;
+}): MyCV => ({
+  id: cv.id,
+  name: cv.name,
+  status: cv.status,
+  isActive: cv.isActive,
+  parsed: cv.parsedProfile != null,
+  createdAt: cv.createdAt.toISOString(),
+});
+
+export const getMyCVs = async (): Promise<MyCV[]> => {
+  const session = await auth();
+  if (!session?.userId || !session.onboarded) return [];
+  const cvs = await prisma.contractorCV.findMany({
+    where: { userId: session.userId },
+    orderBy: [{ isActive: 'desc' }, { createdAt: 'desc' }],
+    select: {
+      id: true,
+      name: true,
+      status: true,
+      isActive: true,
+      parsedProfile: true,
+      createdAt: true,
+    },
+  });
+  return cvs.map(toMyCV);
+};
+
+// Session-agnostic CV upload core (shared by web action + mobile route). Stores
+// the file to R2, creates a ContractorCV row, makes it active (a new CV becomes
+// the matching profile by default), and kicks off parsing on the worker. Honest
+// to the matching pipeline: making this CV active deactivates the others and the
+// worker mirrors ITS parse to User.parsedProfile/embedding.
+export const uploadCVForUser = async (
+  userId: string,
+  formData: FormData,
+): Promise<MyCV> => {
+  const file = formData.get('file');
+  if (!(file instanceof File)) {
+    throw new UploadError('No file provided');
+  }
+  const check = validateCvFile({ mimeType: file.type, size: file.size });
+  if (!check.ok) {
+    throw new UploadError(check.error);
+  }
+
+  const count = await prisma.contractorCV.count({ where: { userId } });
+  if (count >= MAX_CVS) {
+    throw new UploadError(
+      `You can keep up to ${MAX_CVS} CVs. Delete one to add another.`,
+    );
+  }
+
+  const rawName = String(formData.get('name') ?? '').trim();
+  const name = rawName.slice(0, 60) || DEFAULT_CV_NAME;
+
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
+  const key = `contractors/${userId}/cv/${crypto.randomUUID()}.${ext}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+  await put(key, buffer, { contentType: file.type });
+
+  // New CV becomes active; deactivate the others. Done in a transaction so there's
+  // never zero or two active CVs.
+  const cv = await prisma.$transaction(async (tx) => {
+    await tx.contractorCV.updateMany({
+      where: { userId, isActive: true },
+      data: { isActive: false },
+    });
+    return tx.contractorCV.create({
+      data: {
+        userId,
+        name,
+        r2Key: key,
+        status: DocStatus.ON_FILE,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        isActive: true,
+        parsedProfile: true,
+        createdAt: true,
+      },
+    });
+  });
+
+  // Parse on the worker → fills this CV's parsedProfile and (since it's active)
+  // mirrors to User.parsedProfile/embedding. Fire-and-forget.
+  triggerCvParse({ userId, r2Key: key, mimeType: file.type, cvId: cv.id });
+
+  await recomputeTrustTier(userId);
+  return toMyCV(cv);
+};
+
+export const uploadCV = async (formData: FormData): Promise<MyCV> => {
+  const session = await auth();
+  if (!session?.userId || !session.onboarded) {
+    throw new Error('Finish setting up your account to add a CV');
+  }
+  const cv = await uploadCVForUser(session.userId, formData);
+  revalidatePath('/profile');
+  return cv;
+};
+
+export const renameCV = async (cvId: string, name: string): Promise<void> => {
+  const session = await auth();
+  if (!session?.userId) throw new Error('Not signed in');
+  const clean = name.trim().slice(0, 60) || DEFAULT_CV_NAME;
+  // Owner-scoped.
+  await prisma.contractorCV.updateMany({
+    where: { id: cvId, userId: session.userId },
+    data: { name: clean },
+  });
+  revalidatePath('/profile');
+};
+
+// Make a CV the active one. Re-parses (or re-mirrors) so the User profile +
+// embedding follow the newly-active CV. We re-trigger parsing so the matching
+// embedding reflects this CV — if it was already parsed the worker still re-writes
+// the user profile from its stored parse.
+export const setActiveCVForUser = async (
+  userId: string,
+  cvId: string,
+): Promise<void> => {
+  const cv = await prisma.contractorCV.findFirst({
+    where: { id: cvId, userId },
+    select: { id: true, r2Key: true, parsedProfile: true },
+  });
+  if (!cv) throw new Error('CV not found');
+
+  await prisma.$transaction([
+    prisma.contractorCV.updateMany({
+      where: { userId, isActive: true },
+      data: { isActive: false },
+    }),
+    prisma.contractorCV.update({
+      where: { id: cvId },
+      data: { isActive: true },
+    }),
+  ]);
+
+  // If this CV already has a parsed profile, mirror it to the user immediately so
+  // matching updates without waiting on the worker. Also re-trigger a parse to
+  // refresh the embedding (best-effort).
+  if (cv.parsedProfile != null) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { parsedProfile: cv.parsedProfile as Prisma.InputJsonValue },
+    });
+  }
+  // We can't re-fetch the mime type here cheaply; the worker re-fetches from R2 by
+  // key and Claude handles PDF/image. Pass a sensible default; parse-cv sniffs.
+  if (cv.r2Key) {
+    triggerCvParse({
+      userId,
+      r2Key: cv.r2Key,
+      mimeType: 'application/pdf',
+      cvId,
+    });
+  }
+};
+
+export const setActiveCV = async (cvId: string): Promise<void> => {
+  const session = await auth();
+  if (!session?.userId) throw new Error('Not signed in');
+  await setActiveCVForUser(session.userId, cvId);
+  revalidatePath('/profile');
+};
+
+// Delete a CV (R2 object + row). If it was active, promote the most recent
+// remaining CV to active (and re-mirror its profile); if none remain, clear the
+// user's parsedProfile/embedding so matching doesn't use a deleted CV.
+export const deleteCVForUser = async (
+  userId: string,
+  cvId: string,
+): Promise<void> => {
+  const cv = await prisma.contractorCV.findFirst({
+    where: { id: cvId, userId },
+    select: { id: true, r2Key: true, isActive: true },
+  });
+  if (!cv) return;
+
+  if (cv.r2Key) {
+    try {
+      await del(cv.r2Key);
+    } catch {
+      // best-effort
+    }
+  }
+  await prisma.contractorCV.delete({ where: { id: cvId } });
+
+  if (cv.isActive) {
+    const next = await prisma.contractorCV.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
+    if (next) {
+      await setActiveCVForUser(userId, next.id);
+    } else {
+      // No CVs left — clear the matching profile so a deleted CV never drives it.
+      await prisma.user.update({
+        where: { id: userId },
+        data: { parsedProfile: Prisma.JsonNull },
+      });
+      await prisma.$executeRaw`UPDATE "users" SET "embedding" = NULL WHERE "id" = ${userId}`;
+    }
+  }
+  await recomputeTrustTier(userId);
+};
+
+export const deleteCV = async (cvId: string): Promise<void> => {
+  const session = await auth();
+  if (!session?.userId) throw new Error('Not signed in');
+  await deleteCVForUser(session.userId, cvId);
   revalidatePath('/profile');
 };
 
@@ -909,8 +1260,8 @@ export const deleteDocumentForUser = async (
  */
 export const setIr35Insurance = async (input: Ir35InsuranceValues) => {
   const session = await auth();
-  if (!session?.userId || session.role !== Role.JOB_SEEKER) {
-    throw new Error('Only contractors can set IR35 insurance');
+  if (!session?.userId || !session.onboarded) {
+    throw new Error('Finish setting up your account to set IR35 insurance');
   }
 
   const parsed = Ir35InsuranceSchema.parse(input);
@@ -940,6 +1291,7 @@ const triggerCvParse = (body: {
   userId: string;
   r2Key: string;
   mimeType: string;
+  cvId?: string;
 }): void => {
   const workerUrl = process.env.OUTSIDE_IR35_JOBS_WORKER_URL;
   if (!workerUrl) return;
@@ -990,8 +1342,8 @@ export const setDocumentMetadata = async (
   },
 ) => {
   const session = await auth();
-  if (!session?.userId || session.role !== Role.JOB_SEEKER) {
-    throw new Error('Only contractors can edit documents');
+  if (!session?.userId || !session.onboarded) {
+    throw new Error('Finish setting up your account to edit documents');
   }
 
   const doc = await prisma.contractorDocument.findUnique({
@@ -1097,8 +1449,10 @@ export const sweepDocumentExpiry = async () => {
   // stored tier always matches reality — self-heals any drift, not only the docs
   // that flipped this run). A doc going EXPIRING/FAILED can demote a tier; a
   // renewal back to ON_FILE restores it.
+  // Any onboarded user can hold contractor docs now (dual-capability — role is
+  // just a default view). Tier is keyed off their documents, so this self-heals.
   const contractors = await prisma.user.findMany({
-    where: { role: Role.JOB_SEEKER },
+    where: { onboardedAt: { not: null } },
     select: { id: true },
   });
   let tiersUpdated = 0;
@@ -1168,8 +1522,8 @@ export const addLimitedCompany = async (
   input: AddCompanyValues,
 ): Promise<CompanyVerificationResult> => {
   const session = await auth();
-  if (!session?.userId || session.role !== Role.JOB_SEEKER) {
-    throw new Error('Only contractors can add a company');
+  if (!session?.userId || !session.onboarded) {
+    throw new Error('Finish setting up your account to add a company');
   }
 
   const { name, incorporationNumber, vatNumber } =
@@ -1190,8 +1544,8 @@ export const reverifyCompany = async (
   companyId: string,
 ): Promise<CompanyVerificationResult> => {
   const session = await auth();
-  if (!session?.userId || session.role !== Role.JOB_SEEKER) {
-    throw new Error('Only contractors can verify a company');
+  if (!session?.userId || !session.onboarded) {
+    throw new Error('Finish setting up your account to verify a company');
   }
 
   const company = await prisma.limitedCompany.findUnique({
@@ -1420,7 +1774,7 @@ export const getApplicantProfile = async (applicantId: string) => {
  */
 export const getMyApplications = async (): Promise<string[]> => {
   const session = await auth();
-  if (!session?.userId || session.role !== Role.JOB_SEEKER) return [];
+  if (!session?.userId || !session.onboarded) return [];
   const apps = await prisma.application.findMany({
     where: { applicantId: session.userId },
     select: { jobId: true },
@@ -1484,8 +1838,8 @@ const FREE_SAVED_SEARCH_LIMIT = 3;
 
 export const saveSearch = async (params: SearchParams): Promise<void> => {
   const session = await auth();
-  if (!session?.userId || session.role !== Role.JOB_SEEKER) {
-    throw new Error('Only contractors can save searches');
+  if (!session?.userId || !session.onboarded) {
+    throw new Error('Finish setting up your account to save searches');
   }
 
   const [count, sub] = await Promise.all([
@@ -1509,7 +1863,7 @@ export const saveSearch = async (params: SearchParams): Promise<void> => {
 
 export const getMySavedSearches = async (): Promise<SavedSearchRow[]> => {
   const session = await auth();
-  if (!session?.userId || session.role !== Role.JOB_SEEKER) return [];
+  if (!session?.userId || !session.onboarded) return [];
   return prisma.savedSearch.findMany({
     where: { userId: session.userId },
     orderBy: { createdAt: 'desc' },
@@ -1549,6 +1903,77 @@ export const setSavedSearchAlerts = async (
   revalidatePath('/alerts');
 };
 
+// --- Saved jobs ("save for later") ---------------------------------------
+//
+// Any onboarded user can save a job (it's a seeker action, but role is just a
+// default view now — see the dual-capability model). All writes are owner-scoped
+// and idempotent: saving twice upserts, unsaving a non-saved job is a no-op.
+
+// The columns toMobileJobCard / the web card need. Kept in one place so the
+// saved-jobs surfaces and the board render identical cards.
+const SAVED_JOB_CARD_SELECT = {
+  id: true,
+  position: true,
+  companyName: true,
+  companyLogo: true,
+  location: true,
+  dayRate: true,
+  workMode: true,
+  ir35Signal: true,
+  contractLength: true,
+  source: true,
+  createdAt: true,
+} as const;
+
+export const saveJob = async (jobId: string): Promise<void> => {
+  const session = await auth();
+  if (!session?.userId) throw new Error('Not signed in');
+  // Idempotent: the (userId, jobId) unique constraint makes a repeat tap a no-op.
+  await prisma.savedJob.upsert({
+    where: { userId_jobId: { userId: session.userId, jobId } },
+    create: { userId: session.userId, jobId },
+    update: {},
+  });
+};
+
+export const unsaveJob = async (jobId: string): Promise<void> => {
+  const session = await auth();
+  if (!session?.userId) throw new Error('Not signed in');
+  // deleteMany (not delete) so removing a job that isn't saved is a no-op, and
+  // the delete is owner-scoped.
+  await prisma.savedJob.deleteMany({
+    where: { userId: session.userId, jobId },
+  });
+};
+
+// The viewer's saved jobs, newest-save first, each with its job card columns.
+export const getMySavedJobs = async () => {
+  const session = await auth();
+  if (!session?.userId) return [];
+  const rows = await prisma.savedJob.findMany({
+    where: { userId: session.userId },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      createdAt: true,
+      job: { select: SAVED_JOB_CARD_SELECT },
+    },
+  });
+  return rows;
+};
+
+// Just the ids of jobs the viewer has saved — lets a board hydrate the heart
+// state in one cheap query without fetching every saved card.
+export const getMySavedJobIds = async (): Promise<string[]> => {
+  const session = await auth();
+  if (!session?.userId) return [];
+  const rows = await prisma.savedJob.findMany({
+    where: { userId: session.userId },
+    select: { jobId: true },
+  });
+  return rows.map((r) => r.jobId);
+};
+
 // Cron action: for every alerts-enabled saved search (of the given frequencies),
 // find matching jobs created since its lastNotifiedAt, notify the contractor
 // (email + push), and bump the high-water mark. Best-effort per search — one
@@ -1571,7 +1996,8 @@ export const runJobAlerts = async (
     where: {
       alertsEnabled: true,
       alertFrequency: { in: frequencies },
-      user: { role: Role.JOB_SEEKER },
+      // Any onboarded user can save searches now (dual-capability).
+      user: { onboardedAt: { not: null } },
     },
     select: {
       id: true,
@@ -1677,7 +2103,7 @@ export type MySubscription = {
 // The signed-in contractor's subscription (or null). Used for gating + the UI.
 export const getMySubscription = async (): Promise<MySubscription> => {
   const session = await auth();
-  if (!session?.userId || session.role !== Role.JOB_SEEKER) return null;
+  if (!session?.userId || !session.onboarded) return null;
   const sub = await prisma.subscription.findUnique({
     where: { userId: session.userId },
     select: { status: true, currentPeriodEnd: true, cancelAtPeriodEnd: true },
@@ -1697,8 +2123,8 @@ export const createSubscriptionCheckout = async (): Promise<{
   checkoutUrl: string;
 }> => {
   const session = await auth();
-  if (!session?.userId || session.role !== Role.JOB_SEEKER) {
-    throw new Error('Only contractors can subscribe');
+  if (!session?.userId || !session.onboarded) {
+    throw new Error('Finish setting up your account to subscribe');
   }
 
   const site = getSiteUrl();

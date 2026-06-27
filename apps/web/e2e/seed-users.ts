@@ -1,5 +1,8 @@
+import { mkdirSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
 import { db as prisma } from '@outside-ir35-jobs/db';
 import { PosterType, Role } from '@outside-ir35-jobs/db/types';
+import { SignJWT } from 'jose';
 
 // Standalone seed for the e2e test users, run as its OWN process via `tsx` from
 // e2e/global-setup.ts. It must NOT be imported into the Playwright config
@@ -11,8 +14,30 @@ import { PosterType, Role } from '@outside-ir35-jobs/db/types';
 export const CONTRACTOR_EMAIL = 'e2e-contractor@outsideir35.test';
 export const POSTER_EMAIL = 'e2e-poster@outsideir35.test';
 
+// Where the contractor's mobile bearer token is written for the saved-jobs e2e
+// (the mobile /api/mobile/* endpoints are bearer-auth, not cookie — the spec
+// reads this file). Mirrors lib/mobile/session.ts (which is `server-only`, so we
+// inline the same HS256 sign here under tsx).
+const MOBILE_TOKEN_FILE = path.join(__dirname, '.auth', 'mobile-token.json');
+
+const mintMobileToken = async (
+  userId: string,
+  email: string,
+): Promise<string> => {
+  const s = process.env.AUTH_SECRET || process.env.NEXT_AUTH_SECRET;
+  if (!s) throw new Error('AUTH_SECRET not set — cannot mint e2e mobile token');
+  return new SignJWT({ email })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setSubject(userId)
+    .setIssuer('outsideir35.jobs')
+    .setAudience('outsideir35.jobs/mobile')
+    .setIssuedAt()
+    .setExpirationTime('1h')
+    .sign(new TextEncoder().encode(s));
+};
+
 const seed = async (): Promise<void> => {
-  await prisma.user.upsert({
+  const contractor = await prisma.user.upsert({
     where: { email: CONTRACTOR_EMAIL },
     update: { role: Role.JOB_SEEKER, onboardedAt: new Date() },
     create: {
@@ -38,6 +63,16 @@ const seed = async (): Promise<void> => {
       onboardedAt: new Date(),
     },
   });
+
+  // Start the saved-jobs e2e from a clean slate, and write the contractor's mobile
+  // bearer token for it to use.
+  await prisma.savedJob.deleteMany({ where: { userId: contractor.id } });
+  const token = await mintMobileToken(contractor.id, CONTRACTOR_EMAIL);
+  mkdirSync(path.dirname(MOBILE_TOKEN_FILE), { recursive: true });
+  writeFileSync(
+    MOBILE_TOKEN_FILE,
+    JSON.stringify({ userId: contractor.id, token }),
+  );
 };
 
 seed()

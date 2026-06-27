@@ -1,3 +1,4 @@
+import { StripeProvider } from "@stripe/stripe-react-native";
 import { BottomSheetProvider } from "@swmansion/react-native-bottom-sheet";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { PostHogProvider } from "posthog-react-native";
@@ -18,11 +19,21 @@ const POSTHOG_KEY = process.env.EXPO_PUBLIC_POSTHOG_KEY;
 const POSTHOG_HOST =
   process.env.EXPO_PUBLIC_POSTHOG_HOST ?? "https://eu.i.posthog.com";
 
+// Publishable key is safe to embed (it's the public half). Job-post payments use
+// the native Stripe Payment Sheet; the secret half + PaymentIntent live server-side.
+const STRIPE_PUBLISHABLE_KEY =
+  process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "";
+const STRIPE_MERCHANT_ID = "merchant.com.chewybytes.outsideir35jobs";
+
 const Providers = ({ children }: { children: ReactNode }) => {
   const tree = (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <KeyboardProvider>
         <SafeAreaProvider>
+        <StripeProvider
+          publishableKey={STRIPE_PUBLISHABLE_KEY}
+          merchantIdentifier={STRIPE_MERCHANT_ID}
+        >
         {/* QueryClientProvider must wrap AuthProvider (it calls
             useQueryClient) and BottomSheetProvider (sheets portal their content
             up, so any sheet rendering a query consumer needs the client above
@@ -59,6 +70,7 @@ const Providers = ({ children }: { children: ReactNode }) => {
             </BottomSheetProvider>
           </AuthProvider>
         </QueryClientProvider>
+        </StripeProvider>
         </SafeAreaProvider>
       </KeyboardProvider>
     </GestureHandlerRootView>

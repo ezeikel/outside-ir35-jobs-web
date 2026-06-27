@@ -62,6 +62,15 @@ export type ParsedCvProfile = {
   sectors?: string[];
 };
 
+export type DbCV = {
+  id: string;
+  name: string;
+  status: string;
+  isActive: boolean;
+  parsedProfile: unknown;
+  createdAt: Date | string;
+};
+
 export type ContractorProfileData = {
   name: string;
   trustTier: ContractorTrustTier;
@@ -71,6 +80,7 @@ export type ContractorProfileData = {
   rightToWorkConfirmed: boolean;
   limitedCompanies: DbCompany[];
   documents: DbDocument[];
+  cvs: DbCV[];
   parsedProfile: ParsedCvProfile | null;
 };
 
@@ -150,11 +160,11 @@ const ContractorProfile = ({
 }) => {
   const company = data.limitedCompanies[0];
   const pct = completeness(data);
-  // A CV doc is on file but parsedProfile hasn't landed yet → worker still
-  // processing (or failed). Drives the "Processing your CV…" hint.
-  const hasCvOnFile = data.documents.some(
-    (d) => d.type === 'CV' && d.status !== 'MISSING',
-  );
+  // A CV is on file but its parse hasn't landed yet → worker still processing
+  // (or failed). Drives the "Processing your CV…" hint. CVs are multi-version now
+  // (data.cvs); the active one drives the parsed profile.
+  const cvs = data.cvs ?? [];
+  const hasCvOnFile = cvs.length > 0;
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6">

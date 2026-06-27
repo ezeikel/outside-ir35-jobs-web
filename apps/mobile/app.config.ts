@@ -168,6 +168,17 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         },
       ],
       "@react-native-google-signin/google-signin",
+      [
+        // Native Stripe Payment Sheet for paying for a job posting in-app
+        // (company card + VAT invoice, no Apple cut). merchantIdentifier enables
+        // Apple Pay in the sheet; set up the matching Merchant ID in the Apple
+        // Developer portal before Apple Pay works (card entry works without it).
+        "@stripe/stripe-react-native",
+        {
+          merchantIdentifier: "merchant.com.chewybytes.outsideir35jobs",
+          enableGooglePay: true,
+        },
+      ],
       // Push: react-native-firebase = FCM transport, notifee = rich display.
       // These REPLACE expo-notifications. The @evennit plugin wires the iOS
       // Notification Service Extension + aps-environment + the notifee App Group.

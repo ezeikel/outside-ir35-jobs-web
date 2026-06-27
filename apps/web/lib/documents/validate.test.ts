@@ -12,15 +12,20 @@ import {
 } from './validate';
 
 const valid = {
-  type: ContractorDocType.CV,
+  type: ContractorDocType.PI_INSURANCE,
   mimeType: 'application/pdf',
   size: 1024,
 };
 
 describe('validateUpload', () => {
-  it('accepts a valid PDF CV', () => {
+  it('accepts a valid PDF compliance doc', () => {
     const result = validateUpload(valid);
-    expect(result).toEqual({ ok: true, type: ContractorDocType.CV });
+    expect(result).toEqual({ ok: true, type: ContractorDocType.PI_INSURANCE });
+  });
+
+  it('rejects a CV (CVs upload via the CV flow, not the doc flow)', () => {
+    const result = validateUpload({ ...valid, type: ContractorDocType.CV });
+    expect(result.ok).toBe(false);
   });
 
   it('accepts each allowed mime type', () => {

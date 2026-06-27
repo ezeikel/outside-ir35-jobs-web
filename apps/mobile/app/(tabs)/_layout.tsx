@@ -18,10 +18,9 @@ const TabsLayout = () => (
     }}
     tabBar={(props) => <GlassTabBar {...(props as unknown as GlassTabBarProps)} />}
   >
-    <Tabs.Screen name="index" options={{ title: "Jobs" }} />
-    <Tabs.Screen name="day-rates" options={{ title: "Day rates" }} />
+    <Tabs.Screen name="index" options={{ title: "Find" }} />
+    <Tabs.Screen name="my-jobs" options={{ title: "My jobs" }} />
     <Tabs.Screen name="alerts" options={{ title: "Alerts" }} />
-    <Tabs.Screen name="premium" options={{ title: "Premium" }} />
     <Tabs.Screen name="profile" options={{ title: "Profile" }} />
   </Tabs>
 );

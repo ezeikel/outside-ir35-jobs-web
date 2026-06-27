@@ -24,8 +24,13 @@ export const runCvParse = async (input: {
   userId: string;
   r2Key: string;
   mimeType: string;
+  // The ContractorCV row being parsed. When present, the parse is written to that
+  // CV row, and mirrored to the User profile/embedding ONLY if the CV is active
+  // (the active CV drives matching). Omitted = legacy single-CV behaviour (always
+  // writes the User profile).
+  cvId?: string;
 }): Promise<CvParseResult> => {
-  const { userId, r2Key, mimeType } = input;
+  const { userId, r2Key, mimeType, cvId } = input;
 
   let bytes: Buffer;
   try {
@@ -40,17 +45,32 @@ export const runCvParse = async (input: {
     return { status: 'skipped', userId, reason: 'parse_failed' };
   }
 
-  // Persist the structured profile (contractor-supplied facts).
-  await db.user.update({
-    where: { id: userId },
-    data: { parsedProfile: profile as Prisma.InputJsonValue },
-  });
+  // Persist the structured profile on the CV row itself (this CV's own parse).
+  // Decide whether this CV drives the User profile: only the active one does.
+  let drivesUser = true;
+  if (cvId) {
+    const cv = await db.contractorCV.update({
+      where: { id: cvId },
+      data: { parsedProfile: profile as Prisma.InputJsonValue },
+      select: { isActive: true },
+    });
+    drivesUser = cv.isActive;
+  }
+
+  // The active CV (or legacy single CV) is the contractor's matching profile.
+  if (drivesUser) {
+    await db.user.update({
+      where: { id: userId },
+      data: { parsedProfile: profile as Prisma.InputJsonValue },
+    });
+  }
 
   // Embed the competency text for semantic contractor↔job matching. Best-effort:
-  // the parsed profile is already saved even if embedding fails.
+  // the parsed profile is already saved even if embedding fails. Only the active
+  // CV updates the user-level embedding used by recommendations/search.
   let embedded = false;
   const value = profileEmbeddingText(profile);
-  if (value) {
+  if (drivesUser && value) {
     try {
       const { embedding } = await embed({
         model: openai.embedding('text-embedding-3-small'),

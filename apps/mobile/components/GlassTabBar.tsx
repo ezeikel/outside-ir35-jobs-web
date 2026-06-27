@@ -1,9 +1,9 @@
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import {
   faBell,
-  faBriefcase,
-  faChartColumn,
-  faStar,
+  faHeart,
+  faMagnifyingGlass,
+  faRectangleList,
   faUser,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
@@ -11,6 +11,8 @@ import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useViewMode } from "@/hooks/useViewMode";
+import type { ViewMode } from "@/stores/viewModeStore";
 
 // Floating translucent (glass) tab bar — content shows softly through a blur,
 // matching the chunky-crayon / Titrra pattern (Apple-News look). Five evenly-
@@ -42,17 +44,25 @@ export type GlassTabBarProps = {
   };
 };
 
-// route name → icon + label. Order matches the Tabs.Screen order in _layout.
-const TABS: { name: string; label: string; icon: IconDefinition }[] = [
-  { name: "index", label: "Jobs", icon: faBriefcase },
-  { name: "day-rates", label: "Day rates", icon: faChartColumn },
+type TabItem = { name: string; label: string; icon: IconDefinition };
+
+// The visible bar is 4 tabs (TotalJobs model): Find · My Jobs/My Posts · Alerts ·
+// Profile. The middle tab is mode-aware — seekers save+apply ("My Jobs"), hirers
+// manage listings ("My Posts"). day-rates + premium are still registered screens
+// (reachable from Find / Profile) but NOT in the bar.
+const tabsForMode = (mode: ViewMode): TabItem[] => [
+  { name: "index", label: "Find", icon: faMagnifyingGlass },
+  mode === "hiring"
+    ? { name: "my-jobs", label: "My posts", icon: faRectangleList }
+    : { name: "my-jobs", label: "My jobs", icon: faHeart },
   { name: "alerts", label: "Alerts", icon: faBell },
-  { name: "premium", label: "Premium", icon: faStar },
   { name: "profile", label: "Profile", icon: faUser },
 ];
 
 export const GlassTabBar = ({ state, navigation }: GlassTabBarProps) => {
   const insets = useSafeAreaInsets();
+  const { mode } = useViewMode();
+  const TABS = tabsForMode(mode);
   const focusedName = state.routes[state.index]?.name;
 
   return (

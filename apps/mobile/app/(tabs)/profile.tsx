@@ -25,6 +25,8 @@ import { TAB_BAR_HEIGHT } from "@/components/GlassTabBar";
 import SettingsRow, { SettingsSection } from "@/components/SettingsRow";
 import VerifiedProfile from "@/components/VerifiedProfile";
 import { useAuth } from "@/contexts/AuthContext";
+import { useViewMode } from "@/hooks/useViewMode";
+import type { ViewMode } from "@/stores/viewModeStore";
 
 const SITE = "https://www.outsideir35.jobs";
 const SUPPORT_EMAIL = "hello@chewybytes.com";
@@ -39,10 +41,46 @@ const versionLabel = (): string => {
   return b ? `${v} (${b})` : v;
 };
 
-const ROLE_LABEL: Record<string, string> = {
-  JOB_SEEKER: "Contractor",
-  JOB_POSTER: "Hiring",
-};
+// Seeker / Hiring segmented control. Switching changes which experience the whole
+// app shows (tabs + actions) — the backend lets any onboarded user do both.
+const MODE_OPTIONS: { value: ViewMode; label: string }[] = [
+  { value: "seeker", label: "Looking for work" },
+  { value: "hiring", label: "Hiring" },
+];
+
+const ModeSwitch = ({
+  mode,
+  onChange,
+}: {
+  mode: ViewMode;
+  onChange: (mode: ViewMode) => void;
+}) => (
+  <View className="flex-row gap-2 p-3">
+    {MODE_OPTIONS.map((opt) => {
+      const active = mode === opt.value;
+      return (
+        <Pressable
+          key={opt.value}
+          className={`flex-1 rounded-lg border px-3 py-2.5 active:opacity-80 ${
+            active ? "border-primary bg-primary" : "border-border bg-background"
+          }`}
+          onPress={() => onChange(opt.value)}
+          accessibilityRole="button"
+          accessibilityState={{ selected: active }}
+          accessibilityLabel={opt.label}
+        >
+          <Text
+            className={`text-center text-sm font-sans-medium ${
+              active ? "text-primary-foreground" : "text-foreground"
+            }`}
+          >
+            {opt.label}
+          </Text>
+        </Pressable>
+      );
+    })}
+  </View>
+);
 
 // Profile tab: sign-in entry (Google + Apple) when signed out; account + the
 // verified compliance pack (contractors) when signed in.
@@ -57,6 +95,7 @@ const ProfileScreen = () => {
     signInWithAppleHandler,
     signOut,
   } = useAuth();
+  const { mode, setMode } = useViewMode();
 
   if (isLoading) {
     return (
@@ -96,11 +135,11 @@ const ProfileScreen = () => {
           </Pressable>
         ) : null}
 
-        {/* The verified compliance pack (contractors only). */}
-        {user.role === "JOB_SEEKER" ? <VerifiedProfile /> : null}
+        {/* The verified compliance pack (seeker view). */}
+        {user.onboarded && mode === "seeker" ? <VerifiedProfile /> : null}
 
-        {/* Posting entry (hiring accounts only — they have no board tab). */}
-        {user.role === "JOB_POSTER" && user.onboarded ? (
+        {/* Posting entry (hiring view). */}
+        {user.onboarded && mode === "hiring" ? (
           <Pressable
             className="mt-6 flex-row items-center justify-center gap-2 rounded-lg bg-primary p-4 active:opacity-90"
             onPress={() => router.push("/post-job")}
@@ -114,6 +153,28 @@ const ProfileScreen = () => {
           </Pressable>
         ) : null}
 
+        {/* Premium entry (seeker view) — the paywall moved off the tab bar; this
+            is its home, plus contextual paywall moments elsewhere. */}
+        {user.onboarded && mode === "seeker" ? (
+          <SettingsSection title="Premium">
+            <SettingsRow
+              icon={faStar}
+              title="Go premium"
+              subtitle="Unlimited alerts + AI pitch on every match"
+              onPress={() => router.push("/premium")}
+              isLast
+            />
+          </SettingsSection>
+        ) : null}
+
+        {/* View mode — switch between finding work and hiring. Only relevant
+            once onboarded (a default role exists). */}
+        {user.onboarded ? (
+          <SettingsSection title="I'm here to">
+            <ModeSwitch mode={mode} onChange={setMode} />
+          </SettingsSection>
+        ) : null}
+
         {/* Account */}
         <SettingsSection title="Account">
           <SettingsRow
@@ -121,13 +182,6 @@ const ProfileScreen = () => {
             subtitle={user.email}
             showChevron={false}
           />
-          {user.role && ROLE_LABEL[user.role] ? (
-            <SettingsRow
-              title="Account type"
-              subtitle={ROLE_LABEL[user.role]}
-              showChevron={false}
-            />
-          ) : null}
           <SettingsRow
             icon={faRightFromBracket}
             title="Sign out"

@@ -125,6 +125,32 @@ const RootLayout = () => {
             animation: "slide_from_right",
           }}
         />
+        {/* Day rates + Premium are destinations pushed from Find / Profile (no
+            longer tabs) — each gets a back header. */}
+        <Stack.Screen
+          name="day-rates"
+          options={{
+            headerShown: true,
+            headerTitle: "",
+            headerBackTitle: "Find",
+            headerTintColor: "#17181a",
+            headerStyle: { backgroundColor: "#f6f5f3" },
+            headerShadowVisible: false,
+            animation: "slide_from_right",
+          }}
+        />
+        <Stack.Screen
+          name="premium"
+          options={{
+            headerShown: true,
+            headerTitle: "",
+            headerBackTitle: "Profile",
+            headerTintColor: "#17181a",
+            headerStyle: { backgroundColor: "#f6f5f3" },
+            headerShadowVisible: false,
+            animation: "slide_from_right",
+          }}
+        />
       </Stack>
     </Providers>
   );

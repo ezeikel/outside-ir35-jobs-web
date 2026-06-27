@@ -12,7 +12,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
+import SaveHeart from "@/components/SaveHeart";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSavedJobs } from "@/hooks/useSavedJobs";
 import {
   type ApplyEligibility,
   applyToJob,
@@ -27,6 +29,7 @@ import { formatDayRate } from "@/lib/format";
 const JobDetailScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
+  const { canSave, isSaved, toggle } = useSavedJobs();
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["job", id],
@@ -53,18 +56,28 @@ const JobDetailScreen = () => {
   }
 
   const { job, apply } = data;
+  const saved = isSaved(job.id);
 
   return (
     <ScrollView
       className="flex-1 bg-background"
       contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 32 }}
     >
-      <Text className="text-xs text-muted-foreground">
-        {job.companyName} · {job.location}
-      </Text>
-      <Text className="mt-1 font-display text-2xl text-foreground">
-        {job.position}
-      </Text>
+      <View className="flex-row items-start justify-between gap-3">
+        <View className="min-w-0 flex-1">
+          <Text className="text-xs text-muted-foreground">
+            {job.companyName} · {job.location}
+          </Text>
+          <Text className="mt-1 font-display text-2xl text-foreground">
+            {job.position}
+          </Text>
+        </View>
+
+        {/* Save toggle (seeker view only). Shares state with the board + My Jobs. */}
+        {canSave ? (
+          <SaveHeart saved={saved} onToggle={() => toggle(job)} size={22} />
+        ) : null}
+      </View>
 
       <View className="mt-3 flex-row flex-wrap items-center gap-2">
         <Chip label={job.ir35Label} />

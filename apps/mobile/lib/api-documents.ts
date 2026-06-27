@@ -15,9 +15,10 @@ export const ALLOWED_MIME_TYPES = [
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
 
-// Document types a contractor can upload, with labels. Mirrors ContractorDocType.
+// Compliance-pack document types a contractor can upload, with labels. Mirrors
+// ContractorDocType MINUS CV — CVs are multi-version now and upload via the CV
+// flow (lib/api-cvs.ts), not the compliance-doc flow.
 export const UPLOADABLE_DOC_TYPES = [
-  { type: "CV", label: "CV", tracksExpiry: false },
   { type: "INCORPORATION", label: "Certificate of incorporation", tracksExpiry: false },
   { type: "VAT_CERTIFICATE", label: "VAT certificate", tracksExpiry: false },
   { type: "PI_INSURANCE", label: "Professional indemnity insurance", tracksExpiry: true },

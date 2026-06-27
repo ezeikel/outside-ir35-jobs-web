@@ -59,13 +59,24 @@ test('contractor can save a search, then pause and delete it', async ({
   await expect(saveBtn).toBeVisible({ timeout: 15_000 });
   await saveBtn.click();
 
-  // It now shows on /alerts.
-  await page.goto('/alerts');
-  await expect(
-    page.getByRole('heading', { name: /job alerts/i }),
-  ).toBeVisible();
-  const row = page.getByText('e2e-saved-search-probe').first();
-  await expect(row).toBeVisible({ timeout: 15_000 });
+  // WAIT for the save to actually complete before navigating — the button is a
+  // useTransition calling the server action, so the click returns before the
+  // write lands. Its success state ("Saved — we'll email you…") confirms it.
+  await expect(page.getByText(/saved — we’ll email you/i)).toBeVisible({
+    timeout: 15_000,
+  });
+
+  // It now shows on /alerts. A prod build can serve a cached /alerts before the
+  // save's revalidatePath propagates — reload until the row appears.
+  await expect(async () => {
+    await page.goto('/alerts');
+    await expect(
+      page.getByRole('heading', { name: /job alerts/i }),
+    ).toBeVisible();
+    await expect(page.getByText('e2e-saved-search-probe').first()).toBeVisible({
+      timeout: 3_000,
+    });
+  }).toPass({ timeout: 20_000 });
 
   // Pause it — the status line flips and the button toggles to Resume.
   const card = page

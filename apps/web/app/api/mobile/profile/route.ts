@@ -1,5 +1,4 @@
 import { db as prisma } from '@outside-ir35-jobs/db';
-import { Role } from '@outside-ir35-jobs/db/types';
 import { NextResponse } from 'next/server';
 import { getMobileCaller } from '@/lib/mobile/auth';
 import { toMobileProfile } from '@/lib/mobile/profile-dto';
@@ -15,7 +14,7 @@ export const GET = async (req: Request) => {
   if (!caller) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
-  if (caller.role !== Role.JOB_SEEKER) {
+  if (!caller.onboarded) {
     return NextResponse.json({ profile: null });
   }
 

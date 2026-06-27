@@ -2,6 +2,14 @@ import { format } from 'date-fns';
 import Link from 'next/link';
 import type { BlogPostListItem } from '@/lib/sanity/queries';
 
+// '' for missing OR invalid dates — a malformed publishedAt would throw from
+// format() and break the listing prerender.
+const safeDate = (value: string | null | undefined, fmt: string): string => {
+  if (!value) return '';
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? '' : format(d, fmt);
+};
+
 const BlogList = ({ posts }: { posts: BlogPostListItem[] }) => (
   <div className="mx-auto w-full max-w-4xl px-4 py-12 sm:px-6">
     <header className="mb-10 max-w-2xl">
@@ -34,9 +42,7 @@ const BlogList = ({ posts }: { posts: BlogPostListItem[] }) => (
               className="group block h-full rounded-lg border border-border bg-card p-5 transition-colors hover:border-foreground/30"
             >
               <p className="text-xs text-muted-foreground">
-                {post.publishedAt
-                  ? format(new Date(post.publishedAt), 'd MMM yyyy')
-                  : ''}
+                {safeDate(post.publishedAt, 'd MMM yyyy')}
                 {post.authorName ? ` · ${post.authorName}` : ''}
               </p>
               <h2 className="mt-2 font-display text-xl leading-snug group-hover:text-foreground">

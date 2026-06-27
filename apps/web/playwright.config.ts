@@ -59,6 +59,12 @@ export default defineConfig({
       testMatch: /authed-poster\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], storageState: POSTER_STATE },
     },
+    // Mobile bearer-auth API flows (saved jobs, CVs). No browser session — drives
+    // the /api/mobile/* endpoints directly with the token global-setup minted.
+    {
+      name: 'mobile-api',
+      testMatch: /mobile-(saved-jobs|cvs)\.spec\.ts/,
+    },
   ],
   // Run against a PRODUCTION build, not `next dev`. The jsdom ERR_REQUIRE_ESM
   // 500 that broke every /job/[id] page only manifested in the production

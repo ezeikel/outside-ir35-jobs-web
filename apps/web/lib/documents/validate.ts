@@ -59,6 +59,11 @@ export const validateUpload = (input: UploadCandidate): UploadValidation => {
   if (!input.type || !isDocType(input.type)) {
     return { ok: false, error: 'Unknown document type.' };
   }
+  // CVs are NOT compliance-pack docs — they live in their own multi-version table
+  // (ContractorCV) and go through the CV upload flow, not this one.
+  if (input.type === ContractorDocType.CV) {
+    return { ok: false, error: 'Upload CVs from the CV section.' };
+  }
 
   if (!input.mimeType || !isAllowedMime(input.mimeType)) {
     return { ok: false, error: 'Upload a PDF, PNG, JPEG, or WebP file.' };
@@ -73,6 +78,23 @@ export const validateUpload = (input: UploadCandidate): UploadValidation => {
   }
 
   return { ok: true, type: input.type };
+};
+
+// File-only validation for a CV upload (mime + size; CV isn't a "doc type").
+export const validateCvFile = (input: {
+  mimeType: string;
+  size: number;
+}): { ok: true } | { ok: false; error: string } => {
+  if (!input.mimeType || !isAllowedMime(input.mimeType)) {
+    return { ok: false, error: 'Upload a PDF, PNG, JPEG, or WebP file.' };
+  }
+  if (!Number.isFinite(input.size) || input.size <= 0) {
+    return { ok: false, error: 'The file appears to be empty.' };
+  }
+  if (input.size > MAX_UPLOAD_BYTES) {
+    return { ok: false, error: 'File must be 10 MB or smaller.' };
+  }
+  return { ok: true };
 };
 
 /* ------------------------------------------------------------------ *

@@ -89,17 +89,22 @@ app.use('/process/*', bearerAuth);
 // upload action fires this and returns; we ack 202 and run in the background.
 // Body: { userId, r2Key, mimeType }.
 app.post('/process/cv', async (c) => {
-  let body: { userId?: string; r2Key?: string; mimeType?: string };
+  let body: {
+    userId?: string;
+    r2Key?: string;
+    mimeType?: string;
+    cvId?: string;
+  };
   try {
     body = await c.req.json();
   } catch {
     return c.json({ error: 'Invalid JSON body' }, 400);
   }
-  const { userId, r2Key, mimeType } = body;
+  const { userId, r2Key, mimeType, cvId } = body;
   if (!userId || !r2Key || !mimeType) {
     return c.json({ error: 'userId, r2Key and mimeType are required' }, 400);
   }
-  runCvParse({ userId, r2Key, mimeType }).catch((err) => {
+  runCvParse({ userId, r2Key, mimeType, cvId }).catch((err) => {
     Sentry.captureException(err);
     console.error('[process/cv] failed:', err);
   });

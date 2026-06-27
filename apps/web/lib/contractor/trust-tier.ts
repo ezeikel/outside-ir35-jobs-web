@@ -19,17 +19,18 @@ import {
  * not claims about a role's IR35 position.
  */
 
-// The pack required for COMPLIANCE_CURRENT. NOTE: incorporation is NOT a doc here
-// — it's proven by the Companies House register check (companyVerifiedAt), which
-// is stronger than a self-uploaded PDF and is the only path a contractor actually
-// has. Requiring an INCORPORATION document on top made T3 unreachable. The
-// insurance certs (PI/PL/EL) are gated at T2 (INSURANCE_DOC_TYPES); T3 adds CV +
-// right-to-work in-date on top.
+// The doc pack required for COMPLIANCE_CURRENT. NOTE: incorporation is NOT a doc
+// here — it's proven by the Companies House register check (companyVerifiedAt),
+// which is stronger than a self-uploaded PDF and is the only path a contractor
+// actually has. Requiring an INCORPORATION document on top made T3 unreachable.
+// The insurance certs (PI/PL/EL) are gated at T2 (INSURANCE_DOC_TYPES); T3 adds
+// right-to-work in-date on top of these. The CV is no longer a compliance
+// document (it lives in ContractorCV, multi-version) — T3 instead checks
+// `hasCV` (at least one CV on file), passed in via TrustTierState.
 export const EXPECTED_DOC_TYPES: ContractorDocType[] = [
   ContractorDocType.PI_INSURANCE,
   ContractorDocType.PL_INSURANCE,
   ContractorDocType.RIGHT_TO_WORK,
-  ContractorDocType.CV,
 ];
 
 // Insurance certs required for DOCUMENTS_ON_FILE.
@@ -53,6 +54,8 @@ export type TrustTierState = {
   companies: TrustTierCompany[];
   documents: TrustTierDoc[];
   rightToWorkConfirmed: boolean;
+  // At least one CV on file (CVs are multi-version now, in ContractorCV).
+  hasCV: boolean;
 };
 
 // A doc "counts" as held + valid only when on file and not expiring/expired/failed.
@@ -81,9 +84,11 @@ export const computeTrustTier = (
   );
   if (!documentsOnFile) return ContractorTrustTier.IDENTITY_VERIFIED;
 
-  // T3: every expected doc present AND in-date, plus right-to-work confirmed.
+  // T3: every expected doc present AND in-date, right-to-work confirmed, and a CV
+  // on file. (CV is no longer a compliance doc — checked via hasCV.)
   const complianceCurrent =
     state.rightToWorkConfirmed &&
+    state.hasCV &&
     EXPECTED_DOC_TYPES.every((t) => hasType(state.documents, t, true));
   if (!complianceCurrent) return ContractorTrustTier.DOCUMENTS_ON_FILE;
 

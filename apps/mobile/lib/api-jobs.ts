@@ -69,9 +69,9 @@ export const applyToJob = async (
 
 // Posting a contract from mobile. The body mirrors POST /api/mobile/jobs (which
 // wraps the shared createUnpaidJob primitive). The job is created PENDING +
-// isActive=false; the returned jobId is then paid for via RevenueCat and goes
-// live on the RC webhook. `description` + `howToApply` are HTML strings (from the
-// Enriched editor), matching the web TipTap output.
+// isActive=false; the returned jobId is then paid for via the native Stripe
+// Payment Sheet and goes live on the Stripe webhook. `description` + `howToApply`
+// are HTML strings (from the Enriched editor), matching the web TipTap output.
 export type PostJobInput = {
   companyName: string;
   position: string;
@@ -96,6 +96,25 @@ export const postJob = async (
   const { data } = await api.post<{ jobId: string; paymentStatus: string }>(
     "/api/mobile/jobs",
     input,
+  );
+  return data;
+};
+
+// Everything the native Stripe Payment Sheet needs to charge for a job posting.
+export type JobPaymentIntent = {
+  paymentIntentClientSecret: string;
+  customerId: string;
+  ephemeralKeySecret: string;
+  publishableKey: string;
+  amount: number; // minor units (pence)
+  currency: string;
+};
+
+export const createJobPaymentIntent = async (
+  jobId: string,
+): Promise<JobPaymentIntent> => {
+  const { data } = await api.post<JobPaymentIntent>(
+    `/api/mobile/jobs/${jobId}/payment-intent`,
   );
   return data;
 };

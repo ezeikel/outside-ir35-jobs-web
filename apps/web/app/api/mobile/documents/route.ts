@@ -1,4 +1,3 @@
-import { Role } from '@outside-ir35-jobs/db/types';
 import { NextResponse } from 'next/server';
 import { uploadDocumentForUser } from '@/app/actions';
 import { MAX_UPLOAD_BYTES, UploadError } from '@/lib/documents/validate';
@@ -22,9 +21,9 @@ export const POST = async (req: Request) => {
   if (!caller) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
-  if (caller.role !== Role.JOB_SEEKER) {
+  if (!caller.onboarded) {
     return NextResponse.json(
-      { error: 'Only contractors can upload documents' },
+      { error: 'Finish setting up your account to upload documents' },
       { status: 403 },
     );
   }

@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
 import { TAB_BAR_HEIGHT } from "@/components/GlassTabBar";
 import { useAuth } from "@/contexts/AuthContext";
+import { useViewMode } from "@/hooks/useViewMode";
 import {
   type AlertFrequency,
   deleteSavedSearch,
@@ -15,13 +16,15 @@ import {
   setSavedSearchFrequency,
 } from "@/lib/api-searches";
 
-// Saved searches + alerts (contractor-only). Mirrors the web /alerts page.
+// Saved searches + alerts (seeker view). Mirrors the web /alerts page. Gated on
+// the active view mode — any onboarded user can switch into the seeker view.
 const AlertsScreen = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { isLoading: authLoading, isAuthenticated, user } = useAuth();
+  const { isLoading: authLoading, isAuthenticated } = useAuth();
+  const { mode } = useViewMode();
 
-  const enabled = isAuthenticated && user?.role === "JOB_SEEKER";
+  const enabled = isAuthenticated && mode === "seeker";
   const { data, isLoading } = useQuery({
     queryKey: ["savedSearches"],
     queryFn: fetchSavedSearches,
@@ -54,12 +57,21 @@ const AlertsScreen = () => {
     );
   }
 
-  if (user?.role !== "JOB_SEEKER") {
+  if (mode !== "seeker") {
     return (
       <Empty insetTop={insets.top}>
         <Text className="text-center text-muted-foreground">
-          Saved searches are for contractor accounts.
+          Job alerts are for finding work. Switch to “Looking for work” in your
+          profile to save searches and get alerts.
         </Text>
+        <Pressable
+          className="mt-6 rounded-lg border border-border px-5 py-3 active:opacity-70"
+          onPress={() => router.push("/(tabs)/profile")}
+        >
+          <Text className="font-sans-semibold text-foreground">
+            Go to profile
+          </Text>
+        </Pressable>
       </Empty>
     );
   }

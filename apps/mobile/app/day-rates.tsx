@@ -2,7 +2,6 @@ import { FlashList } from "@shopify/flash-list";
 import { useQuery } from "@tanstack/react-query";
 import { ActivityIndicator, RefreshControl, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { TAB_BAR_HEIGHT } from "@/components/GlassTabBar";
 import { type DayRateRow, fetchDayRates } from "@/lib/api-day-rates";
 
 // Day-rate benchmarks — median UK day rates by skill, split by the IR35 position
@@ -36,7 +35,7 @@ const DayRatesScreen = () => {
 
   if (isLoading) {
     return (
-      <View className="flex-1 bg-background px-4" style={{ paddingTop: insets.top }}>
+      <View className="flex-1 bg-background px-4 pt-2">
         {Header}
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color="#17181a" />
@@ -47,7 +46,7 @@ const DayRatesScreen = () => {
 
   if (isError || !data) {
     return (
-      <View className="flex-1 bg-background px-4" style={{ paddingTop: insets.top }}>
+      <View className="flex-1 bg-background px-4 pt-2">
         {Header}
         <View className="flex-1 items-center justify-center px-8">
           <Text className="text-center text-muted-foreground">
@@ -61,7 +60,7 @@ const DayRatesScreen = () => {
   // Gated empty state — mirrors the web copy + the real MIN_SAMPLE threshold.
   if (data.rows.length === 0) {
     return (
-      <View className="flex-1 bg-background px-4" style={{ paddingTop: insets.top }}>
+      <View className="flex-1 bg-background px-4 pt-2">
         {Header}
         <View className="mt-4 rounded-lg border border-dashed border-border bg-card/50 p-8">
           <Text className="text-center font-display text-2xl text-foreground">
@@ -78,7 +77,7 @@ const DayRatesScreen = () => {
   }
 
   return (
-    <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
+    <View className="flex-1 bg-background">
       <FlashList
         data={data.rows}
         keyExtractor={(r) => `${r.skill}-${r.ir35Bucket}`}
@@ -87,7 +86,7 @@ const DayRatesScreen = () => {
         ListFooterComponent={<Disclaimer totalSample={data.totalSample} />}
         contentContainerStyle={{
           paddingHorizontal: 16,
-          paddingBottom: insets.bottom + 16 + TAB_BAR_HEIGHT,
+          paddingBottom: insets.bottom + 24,
         }}
         refreshControl={
           <RefreshControl refreshing={isRefetching} onRefresh={refetch} />

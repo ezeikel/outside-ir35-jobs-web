@@ -4,6 +4,16 @@ import Link from 'next/link';
 import type { BlogPost as BlogPostType } from '@/lib/sanity/queries';
 import { portableTextComponents } from './PortableTextComponents';
 
+// Format a date string, returning '' for missing OR INVALID values. A present-
+// but-malformed date (e.g. a bad sourcesCheckedAt) threw `RangeError: Invalid
+// time value` from date-fns format(), which failed the prod prerender of that
+// blog post — guard before formatting.
+const safeDate = (value: string | null | undefined, fmt: string): string => {
+  if (!value) return '';
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? '' : format(d, fmt);
+};
+
 const BlogPost = ({ post }: { post: BlogPostType }) => (
   <article className="mx-auto w-full max-w-2xl px-4 py-12 sm:px-6">
     <Link
@@ -18,15 +28,13 @@ const BlogPost = ({ post }: { post: BlogPostType }) => (
         {post.title}
       </h1>
       <p className="mt-4 text-sm text-muted-foreground">
-        {post.publishedAt
-          ? format(new Date(post.publishedAt), 'd MMMM yyyy')
-          : ''}
+        {safeDate(post.publishedAt, 'd MMMM yyyy')}
         {post.author?.name ? ` · ${post.author.name}` : ''}
       </p>
-      {post.generationMeta?.sourcesCheckedAt ? (
+      {safeDate(post.generationMeta?.sourcesCheckedAt, 'd MMM yyyy') ? (
         <p className="mt-1 text-xs text-muted-foreground">
           Primary sources last checked{' '}
-          {format(new Date(post.generationMeta.sourcesCheckedAt), 'd MMM yyyy')}
+          {safeDate(post.generationMeta?.sourcesCheckedAt, 'd MMM yyyy')}
         </p>
       ) : null}
     </header>

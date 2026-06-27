@@ -9,7 +9,7 @@ import { JobIR35Signal, WorkMode } from '@outside-ir35-jobs/db/types';
 export type SearchParams = {
   q?: string;
   location?: string;
-  ir35?: string; // 'outside' (strict) | 'any' (incl. inside) | unset → default (not-inside)
+  ir35?: string; // 'outside' (strict, client-stated) | unset → default (still not-inside)
   mode?: string; // REMOTE | HYBRID | ON_SITE
   minRate?: string; // '400' | '500' ...
   posted?: string; // '24h' | 'week' | 'month'
@@ -19,12 +19,12 @@ export type SearchFilters = {
   q: string;
   location: string | null;
   ir35Outside: boolean;
-  // The default board hides explicit INSIDE listings — this is an outside-IR35
-  // board, so an Inside-IR35 role doesn't belong on the unfiltered listing
-  // (docs/ir35-trust-model.md: INSIDE is "not our niche"). True unless the user
-  // explicitly opts into everything via ?ir35=any. We hide only INSIDE here, not
-  // UNKNOWN — most aggregated contract work is UNKNOWN and is the bulk of the
-  // board; excluding it would empty the listing.
+  // This is an outside-IR35 board, so explicit INSIDE listings NEVER appear on any
+  // board surface (docs/ir35-trust-model.md: INSIDE is "not our niche"). Always
+  // true — there is no user option to opt into inside (the old ?ir35=any is gone).
+  // We hide only INSIDE here, not UNKNOWN — most aggregated contract work is
+  // UNKNOWN and is the bulk of the board; excluding it would empty the listing.
+  // (boardVisible=false is the absolute gate; this clause is belt-and-braces.)
   ir35ExcludeInside: boolean;
   workMode: WorkMode | null;
   minRate: number | null;
@@ -61,8 +61,9 @@ export const normalizeFilters = (params: SearchParams): SearchFilters => {
     q: (params.q ?? '').trim(),
     location: params.location?.trim() || null,
     ir35Outside: params.ir35 === 'outside',
-    // Hide INSIDE by default; only ?ir35=any opts back into showing it.
-    ir35ExcludeInside: params.ir35 !== 'any',
+    // Always exclude INSIDE — there is no opt-in (outside-IR35 board). A leftover
+    // ?ir35=any from a saved URL is ignored; INSIDE stays hidden.
+    ir35ExcludeInside: true,
     workMode:
       params.mode && isWorkMode(params.mode) ? (params.mode as WorkMode) : null,
     minRate:
@@ -86,14 +87,14 @@ export const hasActiveFilters = (f: SearchFilters): boolean =>
 // Map SearchParams → the columns persisted on a SavedSearch row. Shared by the
 // web saveSearch action and the mobile /api/mobile/saved-searches route so the
 // two surfaces store identical rows (no drift between save-on-web and
-// save-on-mobile). Stores the raw ir35 intent so save/restore round-trips.
+// save-on-mobile). Only the 'outside' intent is stored — 'any' (include inside)
+// no longer exists on this outside-IR35 board.
 export const toStoredSearch = (params: SearchParams) => {
   const f = normalizeFilters(params);
   return {
     query: f.q || null,
     location: f.location,
-    ir35:
-      params.ir35 === 'outside' || params.ir35 === 'any' ? params.ir35 : null,
+    ir35: params.ir35 === 'outside' ? 'outside' : null,
     mode: f.workMode,
     minRate: f.minRate,
   };

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { ActivityIndicator, Text, View } from "react-native";
+import CVManager from "@/components/CVManager";
 import DocumentUpload from "@/components/DocumentUpload";
 import { fetchProfile, type MobileProfile } from "@/lib/api-profile";
 
@@ -40,6 +41,7 @@ const VerifiedProfile = () => {
     <View className="mt-6">
       <TrustTier profile={profile} />
       <Companies profile={profile} />
+      <CVManager />
       <Documents profile={profile} />
       <DocumentUpload profile={profile} />
       <Compliance profile={profile} />

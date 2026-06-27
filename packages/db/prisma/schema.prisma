@@ -166,6 +166,7 @@ model Job {
   revenueCatTransactionId String?          @unique
   duration                Int              @default(30) // job post duration in days
   applications            Application[]
+  savedBy                 SavedJob[]
   createdAt               DateTime         @default(now())
   updatedAt               DateTime         @updatedAt
 
@@ -201,7 +202,9 @@ model User {
   jobs              Job[] // jobs this user posted (role = JOB_POSTER)
   limitedCompanies  LimitedCompany[]
   documents         ContractorDocument[]
+  cvs               ContractorCV[]
   savedSearches     SavedSearch[]
+  savedJobs         SavedJob[]
   pushSubscriptions PushSubscription[]
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @updatedAt
@@ -269,6 +272,23 @@ model SavedSearch {
   @@map("saved_searches")
 }
 
+// A contractor's "save for later" on a specific job. (userId, jobId) is unique so
+// a save is idempotent — tapping the heart twice can't create duplicates. Both
+// sides cascade-delete: removing the user or the job clears the save.
+model SavedJob {
+  id     String @id @default(cuid())
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  job    Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId  String
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, jobId])
+  @@index([userId])
+  @@map("saved_jobs")
+}
+
 model LimitedCompany {
   id                  String    @id @default(cuid())
   name                String
@@ -311,6 +331,28 @@ model ContractorDocument {
   // (re-uploading a type replaces the existing row + R2 object).
   @@unique([userId, type])
   @@map("contractor_documents")
+}
+
+// A named CV version. Unlike compliance docs (ContractorDocument, one-per-type),
+// a contractor can keep SEVERAL CVs tailored to different role-types. Each is
+// parsed independently (parsedProfile). Exactly one is `isActive` — the active
+// CV's parse drives User.parsedProfile + User.embedding (job matching, the pitch
+// shown to posters). Uploading a new CV makes it active by default; the user can
+// switch which is active. r2Key/parsedProfile are null until upload/parse complete.
+model ContractorCV {
+  id            String    @id @default(cuid())
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String
+  name          String // e.g. "Backend / Go", "Platform engineering"
+  r2Key         String? // Cloudflare R2 object key
+  status        DocStatus @default(PENDING)
+  parsedProfile Json? // AI-parsed CV → structured profile (this CV's own parse)
+  isActive      Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("contractor_cvs")
 }
 
 // A contractor's premium subscription (Stripe-managed). The Stripe webhook is the
