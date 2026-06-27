@@ -426,17 +426,16 @@ const buildJobFilterConds = (f: SearchFilters): Prisma.Sql[] => {
   ];
   if (f.workMode)
     conds.push(Prisma.sql`"workMode" = ${f.workMode}::"WorkMode"`);
-  if (f.ir35Outside) {
-    // Strict: only outside-leaning signals.
+  if (f.ir35Outside || f.ir35OutsideOnly) {
+    // Outside-only: the board requires an outside-leaning signal (positive
+    // allowlist), so INSIDE *and* UNKNOWN (aggregated-but-unconfirmed) are both
+    // excluded. ir35OutsideOnly is always true on this board, so this clause always
+    // runs — the platform's whole promise is outside-only, and we never surface a
+    // role we can't say is outside (docs/ir35-trust-model.md). boardVisible=false
+    // remains the absolute gate; this is the positive complement to it.
     conds.push(
       Prisma.sql`"ir35Signal" = ANY(${OUTSIDE_SIGNALS}::"JobIR35Signal"[])`,
     );
-  } else if (f.ir35ExcludeInside) {
-    // Belt-and-braces with boardVisible: explicit INSIDE never shows. This branch
-    // always runs (ir35ExcludeInside is now always true — no include-inside option
-    // on an outside-IR35 board), so inside is excluded by both this clause and the
-    // boardVisible=false gate.
-    conds.push(Prisma.sql`"ir35Signal" <> 'INSIDE'::"JobIR35Signal"`);
   }
   if (f.minRate !== null) {
     // dayRate is Int[] = [min] or [min,max]; the top of the range must clear the floor.

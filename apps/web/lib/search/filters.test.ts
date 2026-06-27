@@ -14,12 +14,12 @@ describe('normalizeFilters', () => {
       q: '',
       location: null,
       ir35Outside: false,
-      ir35ExcludeInside: true,
+      ir35OutsideOnly: true,
       workMode: null,
       minRate: null,
       postedSinceDays: null,
     });
-    // The default (hide-inside) is not a user-applied constraint.
+    // The default (outside-only) is not a user-applied constraint.
     expect(hasActiveFilters(f)).toBe(false);
   });
 
@@ -54,13 +54,13 @@ describe('normalizeFilters', () => {
     expect(normalizeFilters({ ir35: 'any' }).ir35Outside).toBe(false);
   });
 
-  it('ALWAYS hides INSIDE — outside-IR35 board, no opt-in', () => {
-    // default board (no param): outside + unknown, INSIDE hidden
-    expect(normalizeFilters({}).ir35ExcludeInside).toBe(true);
-    // strict outside still excludes inside
-    expect(normalizeFilters({ ir35: 'outside' }).ir35ExcludeInside).toBe(true);
-    // a leftover/hand-crafted ?ir35=any can NO LONGER surface inside.
-    expect(normalizeFilters({ ir35: 'any' }).ir35ExcludeInside).toBe(true);
+  it('ALWAYS outside-only — board requires an outside-leaning signal', () => {
+    // default board (no param): outside-only — INSIDE *and* UNKNOWN both hidden.
+    expect(normalizeFilters({}).ir35OutsideOnly).toBe(true);
+    // strict outside is outside-only too.
+    expect(normalizeFilters({ ir35: 'outside' }).ir35OutsideOnly).toBe(true);
+    // a leftover/hand-crafted ?ir35=any can NO LONGER surface inside or unknown.
+    expect(normalizeFilters({ ir35: 'any' }).ir35OutsideOnly).toBe(true);
   });
 
   it('hasActiveFilters detects any constraint', () => {

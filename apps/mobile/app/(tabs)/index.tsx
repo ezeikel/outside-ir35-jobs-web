@@ -1,4 +1,8 @@
-import { faSliders } from "@fortawesome/free-solid-svg-icons";
+import {
+  faLayerGroup,
+  faList,
+  faSliders,
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { FlashList } from "@shopify/flash-list";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -17,6 +21,7 @@ import { toast } from "sonner-native";
 import { TAB_BAR_HEIGHT } from "@/components/GlassTabBar";
 import ErrorState from "@/components/ErrorState";
 import JobCard from "@/components/JobCard";
+import JobDeck from "@/components/JobDeck";
 import FilterSheet from "@/components/search/FilterSheet";
 import LocationField from "@/components/search/LocationField";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,6 +35,7 @@ import {
   type SearchFilters,
   toJobsQuery,
 } from "@/lib/search-filters";
+import { useBoardViewStore } from "@/stores/boardViewStore";
 import {
   recentSearchLabel,
   useRecentSearchesStore,
@@ -58,6 +64,12 @@ const JobsScreen = () => {
 
   const recents = useRecentSearchesStore((s) => s.recents);
   const addRecent = useRecentSearchesStore((s) => s.add);
+
+  // Deck (swipeable cards, the default) vs list (scrollable, power-users + a11y).
+  // The deck's swipe-to-save is a seeker action, so it's only offered to seekers;
+  // a non-seeker viewer always sees the list.
+  const boardView = useBoardViewStore((s) => s.view);
+  const setBoardView = useBoardViewStore((s) => s.setView);
 
   // Saved-jobs state owned HERE (not per-card) so FlashList recycling can't bind a
   // heart to a neighbour's job. savedIds drives the FlashList extraData so recycled
@@ -115,6 +127,11 @@ const JobsScreen = () => {
   const showRecents =
     !role.trim() && !location.trim() && recents.length > 0;
 
+  // The deck is a seeker experience (swipe-to-save). Offer it only to seekers;
+  // everyone else gets the list. When the deck isn't available, force the list.
+  const deckAvailable = mode === "seeker";
+  const showDeck = deckAvailable && boardView === "deck";
+
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       <View className="px-4 pb-2 pt-2">
@@ -149,7 +166,7 @@ const JobsScreen = () => {
           />
         </View>
 
-        {/* Filters + sort bar */}
+        {/* Filters + sort bar, with the deck/list toggle pinned right. */}
         <View className="mt-2 flex-row items-center gap-2">
           <Pressable
             className="flex-row items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 active:opacity-70"
@@ -165,6 +182,38 @@ const JobsScreen = () => {
           <Text className="text-xs text-muted-foreground">
             {filters.sort === "newest" ? "Newest first" : "Most relevant"}
           </Text>
+
+          {/* Deck/list segmented toggle (seekers only). */}
+          {deckAvailable ? (
+            <View className="ml-auto flex-row rounded-lg border border-border bg-card p-0.5">
+              <Pressable
+                className={`rounded-md p-1.5 ${showDeck ? "bg-secondary" : ""}`}
+                onPress={() => setBoardView("deck")}
+                accessibilityRole="button"
+                accessibilityLabel="Card deck view"
+                accessibilityState={{ selected: showDeck }}
+              >
+                <FontAwesomeIcon
+                  icon={faLayerGroup}
+                  size={14}
+                  color={showDeck ? "#17181a" : "#a3a09e"}
+                />
+              </Pressable>
+              <Pressable
+                className={`rounded-md p-1.5 ${!showDeck ? "bg-secondary" : ""}`}
+                onPress={() => setBoardView("list")}
+                accessibilityRole="button"
+                accessibilityLabel="List view"
+                accessibilityState={{ selected: !showDeck }}
+              >
+                <FontAwesomeIcon
+                  icon={faList}
+                  size={14}
+                  color={!showDeck ? "#17181a" : "#a3a09e"}
+                />
+              </Pressable>
+            </View>
+          ) : null}
         </View>
 
         {/* Recent searches (only when the inputs are empty). */}
@@ -242,6 +291,12 @@ const JobsScreen = () => {
           title="Couldn’t load the board"
           body="We couldn’t reach the contracts list. Check your connection and try again."
           onRetry={() => refetch()}
+        />
+      ) : showDeck ? (
+        <JobDeck
+          jobs={jobs}
+          bottomInset={insets.bottom + TAB_BAR_HEIGHT}
+          onEmptyAction={() => setSheetOpen(true)}
         />
       ) : (
         <FlashList

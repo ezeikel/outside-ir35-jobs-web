@@ -19,13 +19,15 @@ export type SearchFilters = {
   q: string;
   location: string | null;
   ir35Outside: boolean;
-  // This is an outside-IR35 board, so explicit INSIDE listings NEVER appear on any
-  // board surface (docs/ir35-trust-model.md: INSIDE is "not our niche"). Always
-  // true — there is no user option to opt into inside (the old ?ir35=any is gone).
-  // We hide only INSIDE here, not UNKNOWN — most aggregated contract work is
-  // UNKNOWN and is the bulk of the board; excluding it would empty the listing.
-  // (boardVisible=false is the absolute gate; this clause is belt-and-braces.)
-  ir35ExcludeInside: boolean;
+  // The whole point of the platform is OUTSIDE-only. The board therefore requires
+  // an outside-leaning IR35 signal (a positive allowlist), not merely "not inside".
+  // That means: explicit INSIDE never shows (as before) AND aggregated jobs we
+  // couldn't confirm as outside (UNKNOWN) don't show either — a board that exists
+  // for outside contracts must not surface roles it can't say are outside
+  // (docs/ir35-trust-model.md). Always true: there is no opt-in to inside/unknown.
+  // The board may be thinner until the aggregation worker classifies more roles as
+  // confirmed-outside; that's the honest trade for the promise.
+  ir35OutsideOnly: boolean;
   workMode: WorkMode | null;
   minRate: number | null;
   postedSinceDays: number | null;
@@ -61,9 +63,9 @@ export const normalizeFilters = (params: SearchParams): SearchFilters => {
     q: (params.q ?? '').trim(),
     location: params.location?.trim() || null,
     ir35Outside: params.ir35 === 'outside',
-    // Always exclude INSIDE — there is no opt-in (outside-IR35 board). A leftover
-    // ?ir35=any from a saved URL is ignored; INSIDE stays hidden.
-    ir35ExcludeInside: true,
+    // Always outside-only — there is no opt-in to inside/unknown (outside-IR35
+    // board). A leftover ?ir35=any from a saved URL is ignored.
+    ir35OutsideOnly: true,
     workMode:
       params.mode && isWorkMode(params.mode) ? (params.mode as WorkMode) : null,
     minRate:
