@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
 import { TAB_BAR_HEIGHT } from "@/components/GlassTabBar";
+import ErrorState from "@/components/ErrorState";
 import JobCard from "@/components/JobCard";
 import FilterSheet from "@/components/search/FilterSheet";
 import LocationField from "@/components/search/LocationField";
@@ -237,11 +238,11 @@ const JobsScreen = () => {
           <ActivityIndicator color="#17181a" />
         </View>
       ) : isError ? (
-        <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-center text-muted-foreground">
-            Couldn’t load the board. Pull to retry.
-          </Text>
-        </View>
+        <ErrorState
+          title="Couldn’t load the board"
+          body="We couldn’t reach the contracts list. Check your connection and try again."
+          onRetry={() => refetch()}
+        />
       ) : (
         <FlashList
           data={jobs}

@@ -54,8 +54,11 @@ const SaveHeart = ({
 
   return (
     <Pressable
-      className="-m-2 p-2 active:opacity-60"
-      hitSlop={8}
+      // Comfortable ~44pt touch target (Apple HIG minimum). The negative margin
+      // pulls the extra padding back so layout is unchanged; hitSlop extends the
+      // tappable area past the padding so an edge-of-card tap still lands.
+      className="-m-3 p-3 active:opacity-60"
+      hitSlop={12}
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityLabel={saved ? "Remove from saved" : "Save this job"}

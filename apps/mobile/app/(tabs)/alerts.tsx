@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
+import ErrorState from "@/components/ErrorState";
 import { TAB_BAR_HEIGHT } from "@/components/GlassTabBar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useViewMode } from "@/hooks/useViewMode";
@@ -25,7 +26,7 @@ const AlertsScreen = () => {
   const { mode } = useViewMode();
 
   const enabled = isAuthenticated && mode === "seeker";
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["savedSearches"],
     queryFn: fetchSavedSearches,
     enabled,
@@ -90,6 +91,12 @@ const AlertsScreen = () => {
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color="#17181a" />
         </View>
+      ) : isError ? (
+        <ErrorState
+          title="Couldn’t load alerts"
+          body="We couldn’t reach your saved searches. Check your connection and try again."
+          onRetry={() => refetch()}
+        />
       ) : (data ?? []).length === 0 ? (
         <Empty insetTop={0}>
           <Text className="text-center text-muted-foreground">

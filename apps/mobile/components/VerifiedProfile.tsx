@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import CVManager from "@/components/CVManager";
 import DocumentUpload from "@/components/DocumentUpload";
 import { fetchProfile, type MobileProfile } from "@/lib/api-profile";
@@ -10,7 +10,7 @@ import { fetchProfile, type MobileProfile } from "@/lib/api-profile";
 // (docs/ir35-trust-model.md). Documents are uploadable in-app; company
 // verification + IR35-insurance editing still live on web.
 const VerifiedProfile = () => {
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile, isLoading, isError, refetch } = useQuery({
     queryKey: ["profile"],
     queryFn: fetchProfile,
   });
@@ -19,6 +19,30 @@ const VerifiedProfile = () => {
     return (
       <View className="py-8">
         <ActivityIndicator color="#17181a" />
+      </View>
+    );
+  }
+
+  // A failed fetch must not read as "no profile yet" (the dashed prompt below) —
+  // give a retry instead.
+  if (isError) {
+    return (
+      <View className="mt-6 rounded-lg border border-dashed border-border bg-card p-5">
+        <Text className="font-display text-xl text-foreground">
+          Couldn’t load your profile
+        </Text>
+        <Text className="mt-1 text-sm text-muted-foreground">
+          We couldn’t reach your verified profile. Check your connection and try
+          again.
+        </Text>
+        <Pressable
+          className="mt-4 self-start rounded-lg border border-border bg-background px-4 py-2.5 active:opacity-70"
+          onPress={() => refetch()}
+          accessibilityRole="button"
+          accessibilityLabel="Try again"
+        >
+          <Text className="font-sans-semibold text-foreground">Try again</Text>
+        </Pressable>
       </View>
     );
   }

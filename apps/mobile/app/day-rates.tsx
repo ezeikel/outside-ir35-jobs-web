@@ -2,6 +2,7 @@ import { FlashList } from "@shopify/flash-list";
 import { useQuery } from "@tanstack/react-query";
 import { ActivityIndicator, RefreshControl, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import ErrorState from "@/components/ErrorState";
 import { type DayRateRow, fetchDayRates } from "@/lib/api-day-rates";
 
 // Day-rate benchmarks — median UK day rates by skill, split by the IR35 position
@@ -48,11 +49,11 @@ const DayRatesScreen = () => {
     return (
       <View className="flex-1 bg-background px-4 pt-2">
         {Header}
-        <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-center text-muted-foreground">
-            Couldn’t load day rates. Pull to retry.
-          </Text>
-        </View>
+        <ErrorState
+          title="Couldn’t load day rates"
+          body="We couldn’t reach the benchmarks. Check your connection and try again."
+          onRetry={() => refetch()}
+        />
       </View>
     );
   }

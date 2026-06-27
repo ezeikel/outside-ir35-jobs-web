@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import ErrorState from "@/components/ErrorState";
 import { TAB_BAR_HEIGHT } from "@/components/GlassTabBar";
 import JobCard from "@/components/JobCard";
 import { useAuth } from "@/contexts/AuthContext";
@@ -159,6 +160,7 @@ const ApplicationsTab = ({ bottomInset }: { bottomInset: number }) => {
   const {
     data: applications = [],
     isLoading,
+    isError,
     isRefetching,
     refetch,
   } = useQuery({
@@ -177,6 +179,18 @@ const ApplicationsTab = ({ bottomInset }: { bottomInset: number }) => {
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator color="#17181a" />
       </View>
+    );
+  }
+
+  // A failed fetch must not fall through to "No applications yet" — that would
+  // read as "you haven't applied to anything" when really we just couldn't load.
+  if (isError) {
+    return (
+      <ErrorState
+        title="Couldn’t load applications"
+        body="We couldn’t reach your applications. Check your connection and try again."
+        onRetry={() => refetch()}
+      />
     );
   }
 
@@ -231,8 +245,16 @@ const ApplicationsTab = ({ bottomInset }: { bottomInset: number }) => {
 // Saved jobs list — shares the React Query cache with the heart on JobCard, so
 // unsaving here (or anywhere) updates everywhere.
 const SavedTab = ({ bottomInset }: { bottomInset: number }) => {
-  const { saved, savedIds, canSave, toggle, isLoading, isRefetching, refetch } =
-    useSavedJobs();
+  const {
+    saved,
+    savedIds,
+    canSave,
+    toggle,
+    isLoading,
+    isError,
+    isRefetching,
+    refetch,
+  } = useSavedJobs();
 
   // Refetch whenever the tab gains focus, so entering My Jobs always reflects the
   // server (jobs saved on the board this session show up reliably). The optimistic
@@ -248,6 +270,19 @@ const SavedTab = ({ bottomInset }: { bottomInset: number }) => {
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator color="#17181a" />
       </View>
+    );
+  }
+
+  // Only treat a fetch failure as an error when there's nothing in the cache to
+  // show. An in-session optimistic save keeps the list populated even if a later
+  // background refetch fails — we don't want to blank that out.
+  if (isError && saved.length === 0) {
+    return (
+      <ErrorState
+        title="Couldn’t load saved jobs"
+        body="We couldn’t reach your saved jobs. Check your connection and try again."
+        onRetry={() => refetch()}
+      />
     );
   }
 

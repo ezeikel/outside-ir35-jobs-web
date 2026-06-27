@@ -309,8 +309,8 @@ const PostJobScreen = () => {
           accessibilityLabel="I confirm this reflects the client’s stated IR35 position"
         >
           <View
-            className={`mt-0.5 h-5 w-5 items-center justify-center rounded border ${
-              attested ? "border-primary bg-primary" : "border-border"
+            className={`mt-0.5 h-5 w-5 items-center justify-center rounded border-2 ${
+              attested ? "border-primary bg-primary" : "border-ink-400"
             }`}
           >
             {attested ? (
@@ -324,14 +324,18 @@ const PostJobScreen = () => {
         </Pressable>
 
         <form.Subscribe selector={(s) => s.canSubmit}>
-          {(canSubmit) => (
+          {(canSubmit) => {
+            // Everything that must be true to pay. We gate the button on ALL of
+            // it (not just the form) so the blocker is obvious — the button greys
+            // out and the helper line below names what's missing.
+            const ready =
+              canSubmit && attested && !!description.trim() && !post.isPending;
+            return (
             <Pressable
               className={`mt-3 rounded-lg p-4 ${
-                canSubmit && !post.isPending
-                  ? "bg-primary active:opacity-90"
-                  : "bg-ink-300"
+                ready ? "bg-primary active:opacity-90" : "bg-ink-300"
               }`}
-              disabled={!canSubmit || post.isPending}
+              disabled={!ready}
               onPress={() => void form.handleSubmit()}
             >
               {post.isPending ? (
@@ -342,8 +346,21 @@ const PostJobScreen = () => {
                 </Text>
               )}
             </Pressable>
-          )}
+            );
+          }}
         </form.Subscribe>
+
+        {/* Name the remaining blocker right under the button, so it's obvious why
+            Continue is disabled (no more far-away toast). */}
+        {!attested ? (
+          <Text className="-mt-1 text-center text-xs text-muted-foreground">
+            Confirm the IR35 position above to continue.
+          </Text>
+        ) : !description.trim() ? (
+          <Text className="-mt-1 text-center text-xs text-muted-foreground">
+            Add a job description to continue.
+          </Text>
+        ) : null}
 
         <Text className="text-center text-xs text-muted-foreground">
           Pay securely by card (company cards welcome). You’ll get a receipt, and

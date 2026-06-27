@@ -36,6 +36,7 @@ export const useSavedJobs = () => {
   const {
     data: saved = [],
     isLoading,
+    isError,
     refetch,
     isRefetching,
   } = useQuery({
@@ -143,6 +144,7 @@ export const useSavedJobs = () => {
     saved,
     savedIds,
     isLoading,
+    isError,
     isRefetching,
     refetch,
     canSave: enabled,
