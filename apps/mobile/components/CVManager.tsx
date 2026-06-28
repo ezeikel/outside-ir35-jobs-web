@@ -13,10 +13,13 @@ import {
 } from "react-native";
 import { toast } from "sonner-native";
 import ConfirmSheet from "@/components/ConfirmSheet";
+import DocViewer from "@/components/DocViewer";
+import { useDocViewer } from "@/hooks/useDocViewer";
 import {
   type CV,
   deleteCV,
   fetchCVs,
+  getCVViewUrl,
   renameCV,
   setActiveCV,
   uploadCV,
@@ -42,6 +45,7 @@ const CVManager = () => {
   const queryClient = useQueryClient();
   const [pending, setPending] = useState<{ name: string } | null>(null);
   const [toDelete, setToDelete] = useState<CV | null>(null);
+  const { view, viewerProps } = useDocViewer();
 
   const { data: cvs = [], isLoading } = useQuery({
     queryKey: CV_QUERY_KEY,
@@ -148,6 +152,7 @@ const CVManager = () => {
             <CVRow
               key={cv.id}
               cv={cv}
+              onView={() => view(cv.name, () => getCVViewUrl(cv.id))}
               onActivate={() => activate.mutate(cv.id)}
               onRename={(name) => rename.mutate({ id: cv.id, name })}
               onDelete={() => setToDelete(cv)}
@@ -157,6 +162,7 @@ const CVManager = () => {
         </View>
       )}
 
+      <DocViewer {...viewerProps} />
 
       <ConfirmSheet
         isOpen={toDelete !== null}
@@ -177,12 +183,14 @@ const CVManager = () => {
 
 const CVRow = ({
   cv,
+  onView,
   onActivate,
   onRename,
   onDelete,
   busy,
 }: {
   cv: CV;
+  onView: () => void;
   onActivate: () => void;
   onRename: (name: string) => void;
   onDelete: () => void;
@@ -261,6 +269,16 @@ const CVRow = ({
         )}
       </View>
       <View className="mt-2 flex-row gap-4">
+        <Pressable
+          className="active:opacity-60"
+          hitSlop={6}
+          onPress={onView}
+          disabled={busy}
+          accessibilityRole="button"
+          accessibilityLabel={`View ${cv.name}`}
+        >
+          <Text className="text-xs font-sans-medium text-foreground">View</Text>
+        </Pressable>
         <Pressable
           className="active:opacity-60"
           hitSlop={6}

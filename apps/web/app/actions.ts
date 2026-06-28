@@ -1339,6 +1339,42 @@ export const getDocumentDownloadUrl = async (
   return getSignedDownloadUrl(doc.r2Key, 300);
 };
 
+// Short-lived presigned URL to view/download one of the caller's own CVs. Mirrors
+// getDocumentDownloadUrl — private bucket, owner-checked, never a public concat.
+// Caller-based (the mobile route passes the bearer caller's id) so web + mobile
+// share one rule. Returns null if the CV isn't the caller's or has no file yet.
+export const getCVDownloadUrlForCaller = async (
+  userId: string,
+  cvId: string,
+): Promise<string | null> => {
+  const cv = await prisma.contractorCV.findUnique({
+    where: { id: cvId },
+    select: { userId: true, r2Key: true },
+  });
+  if (!cv || cv.userId !== userId || !cv.r2Key) {
+    return null;
+  }
+  return getSignedDownloadUrl(cv.r2Key, 300);
+};
+
+// Caller-based presigned URL for one of the caller's own COMPLIANCE documents,
+// looked up by type (the mobile rows are keyed by type, one per type per user).
+// View-only: compliance docs are third-party evidence and are never editable
+// (docs/ir35-trust-model.md). Returns null if not the caller's or no file.
+export const getDocumentDownloadUrlForCaller = async (
+  userId: string,
+  type: ContractorDocType,
+): Promise<string | null> => {
+  const doc = await prisma.contractorDocument.findUnique({
+    where: { userId_type: { userId, type } },
+    select: { r2Key: true },
+  });
+  if (!doc?.r2Key) {
+    return null;
+  }
+  return getSignedDownloadUrl(doc.r2Key, 300);
+};
+
 // Edit a document's compliance metadata (insurer / cover limit / expiry) without
 // re-uploading the file. Recomputes status from the new expiry. The doc's `type`
 // is read from the row (not trusted from the client). Accepts raw form strings;

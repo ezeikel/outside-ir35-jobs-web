@@ -6,9 +6,12 @@ import { toast } from "sonner-native";
 import { z } from "zod";
 import ConfirmSheet from "@/components/ConfirmSheet";
 import FormField from "@/components/FormField";
+import DocViewer from "@/components/DocViewer";
+import { useDocViewer } from "@/hooks/useDocViewer";
 import {
   deleteDocument,
   extractDocFacts,
+  getDocumentViewUrl,
   type PickedFile,
   type UploadMeta,
   UPLOADABLE_DOC_TYPES,
@@ -45,6 +48,7 @@ const metaSchema = z.object({
 // profile. The server validates + recomputes the trust tier.
 const DocumentUpload = ({ profile }: { profile: MobileProfile }) => {
   const onFile = new Map(profile.documents.map((d) => [d.type, d]));
+  const { view, viewerProps } = useDocViewer();
 
   return (
     <View className="mt-5">
@@ -62,8 +66,11 @@ const DocumentUpload = ({ profile }: { profile: MobileProfile }) => {
           label={dt.label}
           tracksExpiry={dt.tracksExpiry}
           hasFile={onFile.has(dt.type)}
+          onView={() => view(dt.label, () => getDocumentViewUrl(dt.type))}
         />
       ))}
+
+      <DocViewer {...viewerProps} />
     </View>
   );
 };
@@ -73,11 +80,13 @@ const DocRow = ({
   label,
   tracksExpiry,
   hasFile,
+  onView,
 }: {
   docType: string;
   label: string;
   tracksExpiry: boolean;
   hasFile: boolean;
+  onView: () => void;
 }) => {
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(false);
@@ -203,6 +212,17 @@ const DocRow = ({
           </Text>
         </View>
         <View className="flex-row gap-2">
+          {hasFile ? (
+            <Pressable
+              className="rounded-lg border border-border px-3 py-2 active:opacity-70"
+              disabled={busy}
+              onPress={onView}
+              accessibilityRole="button"
+              accessibilityLabel={`View ${label}`}
+            >
+              <Text className="text-sm text-foreground">View</Text>
+            </Pressable>
+          ) : null}
           {hasFile ? (
             <Pressable
               className="rounded-lg px-3 py-2 active:opacity-70"

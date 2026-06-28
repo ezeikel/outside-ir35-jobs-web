@@ -47,6 +47,13 @@ export const setActiveCV = async (id: string): Promise<void> => {
   await api.patch(`/api/mobile/cvs/${id}`, { isActive: true });
 };
 
+// A short-lived presigned URL to view this CV (PDF/image). Owner-scoped server
+// side; the app opens it in an in-app browser.
+export const getCVViewUrl = async (id: string): Promise<string> => {
+  const { data } = await api.get<{ url: string }>(`/api/mobile/cvs/${id}/view`);
+  return data.url;
+};
+
 export const deleteCV = async (id: string): Promise<void> => {
   await api.delete(`/api/mobile/cvs/${id}`);
 };

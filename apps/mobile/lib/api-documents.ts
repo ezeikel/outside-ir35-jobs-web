@@ -72,6 +72,15 @@ export const deleteDocument = async (docType: string): Promise<void> => {
   await api.delete(`/api/mobile/documents/${docType}`);
 };
 
+// A short-lived presigned URL to view a compliance document (PDF/image). View-only
+// (compliance docs are never editable). Owner-scoped server side.
+export const getDocumentViewUrl = async (docType: string): Promise<string> => {
+  const { data } = await api.get<{ url: string }>(
+    `/api/mobile/documents/${docType}/view`,
+  );
+  return data.url;
+};
+
 // Facts read off a document by AI (a transcription aid — the user confirms them
 // before saving; nothing is verified). Cover limit is whole pounds; expiry is ISO.
 export type ExtractedDocFacts = {
