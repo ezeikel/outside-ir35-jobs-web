@@ -71,3 +71,38 @@ export const uploadDocument = async (
 export const deleteDocument = async (docType: string): Promise<void> => {
   await api.delete(`/api/mobile/documents/${docType}`);
 };
+
+// Facts read off a document by AI (a transcription aid — the user confirms them
+// before saving; nothing is verified). Cover limit is whole pounds; expiry is ISO.
+export type ExtractedDocFacts = {
+  insurer: string | null;
+  coverLimit: number | null;
+  expiresAt: string | null;
+};
+
+// Ask the server to read insurer / cover / expiry off a picked file so we can
+// pre-fill the form. Best-effort: returns all-null on any failure so the user just
+// types it in. Only meaningful for expiry-tracking types.
+export const extractDocFacts = async (
+  docType: string,
+  file: PickedFile,
+): Promise<ExtractedDocFacts> => {
+  const form = new FormData();
+  form.append("type", docType);
+  const filePart = {
+    uri: file.uri,
+    name: file.name,
+    type: file.mimeType,
+  } as unknown as Blob;
+  form.append("file", filePart);
+  try {
+    const { data } = await api.post<{ facts: ExtractedDocFacts }>(
+      "/api/mobile/documents/extract",
+      form,
+      { headers: { "Content-Type": "multipart/form-data" } },
+    );
+    return data.facts;
+  } catch {
+    return { insurer: null, coverLimit: null, expiresAt: null };
+  }
+};

@@ -8,6 +8,7 @@ import ConfirmSheet from "@/components/ConfirmSheet";
 import FormField from "@/components/FormField";
 import {
   deleteDocument,
+  extractDocFacts,
   type PickedFile,
   type UploadMeta,
   UPLOADABLE_DOC_TYPES,
@@ -82,6 +83,10 @@ const DocRow = ({
   const [expanded, setExpanded] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [picked, setPicked] = useState<PickedFile | null>(null);
+  // True while AI reads the picked file to pre-fill insurer/cover/expiry.
+  const [extracting, setExtracting] = useState(false);
+  // Set once we've pre-filled from a document, so the UI can say so.
+  const [prefilled, setPrefilled] = useState(false);
 
   const upload = useMutation({
     mutationFn: ({ file, meta }: { file: PickedFile; meta?: UploadMeta }) =>
@@ -135,7 +140,37 @@ const DocRow = ({
       if (!file) return;
       setPicked(file);
       // Non-expiry docs upload immediately; expiry docs wait for the metadata.
-      if (!tracksExpiry) upload.mutate({ file });
+      if (!tracksExpiry) {
+        upload.mutate({ file });
+        return;
+      }
+      // Expiry docs: read the facts off the file so the contractor doesn't have to
+      // type them. A transcription aid — we PRE-FILL the form (only fields the user
+      // left blank, so we never clobber something they typed) and they confirm.
+      setExtracting(true);
+      try {
+        const facts = await extractDocFacts(docType, file);
+        let filledAny = false;
+        const cur = form.state.values;
+        if (facts.insurer && !cur.insurer.trim()) {
+          form.setFieldValue("insurer", facts.insurer);
+          filledAny = true;
+        }
+        if (facts.coverLimit && !cur.coverLimit.trim()) {
+          form.setFieldValue("coverLimit", String(facts.coverLimit));
+          filledAny = true;
+        }
+        if (facts.expiresAt && !cur.expiresAt.trim()) {
+          form.setFieldValue("expiresAt", facts.expiresAt);
+          filledAny = true;
+        }
+        if (filledAny) {
+          setPrefilled(true);
+          toast("Read from your document. Check it’s right before you upload.");
+        }
+      } finally {
+        setExtracting(false);
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn’t pick that file.");
     }
@@ -149,12 +184,13 @@ const DocRow = ({
     setExpanded((open) => {
       if (open) {
         setPicked(null);
+        setPrefilled(false);
         form.reset();
       }
       return !open;
     });
 
-  const busy = upload.isPending || remove.isPending;
+  const busy = upload.isPending || remove.isPending || extracting;
 
   return (
     <>
@@ -197,6 +233,25 @@ const DocRow = ({
 
       {expanded && tracksExpiry ? (
         <View className="mt-3 gap-2">
+          {/* Extraction status: reading the picked file, or a note that we
+              pre-filled (a transcription aid — never a verification claim). */}
+          {extracting ? (
+            <View className="flex-row items-center gap-2 rounded-lg bg-secondary px-3 py-2">
+              <ActivityIndicator size="small" color="#17181a" />
+              <Text className="text-xs text-muted-foreground">
+                Reading your document to fill these in…
+              </Text>
+            </View>
+          ) : prefilled ? (
+            <Text className="rounded-lg bg-verified-muted px-3 py-2 text-xs text-foreground">
+              We filled these from your document. Check they’re right, then upload.
+            </Text>
+          ) : (
+            <Text className="text-xs text-muted-foreground">
+              Pick the file first and we’ll read the insurer, cover and expiry off
+              it for you to confirm.
+            </Text>
+          )}
           {docType !== "RIGHT_TO_WORK" ? (
             <>
               <form.Field name="insurer">
