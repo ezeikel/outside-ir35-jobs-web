@@ -21,7 +21,7 @@ import { useSavedJobs } from "@/hooks/useSavedJobs";
 import { useViewMode } from "@/hooks/useViewMode";
 import { fetchApplications } from "@/lib/api-applications";
 
-// "My jobs" (seeker) / "My posts" (hiring). Mode-aware. Seekers get Saved +
+// "My jobs" (seeker) / "My roles" (hiring). Mode-aware. Seekers get Saved +
 // Applications sub-tabs; hirers get their listings. The data surfaces (saved
 // jobs, applications, my posts) are filled in by follow-on work — for now this is
 // the shell with the right structure + empty states.
@@ -369,7 +369,7 @@ const MyPosts = ({
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: topInset + 12 }}>
       <Text className="px-6 pb-2 font-display text-3xl text-foreground">
-        My posts
+        My roles
       </Text>
       <View className="flex-row border-b border-border px-6">
         <SegTab

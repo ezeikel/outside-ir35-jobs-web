@@ -46,18 +46,28 @@ export type GlassTabBarProps = {
 
 type TabItem = { name: string; label: string; icon: IconDefinition };
 
-// The visible bar is 4 tabs (TotalJobs model): Find · My Jobs/My Posts · Alerts ·
-// Profile. The middle tab is mode-aware — seekers save+apply ("My Jobs"), hirers
-// manage listings ("My Posts"). day-rates + premium are still registered screens
-// (reachable from Find / Profile) but NOT in the bar.
-const tabsForMode = (mode: ViewMode): TabItem[] => [
-  { name: "index", label: "Find", icon: faMagnifyingGlass },
-  mode === "hiring"
-    ? { name: "my-jobs", label: "My posts", icon: faRectangleList }
-    : { name: "my-jobs", label: "My jobs", icon: faHeart },
-  { name: "alerts", label: "Alerts", icon: faBell },
-  { name: "profile", label: "Profile", icon: faUser },
-];
+// The bar is mode-aware (TotalJobs model). The middle tab is the user's own work:
+// seekers save+apply ("My jobs"), hirers manage their contracts ("My roles").
+// ALERTS is a seeker-only feature (saved searches + job alerts), so it's hidden in
+// hiring mode — a hiring tab bar is Find · My roles · Profile. (A future recruiter-
+// notifications surface — new applicants, offer accepted/declined, cohort sent —
+// could bring a hiring "Alerts" back once those flows exist.) day-rates + premium
+// stay registered screens reachable from Find / Profile but not in the bar.
+const tabsForMode = (mode: ViewMode): TabItem[] => {
+  if (mode === "hiring") {
+    return [
+      { name: "index", label: "Find", icon: faMagnifyingGlass },
+      { name: "my-jobs", label: "My roles", icon: faRectangleList },
+      { name: "profile", label: "Profile", icon: faUser },
+    ];
+  }
+  return [
+    { name: "index", label: "Find", icon: faMagnifyingGlass },
+    { name: "my-jobs", label: "My jobs", icon: faHeart },
+    { name: "alerts", label: "Alerts", icon: faBell },
+    { name: "profile", label: "Profile", icon: faUser },
+  ];
+};
 
 export const GlassTabBar = ({ state, navigation }: GlassTabBarProps) => {
   const insets = useSafeAreaInsets();
