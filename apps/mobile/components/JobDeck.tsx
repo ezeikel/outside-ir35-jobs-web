@@ -5,7 +5,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { useRouter } from "expo-router";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
 import JobSwipeCard from "@/components/JobSwipeCard";
@@ -100,6 +100,17 @@ const JobDeck = ({
   // Track whether the deck has been emptied by swiping (vs. never had cards).
   const [exhausted, setExhausted] = useState(false);
 
+  // A new set of jobs (search changed / refetch brought fresh cards) is a NEW
+  // deck — clear the exhausted flag so we don't show the "you've been through it"
+  // empty state over cards the user hasn't seen. Keyed on the id signature so it
+  // only resets when the actual cards change, not on every render.
+  const deckSignature = deck.map((j) => j.id).join(",");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset only when the
+  // id signature changes, not when the array identity does.
+  useEffect(() => {
+    setExhausted(false);
+  }, [deckSignature]);
+
   const onSwipeRight = useCallback(
     (job: MobileJobCard) => {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -135,8 +146,12 @@ const JobDeck = ({
     [router],
   );
 
-  // Empty: either nothing matched the search, or every card has been triaged.
-  if (deck.length === 0) {
+  // Empty: nothing matched the search (deck never had cards), OR every card has
+  // been swiped (exhausted). We must check `exhausted` too, not just deck.length:
+  // a SAVED card stays in `deck` (you can swipe past one you saved), so after
+  // swiping through a deck that included saves, deck.length is still > 0 even
+  // though SwipeDeck's queue is empty — without this the screen would go blank.
+  if (deck.length === 0 || exhausted) {
     return (
       <View
         className="flex-1 items-center justify-center px-10"
@@ -199,11 +214,11 @@ const JobDeck = ({
           keyExtractor={(j) => j.id}
           renderCard={renderCard}
           onSwipeRight={onSwipeRight}
-          onSwipeLeft={(job) => {
-            onSwipeLeft(job);
-            // If that was the last card, flip to the "you've been through it" copy.
-            if (deck.length === 1) setExhausted(true);
-          }}
+          onSwipeLeft={onSwipeLeft}
+          // Fires when the LAST card is swiped, in EITHER direction — the reliable
+          // signal that the deck is done (a right/save swipe leaves the card in
+          // `deck`, so we can't infer "done" from deck.length).
+          onEmpty={() => setExhausted(true)}
           onReady={onReady}
           showCounter
           rightHint={<Hint label="Save" tone="save" />}
