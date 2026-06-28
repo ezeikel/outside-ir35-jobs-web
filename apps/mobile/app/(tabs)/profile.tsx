@@ -93,6 +93,7 @@ const ProfileScreen = () => {
     user,
     signInWithGoogleHandler,
     signInWithAppleHandler,
+    devSignInHandler,
     signOut,
   } = useAuth();
   const { mode, setMode } = useViewMode();
@@ -275,6 +276,41 @@ const ProfileScreen = () => {
           />
         ) : null}
       </View>
+
+      {/* DEV/TEST-ONLY sign-in (never shipped — __DEV__ is false in prod builds).
+          Lets the simulator + Maestro reach authed surfaces without OAuth. Stable
+          testIDs for automation. */}
+      {__DEV__ ? (
+        <View className="mt-10 gap-2 rounded-lg border border-dashed border-border p-3">
+          <Text className="text-xs font-sans-semibold uppercase tracking-wide text-muted-foreground">
+            Dev sign-in
+          </Text>
+          <View className="flex-row gap-2">
+            <Pressable
+              testID="dev-signin-seeker"
+              className="flex-1 rounded-lg border border-border bg-card p-3 active:opacity-70"
+              onPress={() => void devSignInHandler("seeker")}
+              accessibilityRole="button"
+              accessibilityLabel="Dev sign in as seeker"
+            >
+              <Text className="text-center text-sm font-sans-medium text-foreground">
+                Seeker
+              </Text>
+            </Pressable>
+            <Pressable
+              testID="dev-signin-poster"
+              className="flex-1 rounded-lg border border-border bg-card p-3 active:opacity-70"
+              onPress={() => void devSignInHandler("poster")}
+              accessibilityRole="button"
+              accessibilityLabel="Dev sign in as poster"
+            >
+              <Text className="text-center text-sm font-sans-medium text-foreground">
+                Poster
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 };

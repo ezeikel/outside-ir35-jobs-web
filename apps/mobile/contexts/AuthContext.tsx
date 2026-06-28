@@ -16,6 +16,7 @@ import {
   type OAuthSignInResponse,
   signInWithApple,
   signInWithGoogle,
+  testLogin,
 } from "@/lib/api-auth";
 import { clearSession, getSessionToken, setSession } from "@/lib/auth";
 import { registerForPush } from "@/lib/push";
@@ -32,6 +33,9 @@ type AuthContextType = {
   user: AuthUser | null;
   signInWithGoogleHandler: () => Promise<OAuthSignInResponse | null>;
   signInWithAppleHandler: () => Promise<OAuthSignInResponse | null>;
+  // DEV/TEST-ONLY (no-ops in prod). Signs in as a seeded test user via the gated
+  // test-login route, so the simulator + Maestro can reach authed surfaces.
+  devSignInHandler: (role: "seeker" | "poster") => Promise<void>;
   signOut: () => Promise<void>;
   refreshAuth: () => Promise<void>;
 };
@@ -42,6 +46,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   signInWithGoogleHandler: async () => null,
   signInWithAppleHandler: async () => null,
+  devSignInHandler: async () => undefined,
   signOut: async () => undefined,
   refreshAuth: async () => undefined,
 });
@@ -168,6 +173,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     }, [finishSignIn]);
 
+  // DEV/TEST-ONLY: sign in as a seeded test user via the gated test-login route
+  // (no OAuth), so the simulator + Maestro can drive authed surfaces. No-ops in a
+  // prod build (__DEV__ is false) and the server route 404s without E2E_TEST_LOGIN.
+  const devSignInHandler = useCallback(
+    async (role: "seeker" | "poster") => {
+      if (!__DEV__) return;
+      try {
+        setIsLoading(true);
+        const { token, user: u } = await testLogin(role);
+        await setSession(token, u.id);
+        setUser(u);
+        void queryClient.invalidateQueries();
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Dev sign-in failed";
+        toast.error(message);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [queryClient],
+  );
+
   const signOut = useCallback(async () => {
     await clearSession();
     setUser(null);
@@ -187,6 +215,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         user,
         signInWithGoogleHandler,
         signInWithAppleHandler,
+        devSignInHandler,
         signOut,
         refreshAuth,
       }}

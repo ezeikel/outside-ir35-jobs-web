@@ -44,3 +44,17 @@ export const getAuthMe = async (): Promise<AuthUser> => {
   const { data } = await api.get<{ user: AuthUser }>("/api/mobile/auth/me");
   return data.user;
 };
+
+// DEV/TEST-ONLY: mint a session for a seeded test user without OAuth, so the
+// simulator + Maestro can drive the authed surfaces. The server route only
+// responds when E2E_TEST_LOGIN=1 (404s in prod). Never call this from a prod build
+// — the caller is gated on __DEV__.
+export const testLogin = async (
+  role: "seeker" | "poster",
+): Promise<{ token: string; user: AuthUser }> => {
+  const { data } = await api.post<{ token: string; user: AuthUser }>(
+    "/api/mobile/auth/test-login",
+    { role },
+  );
+  return data;
+};
