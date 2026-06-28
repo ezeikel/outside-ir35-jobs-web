@@ -1,4 +1,4 @@
-import { faCheck, faFileLines, faPlus } from "@fortawesome/free-solid-svg-icons";
+import { faCheck, faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
@@ -208,11 +208,18 @@ const CVRow = ({
     else setDraft(cv.name);
   };
 
+  // Status line mirrors the pack rows' "On file" / "Not provided" — here it's the
+  // parse state + active flag.
+  const statusLine = `${cv.parsed ? "Ready" : "Reading…"}${
+    cv.isActive ? " · used for matching" : ""
+  }`;
+
   return (
-    <View className="rounded-lg border border-border bg-card p-3">
-      <View className="flex-row items-center gap-3">
-        <FontAwesomeIcon icon={faFileLines} size={18} color="#767370" />
-        <View className="min-w-0 flex-1">
+    <View className="mb-2 rounded-lg border border-border bg-card p-3">
+      {/* Same shape as the compliance-pack rows: title + status on the left, a
+          right-aligned bordered-button group. */}
+      <View className="flex-row items-center justify-between">
+        <View className="min-w-0 flex-1 pr-3">
           {editing ? (
             <TextInput
               style={styles.renameInput}
@@ -226,82 +233,65 @@ const CVRow = ({
               accessibilityLabel="CV name"
             />
           ) : (
-            <Pressable
-              onPress={() => {
-                setDraft(cv.name);
-                setEditing(true);
-              }}
-              accessibilityRole="button"
-              accessibilityLabel={`Rename ${cv.name}`}
+            <Text
+              className="font-sans-semibold text-foreground"
+              numberOfLines={1}
             >
-              <Text
-                className="text-sm font-sans-semibold text-foreground"
-                numberOfLines={1}
-              >
-                {cv.name}
-              </Text>
+              {cv.name}
+            </Text>
+          )}
+          <Text className="text-xs text-muted-foreground">{statusLine}</Text>
+        </View>
+        <View className="flex-row items-center gap-2">
+          {/* Active state mirrors a status pill; non-active gets a "Use this"
+              button (same bordered style as the action buttons). */}
+          {cv.isActive ? (
+            <View className="flex-row items-center gap-1 rounded-lg bg-secondary px-2.5 py-2">
+              <FontAwesomeIcon icon={faCheck} size={10} color="#17181a" />
+              <Text className="text-sm text-secondary-foreground">Active</Text>
+            </View>
+          ) : (
+            <Pressable
+              className="rounded-lg border border-border px-3 py-2 active:opacity-70"
+              onPress={onActivate}
+              disabled={busy}
+              accessibilityRole="button"
+              accessibilityLabel={`Make ${cv.name} the active CV`}
+            >
+              <Text className="text-sm text-foreground">Use this</Text>
             </Pressable>
           )}
-          <Text className="text-xs text-muted-foreground">
-            {cv.parsed ? "Ready" : "Reading…"}
-            {cv.isActive ? " · used for matching" : ""}
-          </Text>
-        </View>
-        {cv.isActive ? (
-          <View className="flex-row items-center gap-1 rounded-full bg-secondary px-2 py-1">
-            <FontAwesomeIcon icon={faCheck} size={10} color="#17181a" />
-            <Text className="text-xs font-sans-medium text-secondary-foreground">
-              Active
-            </Text>
-          </View>
-        ) : (
           <Pressable
-            className="rounded-lg border border-border px-3 py-1.5 active:opacity-70"
-            onPress={onActivate}
+            className="rounded-lg border border-border px-3 py-2 active:opacity-70"
+            onPress={onView}
             disabled={busy}
             accessibilityRole="button"
-            accessibilityLabel={`Make ${cv.name} the active CV`}
+            accessibilityLabel={`View ${cv.name}`}
           >
-            <Text className="text-xs font-sans-medium text-foreground">
-              Use this
-            </Text>
+            <Text className="text-sm text-foreground">View</Text>
           </Pressable>
-        )}
-      </View>
-      <View className="mt-2 flex-row gap-4">
-        <Pressable
-          className="active:opacity-60"
-          hitSlop={6}
-          onPress={onView}
-          disabled={busy}
-          accessibilityRole="button"
-          accessibilityLabel={`View ${cv.name}`}
-        >
-          <Text className="text-xs font-sans-medium text-foreground">View</Text>
-        </Pressable>
-        <Pressable
-          className="active:opacity-60"
-          hitSlop={6}
-          onPress={() => {
-            setDraft(cv.name);
-            setEditing(true);
-          }}
-          disabled={busy}
-          accessibilityRole="button"
-          accessibilityLabel={`Rename ${cv.name}`}
-        >
-          <Text className="text-xs text-muted-foreground">Rename</Text>
-        </Pressable>
-        <Pressable
-          className="active:opacity-60"
-          hitSlop={6}
-          onPress={onDelete}
-          disabled={busy}
-          accessibilityRole="button"
-          accessibilityLabel={`Delete ${cv.name}`}
-        >
-          <Text className="text-xs text-destructive">Delete</Text>
-        </Pressable>
+          <Pressable
+            className="rounded-lg border border-border px-3 py-2 active:opacity-70"
+            onPress={() => {
+              setDraft(cv.name);
+              setEditing(true);
+            }}
+            disabled={busy}
+            accessibilityRole="button"
+            accessibilityLabel={`Rename ${cv.name}`}
+          >
+            <Text className="text-sm text-foreground">Rename</Text>
+          </Pressable>
+          <Pressable
+            className="rounded-lg px-3 py-2 active:opacity-70"
+            onPress={onDelete}
+            disabled={busy}
+            accessibilityRole="button"
+            accessibilityLabel={`Delete ${cv.name}`}
+          >
+            <Text className="text-sm text-destructive">Delete</Text>
+          </Pressable>
+        </View>
       </View>
     </View>
   );
