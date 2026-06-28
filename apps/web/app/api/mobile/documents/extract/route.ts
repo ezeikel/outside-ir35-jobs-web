@@ -1,13 +1,19 @@
 import { NextResponse } from 'next/server';
 import { extractDocFacts } from '@/lib/documents/extract';
-import { tracksExpiry, validateUpload } from '@/lib/documents/validate';
+import { isInsuranceType, validateUpload } from '@/lib/documents/validate';
 import { getMobileCaller } from '@/lib/mobile/auth';
 
 // Read the structured facts (insurer / cover limit / expiry) off a compliance
 // document so the contractor doesn't have to type them. A TRANSCRIPTION AID — the
 // app pre-fills the upload form with these and the user CONFIRMS before saving;
 // nothing is written here and nothing is "verified" (docs/ir35-trust-model.md).
-// Only runs for expiry-tracking types (insurance / right-to-work). Bearer-auth.
+//
+// PRIVACY: extraction runs ONLY on INSURANCE certificates (PI/PL/EL). It must
+// NEVER run on identity documents — right-to-work / passport / BRP — because that
+// would transmit a passport number, photo and DOB to a third-party AI to read an
+// expiry date that isn't worth that exposure. Identity docs still upload + store
+// as a file; their expiry is typed by hand (and on-device OCR is the planned path
+// for auto-filling those without anything leaving the phone). Bearer-auth.
 export const runtime = 'nodejs';
 // Allow a moment for the model to read the PDF.
 export const maxDuration = 30;
@@ -42,9 +48,12 @@ export const POST = async (req: Request) => {
     return NextResponse.json({ error: check.error }, { status: 400 });
   }
 
-  // Only expiry-tracking docs carry insurer/cover/expiry worth extracting. For
-  // others, return empty facts (the client just skips the pre-fill).
-  if (!tracksExpiry(check.type)) {
+  // HARD privacy gate: extraction runs ONLY on insurance certs. Identity docs
+  // (right-to-work / passport / BRP) and everything else return empty facts and
+  // are NEVER sent to the AI — the file is uploaded, but its bytes don't leave for
+  // a third-party model. The client just skips the pre-fill and the user types any
+  // expiry by hand.
+  if (!isInsuranceType(check.type)) {
     return NextResponse.json({
       facts: { insurer: null, coverLimit: null, expiresAt: null },
     });

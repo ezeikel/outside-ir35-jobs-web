@@ -120,8 +120,17 @@ Claude reads an uploaded contract/SDS (from R2) and flags control / substitution
   "outside".
 - **The IR35 KB is a living asset** — the EASI→FWA and PGMOL drift proves how
   fast it ages. Re-check primary sources.
-- **PII:** be careful sending CVs / bank details / verification docs to
-  third-party LLM / embedding providers; access controls + retention limits.
+- **PII + sensitive-doc boundary (enforced):** identity documents —
+  **right-to-work, passport, BRP, visa** — are **NEVER** sent to a cloud AI. They
+  hold a passport number / DOB / photo, and the only thing extraction would buy is
+  an expiry date — not worth transmitting identity data to a third party. Cloud AI
+  doc-extraction (`/api/mobile/documents/extract`) is hard-gated to **insurance
+  certificates only** (`isInsuranceType`); identity docs upload + store as a file
+  but their expiry is typed by hand. The planned path for auto-filling identity-doc
+  expiry is **on-device OCR (Apple VisionKit)** so nothing leaves the phone (like
+  PTP). CVs are the contractor's own content and may go to the LLM (competency
+  only; the parser extracts no identity PII — see `apps/worker/src/cv/parse-cv.ts`).
+  Use Anthropic's zero-retention path; access controls + retention limits.
 
 ---
 

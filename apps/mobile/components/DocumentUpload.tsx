@@ -65,6 +65,7 @@ const DocumentUpload = ({ profile }: { profile: MobileProfile }) => {
           docType={dt.type}
           label={dt.label}
           tracksExpiry={dt.tracksExpiry}
+          extractable={dt.extractable}
           hasFile={onFile.has(dt.type)}
           onView={() => view(dt.label, () => getDocumentViewUrl(dt.type))}
         />
@@ -79,12 +80,14 @@ const DocRow = ({
   docType,
   label,
   tracksExpiry,
+  extractable,
   hasFile,
   onView,
 }: {
   docType: string;
   label: string;
   tracksExpiry: boolean;
+  extractable: boolean;
   hasFile: boolean;
   onView: () => void;
 }) => {
@@ -153,9 +156,13 @@ const DocRow = ({
         upload.mutate({ file });
         return;
       }
-      // Expiry docs: read the facts off the file so the contractor doesn't have to
-      // type them. A transcription aid — we PRE-FILL the form (only fields the user
-      // left blank, so we never clobber something they typed) and they confirm.
+      // AI extraction runs ONLY for `extractable` docs (insurance certs). Identity
+      // docs (right-to-work / passport) track expiry too but are NEVER sent to AI —
+      // the user types their expiry by hand. So we don't even transmit the file.
+      if (!extractable) return;
+      // Insurance certs: read the facts off the file so the contractor doesn't have
+      // to type them. A transcription aid — we PRE-FILL the form (only fields the
+      // user left blank, so we never clobber what they typed) and they confirm.
       setExtracting(true);
       try {
         const facts = await extractDocFacts(docType, file);
@@ -253,23 +260,28 @@ const DocRow = ({
 
       {expanded && tracksExpiry ? (
         <View className="mt-3 gap-2">
-          {/* Extraction status: reading the picked file, or a note that we
-              pre-filled (a transcription aid — never a verification claim). */}
-          {extracting ? (
+          {/* Extraction status — INSURANCE docs only. Identity docs aren't sent to
+              AI, so we never show the "we'll read it" copy for them. */}
+          {extractable && extracting ? (
             <View className="flex-row items-center gap-2 rounded-lg bg-secondary px-3 py-2">
               <ActivityIndicator size="small" color="#17181a" />
               <Text className="text-xs text-muted-foreground">
                 Reading your document to fill these in…
               </Text>
             </View>
-          ) : prefilled ? (
+          ) : extractable && prefilled ? (
             <Text className="rounded-lg bg-verified-muted px-3 py-2 text-xs text-foreground">
               We filled these from your document. Check they’re right, then upload.
             </Text>
-          ) : (
+          ) : extractable ? (
             <Text className="text-xs text-muted-foreground">
               Pick the file first and we’ll read the insurer, cover and expiry off
               it for you to confirm.
+            </Text>
+          ) : (
+            <Text className="text-xs text-muted-foreground">
+              Add the file and the expiry date. We never send identity documents to
+              AI.
             </Text>
           )}
           {docType !== "RIGHT_TO_WORK" ? (

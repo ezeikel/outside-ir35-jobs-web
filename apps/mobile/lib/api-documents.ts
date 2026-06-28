@@ -18,13 +18,19 @@ export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
 // Compliance-pack document types a contractor can upload, with labels. Mirrors
 // ContractorDocType MINUS CV — CVs are multi-version now and upload via the CV
 // flow (lib/api-cvs.ts), not the compliance-doc flow.
+//
+// `extractable` = the doc may be sent to AI to read insurer/cover/expiry. ONLY the
+// insurance certs are extractable. Identity docs (right-to-work / passport) are
+// NEVER sent to AI — they carry passport numbers / DOB / photos and the expiry
+// isn't worth that exposure; the user types it by hand (on-device OCR is the
+// planned path for auto-filling those without anything leaving the phone).
 export const UPLOADABLE_DOC_TYPES = [
-  { type: "INCORPORATION", label: "Certificate of incorporation", tracksExpiry: false },
-  { type: "VAT_CERTIFICATE", label: "VAT certificate", tracksExpiry: false },
-  { type: "PI_INSURANCE", label: "Professional indemnity insurance", tracksExpiry: true },
-  { type: "PL_INSURANCE", label: "Public liability insurance", tracksExpiry: true },
-  { type: "EL_INSURANCE", label: "Employers’ liability insurance", tracksExpiry: true },
-  { type: "RIGHT_TO_WORK", label: "Right to work", tracksExpiry: true },
+  { type: "INCORPORATION", label: "Certificate of incorporation", tracksExpiry: false, extractable: false },
+  { type: "VAT_CERTIFICATE", label: "VAT certificate", tracksExpiry: false, extractable: false },
+  { type: "PI_INSURANCE", label: "Professional indemnity insurance", tracksExpiry: true, extractable: true },
+  { type: "PL_INSURANCE", label: "Public liability insurance", tracksExpiry: true, extractable: true },
+  { type: "EL_INSURANCE", label: "Employers’ liability insurance", tracksExpiry: true, extractable: true },
+  { type: "RIGHT_TO_WORK", label: "Right to work", tracksExpiry: true, extractable: false },
 ] as const;
 
 export type PickedFile = {
