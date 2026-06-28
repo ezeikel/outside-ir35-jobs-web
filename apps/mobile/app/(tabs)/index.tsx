@@ -135,36 +135,56 @@ const JobsScreen = () => {
   return (
     <View className="flex-1 bg-background" style={{ paddingTop: insets.top }}>
       <View className="px-4 pb-2 pt-2">
-        <Text className="font-display text-3xl text-foreground">Contracts</Text>
-        <Text className="mt-1 text-sm text-muted-foreground">
-          Roles where the client states an Outside IR35 position. We never assert
-          status ourselves.
-        </Text>
+        {/* Header. Deck mode gets a COMPACT title (the card needs the vertical
+            space to read as a full-screen, swipeable stack); list mode keeps the
+            fuller intro. */}
+        {showDeck ? (
+          <View className="flex-row items-center justify-between">
+            <Text className="font-display text-3xl text-foreground">
+              Contracts
+            </Text>
+          </View>
+        ) : (
+          <>
+            <Text className="font-display text-3xl text-foreground">
+              Contracts
+            </Text>
+            <Text className="mt-1 text-sm text-muted-foreground">
+              Roles where the client states an Outside IR35 position. We never
+              assert status ourselves.
+            </Text>
+          </>
+        )}
 
-        {/* Role / skill / company */}
-        <TextInput
-          className="mt-3 rounded-lg border border-border bg-card px-3 py-3 text-base text-foreground"
-          placeholder="Role, skill or company"
-          placeholderTextColor="#a3a09e"
-          value={role}
-          onChangeText={setRole}
-          onSubmitEditing={() => commit(role, location)}
-          returnKeyType="search"
-          autoCapitalize="none"
-        />
+        {/* Search inputs (role + location) — list mode only. In deck mode the
+            full search lives in the filter sheet to free up screen height. */}
+        {!showDeck ? (
+          <>
+            <TextInput
+              className="mt-3 rounded-lg border border-border bg-card px-3 py-3 text-base text-foreground"
+              placeholder="Role, skill or company"
+              placeholderTextColor="#a3a09e"
+              value={role}
+              onChangeText={setRole}
+              onSubmitEditing={() => commit(role, location)}
+              returnKeyType="search"
+              autoCapitalize="none"
+            />
 
-        {/* Location (Mapbox suggestions). zIndex so its dropdown overlays the
-            controls below it. */}
-        <View className="mt-2" style={{ zIndex: 10 }}>
-          <LocationField
-            value={location}
-            onChangeText={setLocation}
-            onSubmit={() => commit(role, location)}
-            // Picking a suggestion commits straight away with the chosen label
-            // (state hasn't flushed yet, so pass it through explicitly).
-            onPick={(label) => commit(role, label)}
-          />
-        </View>
+            {/* Location (Mapbox suggestions). zIndex so its dropdown overlays the
+                controls below it. */}
+            <View className="mt-2" style={{ zIndex: 10 }}>
+              <LocationField
+                value={location}
+                onChangeText={setLocation}
+                onSubmit={() => commit(role, location)}
+                // Picking a suggestion commits straight away with the chosen
+                // label (state hasn't flushed yet, so pass it through explicitly).
+                onPick={(label) => commit(role, label)}
+              />
+            </View>
+          </>
+        ) : null}
 
         {/* Filters + sort bar, with the deck/list toggle pinned right. */}
         <View className="mt-2 flex-row items-center gap-2">
@@ -216,8 +236,9 @@ const JobsScreen = () => {
           ) : null}
         </View>
 
-        {/* Recent searches (only when the inputs are empty). */}
-        {showRecents ? (
+        {/* Recent searches (only when the inputs are empty). List mode only —
+            deck mode keeps a minimal header. */}
+        {!showDeck && showRecents ? (
           <View className="mt-2">
             <View className="flex-row items-center justify-between">
               <Text className="text-xs font-sans-medium text-muted-foreground">
@@ -254,32 +275,38 @@ const JobsScreen = () => {
           </View>
         ) : null}
 
-        {/* Save-search + Day rates */}
-        <View className="mt-2 flex-row flex-wrap items-center gap-2">
-          {canSave ? (
+        {/* Save-search + Day rates — list mode only (deck mode keeps the chrome
+            minimal so the card fills the screen; both live in the list view + the
+            filter sheet). */}
+        {!showDeck ? (
+          <View className="mt-2 flex-row flex-wrap items-center gap-2">
+            {canSave ? (
+              <Pressable
+                className="self-start rounded-lg border border-border bg-card px-3 py-2 active:opacity-70"
+                disabled={save.isPending}
+                onPress={() => save.mutate()}
+                accessibilityRole="button"
+                accessibilityLabel="Save this search and get alerts"
+              >
+                <Text className="text-sm text-foreground">
+                  {save.isPending
+                    ? "Saving…"
+                    : "＋ Save this search & get alerts"}
+                </Text>
+              </Pressable>
+            ) : null}
+            {/* Day rates moved off the tab bar — reachable from the board (its
+                natural context: "what do these contracts pay?"). */}
             <Pressable
               className="self-start rounded-lg border border-border bg-card px-3 py-2 active:opacity-70"
-              disabled={save.isPending}
-              onPress={() => save.mutate()}
+              onPress={() => router.push("/day-rates")}
               accessibilityRole="button"
-              accessibilityLabel="Save this search and get alerts"
+              accessibilityLabel="See day rate benchmarks"
             >
-              <Text className="text-sm text-foreground">
-                {save.isPending ? "Saving…" : "＋ Save this search & get alerts"}
-              </Text>
+              <Text className="text-sm text-foreground">Day rates →</Text>
             </Pressable>
-          ) : null}
-          {/* Day rates moved off the tab bar — reachable from the board (its
-              natural context: "what do these contracts pay?"). */}
-          <Pressable
-            className="self-start rounded-lg border border-border bg-card px-3 py-2 active:opacity-70"
-            onPress={() => router.push("/day-rates")}
-            accessibilityRole="button"
-            accessibilityLabel="See day rate benchmarks"
-          >
-            <Text className="text-sm text-foreground">Day rates →</Text>
-          </Pressable>
-        </View>
+          </View>
+        ) : null}
       </View>
 
       {isLoading ? (

@@ -47,17 +47,22 @@ const ActionButton = ({
   </Pressable>
 );
 
+// Swipe-feedback colours: GREEN = save (right), RED = dismiss (left). The
+// universal mapping (Tinder etc.) so direction reads instantly.
+const SAVE_GREEN = "#1f5d43";
+const DISMISS_RED = "#dc2626";
+
 const Hint = ({ label, tone }: { label: string; tone: "save" | "dismiss" }) => (
   <View
     className="rounded-xl border-2 px-4 py-2"
     style={{
-      borderColor: tone === "save" ? "#c2410c" : "#78716c",
+      borderColor: tone === "save" ? SAVE_GREEN : DISMISS_RED,
       transform: [{ rotate: tone === "save" ? "-12deg" : "12deg" }],
     }}
   >
     <Text
       className="font-sans-semibold text-xl uppercase"
-      style={{ color: tone === "save" ? "#c2410c" : "#78716c" }}
+      style={{ color: tone === "save" ? SAVE_GREEN : DISMISS_RED }}
     >
       {label}
     </Text>
@@ -75,7 +80,7 @@ const JobDeck = ({
   onEmptyAction: () => void;
 }) => {
   const router = useRouter();
-  const { toggle, savedIds } = useSavedJobs();
+  const { save, savedIds } = useSavedJobs();
   const dismissedIds = useDismissedJobsStore((s) => s.ids);
   const dismiss = useDismissedJobsStore((s) => s.dismiss);
   const clearDismissed = useDismissedJobsStore((s) => s.clear);
@@ -98,10 +103,14 @@ const JobDeck = ({
   const onSwipeRight = useCallback(
     (job: MobileJobCard) => {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      // Only save if not already saved (avoid toggling a save back off).
-      if (!savedIds.has(job.id)) toggle(job);
+      // A right swipe is always a SAVE, never a toggle — swiping right can't mean
+      // "unsave". If it's already saved, saveJob is idempotent (upsert) so this is
+      // a harmless no-op; we never fire the unsave path from the deck (which was
+      // the source of the "couldn't update saved jobs" error when the cache and
+      // server briefly disagreed).
+      if (!savedIds.has(job.id)) save(job);
     },
-    [savedIds, toggle],
+    [savedIds, save],
   );
 
   const onSwipeLeft = useCallback(
@@ -176,9 +185,16 @@ const JobDeck = ({
 
   return (
     <View className="flex-1" style={{ paddingBottom: bottomInset }}>
-      {/* The deck. Fixed-height card area; buttons sit below. */}
-      <View className="flex-1 px-5 pb-3 pt-2">
-        <SwipeDeck<MobileJobCard>
+      {/* The deck. Capped width + height and centred so it stays a comfortable
+          card on a tablet (otherwise it stretches to the full iPad height with a
+          big empty middle). On a phone the caps exceed the screen, so it's
+          effectively full-bleed there. */}
+      <View className="flex-1 items-center px-5 pb-3 pt-2">
+        <View
+          className="w-full flex-1"
+          style={{ maxWidth: 520, maxHeight: 680 }}
+        >
+          <SwipeDeck<MobileJobCard>
           items={deck}
           keyExtractor={(j) => j.id}
           renderCard={renderCard}
@@ -189,25 +205,28 @@ const JobDeck = ({
             if (deck.length === 1) setExhausted(true);
           }}
           onReady={onReady}
+          showCounter
           rightHint={<Hint label="Save" tone="save" />}
-          leftHint={<Hint label="Pass" tone="dismiss" />}
-        />
+          leftHint={<Hint label="Dismiss" tone="dismiss" />}
+          />
+        </View>
       </View>
 
       {/* Action buttons mirror the swipe — discoverable, accessible, and the only
-          reliable way to drive the deck in a simulator. */}
+          reliable way to drive the deck in a simulator. Colour-coded to match the
+          swipe feedback: red ✕ = dismiss (left), green ♥ = save (right). */}
       <View className="flex-row items-center justify-center gap-8 pb-2">
         <ActionButton
           icon={faXmark}
-          color="#78716c"
-          bg="#f6f5f4"
+          color="#ffffff"
+          bg={DISMISS_RED}
           label="Dismiss this contract"
           onPress={() => handleRef.current?.swipeLeft()}
         />
         <ActionButton
           icon={faHeart}
           color="#ffffff"
-          bg="#c2410c"
+          bg={SAVE_GREEN}
           label="Save this contract"
           onPress={() => handleRef.current?.swipeRight()}
         />

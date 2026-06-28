@@ -140,6 +140,18 @@ export const useSavedJobs = () => {
     [queryClient, toggle],
   );
 
+  // Save only — never unsaves. The card deck's right-swipe uses this: swiping
+  // right is unambiguously "save", so it must not toggle a save back off if the
+  // cache briefly disagrees with the server. saveJob is idempotent (upsert), so
+  // an already-saved job is a harmless no-op.
+  const saveJobAction = useCallback(
+    (job: MobileJobCard) => {
+      if (savedIds.has(job.id)) return;
+      toggle.mutate({ job, wasSaved: false });
+    },
+    [savedIds, toggle],
+  );
+
   return {
     saved,
     savedIds,
@@ -150,6 +162,7 @@ export const useSavedJobs = () => {
     canSave: enabled,
     isSaved,
     toggle: toggleJob,
+    save: saveJobAction,
     isToggling: toggle.isPending,
   };
 };

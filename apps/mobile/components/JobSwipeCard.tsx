@@ -66,9 +66,11 @@ const JobSwipeCard = ({ job }: { job: MobileJobCard }) => {
         </View>
       </View>
 
-      {/* The role + the money — the focal point. Big, with breathing room. */}
-      <View className="flex-1 justify-center px-6">
-        <Text className="font-display text-[34px] leading-[40px] text-foreground">
+      {/* The role + the money — the focal point. Sits just below the header with
+          a single flexible spacer pushing the footer down, so there's no big dead
+          gap at the top of the card. */}
+      <View className="px-6 pt-7">
+        <Text className="font-display text-[36px] leading-[42px] text-foreground">
           {job.position}
         </Text>
         <Text className="mt-4 font-sans-semibold font-mono text-3xl text-foreground">
@@ -84,6 +86,9 @@ const JobSwipeCard = ({ job }: { job: MobileJobCard }) => {
           ) : null}
         </View>
       </View>
+
+      {/* Flexible spacer — pushes the trust badge + hint to the card's footer. */}
+      <View className="flex-1" />
 
       {/* Footer: the trust badge — the reason this board exists — + a swipe hint. */}
       <View className="gap-3 px-6 pb-6">

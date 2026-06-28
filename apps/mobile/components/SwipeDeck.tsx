@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Dimensions, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Dimensions, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   interpolate,
@@ -53,6 +53,9 @@ type SwipeDeckProps<T> = {
   // Fired when the last card is swiped away (the deck just became empty). Lets the
   // parent show a "you've been through the deck" state without tracking the count.
   onEmpty?: () => void;
+  // "3 of 24" position counter above the deck — a deck-size affordance (this is a
+  // stack you swipe through, and here's how far you are). Off by default.
+  showCounter?: boolean;
 };
 
 const SwipeDeck = <T,>({
@@ -65,6 +68,7 @@ const SwipeDeck = <T,>({
   leftHint,
   onReady,
   onEmpty,
+  showCounter = false,
 }: SwipeDeckProps<T>) => {
   // Which cards have been swiped THIS session, tracked by key (not a numeric
   // index). This is robust to the parent re-filtering `items` underneath us: a
@@ -84,6 +88,14 @@ const SwipeDeck = <T,>({
   );
   const top = queue[0];
   const next = queue[1];
+
+  // Deck size for the "N of M" counter. Anchored to the high-water mark of
+  // (cards seen this session) so it doesn't tick down when a dismiss removes a
+  // card from `items` (which would otherwise shrink the denominator mid-deck).
+  const totalRef = useRef(0);
+  const total = Math.max(totalRef.current, queue.length + swiped.size);
+  totalRef.current = total;
+  const position = Math.min(swiped.size + 1, total);
 
   // Mark the top card swiped + fire the callback. Runs on the JS thread (state
   // update) — called via runOnJS after the fling animation.
@@ -153,12 +165,17 @@ const SwipeDeck = <T,>({
     ],
   }));
 
-  // The card behind scales up + lifts toward full size as the top card leaves.
+  // The card behind sits slightly smaller + pushed DOWN so its top + sides peek
+  // out from under the top card (the visual cue that this is a stack). As the top
+  // card leaves, the peek card scales up and rises into the top slot.
   const nextStyle = useAnimatedStyle(() => {
     const progress = Math.min(Math.abs(translateX.value) / SCREEN_W, 1);
     return {
-      transform: [{ scale: interpolate(progress, [0, 1], [0.94, 1]) }],
-      opacity: interpolate(progress, [0, 1], [0.6, 1]),
+      transform: [
+        { scale: interpolate(progress, [0, 1], [0.92, 1]) },
+        { translateY: interpolate(progress, [0, 1], [18, 0]) },
+      ],
+      opacity: interpolate(progress, [0, 1], [0.7, 1]),
     };
   });
 
@@ -233,6 +250,20 @@ const SwipeDeck = <T,>({
 
   return (
     <View className="flex-1 items-center justify-center">
+      {/* "N of M" position counter — the deck-size affordance. Pinned top-centre
+          so it doesn't steal card height. */}
+      {showCounter && total > 0 ? (
+        <View
+          className="absolute z-10 self-center rounded-full px-3 py-1"
+          style={{ top: 4, backgroundColor: "rgba(26,24,21,0.82)" }}
+          pointerEvents="none"
+        >
+          <Text className="font-sans-medium text-xs" style={{ color: "#ffffff" }}>
+            {position} of {total}
+          </Text>
+        </View>
+      ) : null}
+
       {/* Peek card behind. */}
       {next ? (
         <Animated.View
@@ -281,7 +312,8 @@ const SwipeDeck = <T,>({
                 right: 0,
                 bottom: 0,
                 borderRadius: 28,
-                backgroundColor: "#44403c",
+                // Red wash for dismiss (left) — pairs with the green save wash.
+                backgroundColor: "#dc2626",
               },
               passTintStyle,
             ]}
