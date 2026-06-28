@@ -219,6 +219,16 @@ enum AlertFrequency {
   WEEKLY // once a week (Mondays)
 }
 
+// A poster's triage decision on an applicant (the recruiter swipe deck). This is
+// the POSTER's own shortlisting of their applicants on the facts the contractor
+// self-attested — never a platform judgement or ranking of the candidate
+// (docs/ir35-trust-model.md). NEW = not yet triaged.
+enum ApplicationStatus {
+  NEW
+  SHORTLISTED
+  PASSED
+}
+
 // A mobile device's FCM push token, for sending native push notifications. One
 // row per device (fcmToken unique); a user can have several (multi-device). The
 // RN app registers its token here after sign-in; the server sends data-only FCM
@@ -400,17 +410,19 @@ model Subscription {
 // verified profile (+ optional cover message); one application per job per
 // applicant (the unique constraint prevents double-apply).
 model Application {
-  id          String    @id @default(cuid())
+  id          String            @id @default(cuid())
   jobId       String
-  job         Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  job         Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
   applicantId String
-  applicant   User      @relation(fields: [applicantId], references: [id])
+  applicant   User              @relation(fields: [applicantId], references: [id])
   message     String? // optional short cover note from the contractor
   // First time the poster opened this applicant's profile. Null = not yet viewed;
   // stamped once (so the "your application was viewed" push fires exactly once).
   viewedAt    DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  // The poster's triage decision (recruiter swipe deck). Defaults to NEW.
+  status      ApplicationStatus @default(NEW)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 
   @@unique([jobId, applicantId])
   @@map("applications")

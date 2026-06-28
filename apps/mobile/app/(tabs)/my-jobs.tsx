@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import CandidateDeck from "@/components/CandidateDeck";
 import ErrorState from "@/components/ErrorState";
 import { TAB_BAR_HEIGHT } from "@/components/GlassTabBar";
 import JobCard from "@/components/JobCard";
@@ -109,24 +110,9 @@ const MyJobsScreen = () => {
     return <SignedOut insetTop={insets.top} />;
   }
 
-  // Hiring view — the user's listings.
+  // Hiring view — Applicants (swipe to shortlist/pass) + Listings.
   if (mode === "hiring") {
-    return (
-      <View
-        className="flex-1 bg-background"
-        style={{ paddingTop: insets.top + 12 }}
-      >
-        <Text className="px-6 pb-3 font-display text-3xl text-foreground">
-          My posts
-        </Text>
-        <EmptyState
-          icon={faRectangleList}
-          title="No contracts posted yet"
-          body="Your live and draft listings will appear here. Post a contract from your profile."
-        />
-        <View style={{ height: insets.bottom + TAB_BAR_HEIGHT }} />
-      </View>
-    );
+    return <MyPosts bottomInset={insets.bottom + TAB_BAR_HEIGHT} topInset={insets.top} />;
   }
 
   // Seeker view — Saved + Applications.
@@ -365,6 +351,52 @@ const SavedTab = ({ bottomInset }: { bottomInset: number }) => {
         <RefreshControl refreshing={isRefetching} onRefresh={() => refetch()} />
       }
     />
+  );
+};
+
+// Hiring view. Two sub-tabs: Applicants (the candidate swipe deck — shortlist/pass
+// the people who applied to your contracts) and Listings (your posts; full listing
+// management is a follow-up, so it's an empty state for now).
+const MyPosts = ({
+  topInset,
+  bottomInset,
+}: {
+  topInset: number;
+  bottomInset: number;
+}) => {
+  const [tab, setTab] = useState<"applicants" | "listings">("applicants");
+
+  return (
+    <View className="flex-1 bg-background" style={{ paddingTop: topInset + 12 }}>
+      <Text className="px-6 pb-2 font-display text-3xl text-foreground">
+        My posts
+      </Text>
+      <View className="flex-row border-b border-border px-6">
+        <SegTab
+          label="Applicants"
+          active={tab === "applicants"}
+          onPress={() => setTab("applicants")}
+        />
+        <SegTab
+          label="Listings"
+          active={tab === "listings"}
+          onPress={() => setTab("listings")}
+        />
+      </View>
+
+      {tab === "applicants" ? (
+        <CandidateDeck bottomInset={bottomInset} />
+      ) : (
+        <>
+          <EmptyState
+            icon={faRectangleList}
+            title="Listings coming soon"
+            body="Your live and draft contracts will appear here. Post a contract from your profile."
+          />
+          <View style={{ height: bottomInset }} />
+        </>
+      )}
+    </View>
   );
 };
 

@@ -1781,6 +1781,93 @@ export const getMyApplications = async (): Promise<string[]> => {
   return apps.map((a) => a.jobId);
 };
 
+// ───────────────────────── Recruiter applicant triage (swipe deck) ───────────
+// A poster shortlists / passes on the contractors who applied to THEIR jobs. The
+// access gate is ownership (job.userId === caller) — a poster can only see/triage
+// applicants on jobs they own. Honesty: we surface the contractor's own attested
+// facts, never a platform score (docs/ir35-trust-model.md).
+
+// The honesty-safe candidate fields the mobile deck renders. Mirrors
+// getApplicantProfile's minimisation: objective facts, verified-company status,
+// the contractor's own parsed competency — never PII or a match score.
+const CANDIDATE_APPLICANT_SELECT = {
+  name: true,
+  trustTier: true,
+  rightToWorkConfirmed: true,
+  holdsIR35Insurance: true,
+  parsedProfile: true,
+  limitedCompanies: {
+    where: { companyVerifiedAt: { not: null } },
+    select: { name: true, companyVerifiedAt: true },
+  },
+} as const;
+
+export type ApplicantStatus = 'NEW' | 'SHORTLISTED' | 'PASSED';
+
+/**
+ * The applicants on jobs the caller owns, shaped for the mobile candidate deck.
+ * Scoped to the caller's jobs (ownership = access). `status` filters the triage
+ * state (default: untriaged NEW only, so the deck shows the queue to work through).
+ */
+export const getMyApplicantsForCaller = async (
+  userId: string,
+  opts?: { status?: ApplicantStatus | 'ALL'; jobId?: string },
+) => {
+  const status = opts?.status ?? 'NEW';
+  const rows = await prisma.application.findMany({
+    where: {
+      job: { userId, ...(opts?.jobId ? { id: opts.jobId } : {}) },
+      ...(status === 'ALL' ? {} : { status }),
+    },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      status: true,
+      message: true,
+      createdAt: true,
+      applicantId: true,
+      job: { select: { id: true, position: true } },
+      applicant: { select: CANDIDATE_APPLICANT_SELECT },
+    },
+  });
+
+  return rows.map((r) => ({
+    applicationId: r.id,
+    applicantId: r.applicantId,
+    status: r.status as ApplicantStatus,
+    appliedAt: r.createdAt,
+    message: r.message,
+    jobId: r.job.id,
+    jobPosition: r.job.position,
+    name: r.applicant.name,
+    trustTier: r.applicant.trustTier,
+    rightToWorkConfirmed: r.applicant.rightToWorkConfirmed,
+    holdsIR35Insurance: r.applicant.holdsIR35Insurance,
+    parsedProfile: r.applicant.parsedProfile,
+    verifiedCompanies: r.applicant.limitedCompanies,
+  }));
+};
+
+/**
+ * Set the triage status on an application — ONLY if the caller owns the job the
+ * application is for. Returns true on success, false if the application isn't on a
+ * job the caller owns (the ownership gate). The poster's own shortlisting decision,
+ * never a platform judgement of the candidate.
+ */
+export const setApplicationStatusForCaller = async (
+  userId: string,
+  applicationId: string,
+  status: ApplicantStatus,
+): Promise<boolean> => {
+  // Ownership check folded into the write: update only matches if the application
+  // belongs to a job this caller owns. updateMany returns count=0 otherwise.
+  const result = await prisma.application.updateMany({
+    where: { id: applicationId, job: { userId } },
+    data: { status },
+  });
+  return result.count > 0;
+};
+
 // ───────────────────────────── Saved searches + email alerts ────────────────
 // A contractor saves a /jobs filter; a daily cron (runJobAlerts) emails them new
 // matching jobs. Matching reuses buildJobFilterConds — the SAME conditions the live
