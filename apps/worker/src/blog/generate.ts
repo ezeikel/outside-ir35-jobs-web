@@ -76,7 +76,7 @@ export type BlogContent = z.infer<typeof contentSchema>;
 
 // The honesty-hardened system prompt. These rules are LOAD-BEARING — the
 // validator (validator.ts) is the backstop, but the prompt must do the work.
-const CONTENT_SYSTEM = `You write for outsideir35.jobs, a UK contractor job board.
+const CONTENT_SYSTEM = `You write for outsideir35jobs.com, a UK contractor job board.
 
 ABSOLUTE RULES — no exceptions:
 1. NEVER write "verified outside IR35", "guaranteed outside IR35", or

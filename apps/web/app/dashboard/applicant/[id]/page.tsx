@@ -7,7 +7,7 @@ import ApplicantProfile from '@/components/Dashboard/ApplicantProfile';
 import PageWrap from '@/components/PageWrap/PageWrap';
 
 export const metadata: Metadata = {
-  title: 'Applicant profile — outsideir35.jobs',
+  title: 'Applicant profile — outsideir35jobs.com',
 };
 
 type Params = { params: Promise<{ id: string }> };

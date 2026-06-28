@@ -13,8 +13,8 @@ import { jwtVerify, SignJWT } from 'jose';
  * the two surfaces from interfering.
  */
 
-const ISSUER = 'outsideir35.jobs';
-const AUDIENCE = 'outsideir35.jobs/mobile';
+const ISSUER = 'outsideir35jobs.com';
+const AUDIENCE = 'outsideir35jobs.com/mobile';
 // Long-lived: a native app shouldn't silently sign the user out. 90 days; the
 // app re-validates against /api/mobile/auth/me on every cold start.
 const TTL = '90d';

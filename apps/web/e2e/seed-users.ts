@@ -29,8 +29,8 @@ const mintMobileToken = async (
   return new SignJWT({ email })
     .setProtectedHeader({ alg: 'HS256' })
     .setSubject(userId)
-    .setIssuer('outsideir35.jobs')
-    .setAudience('outsideir35.jobs/mobile')
+    .setIssuer('outsideir35jobs.com')
+    .setAudience('outsideir35jobs.com/mobile')
     .setIssuedAt()
     .setExpirationTime('1h')
     .sign(new TextEncoder().encode(s));

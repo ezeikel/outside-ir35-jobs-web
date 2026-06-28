@@ -1,4 +1,4 @@
-// Shared styles for outsideir35.jobs transactional emails. Mirrors the site's
+// Shared styles for outsideir35jobs.com transactional emails. Mirrors the site's
 // Register-editorial design: off-white canvas, white card, near-black ink, and
 // forest-green (#1F5D43) reserved for verified/brand accents.
 

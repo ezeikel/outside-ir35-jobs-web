@@ -111,8 +111,8 @@ const JobAlertEmail = ({
 
 JobAlertEmail.PreviewProps = {
   searchLabel: 'React · London · outside only',
-  siteUrl: 'https://www.outsideir35.jobs',
-  manageUrl: 'https://www.outsideir35.jobs/alerts',
+  siteUrl: 'https://www.outsideir35jobs.com',
+  manageUrl: 'https://www.outsideir35jobs.com/alerts',
   jobs: [
     {
       id: 'job1',

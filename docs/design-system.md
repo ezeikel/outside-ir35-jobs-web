@@ -1,6 +1,6 @@
 # Design System — Register
 
-The visual language for outsideir35.jobs. **Editorial-premium fintech**: ink
+The visual language for outsideir35jobs.com. **Editorial-premium fintech**: ink
 authority anchor, forest-green reserved for verified states, attributed claims
 rendered as citations. Two type faces, hard cap. Live showcase at **`/design`**.
 

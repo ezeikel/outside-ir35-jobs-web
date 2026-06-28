@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 import { getJobs, getSeoSkills } from '@/app/actions';
 import { skillToSlug } from '@/lib/seo/skill-slug';
 
-const SITE = 'https://www.outsideir35.jobs';
+const SITE = 'https://www.outsideir35jobs.com';
 
 // Sitemap: static surfaces + every live (board-visible) job + the data-backed
 // per-skill landing pages. Only pages that actually exist are listed — the skill

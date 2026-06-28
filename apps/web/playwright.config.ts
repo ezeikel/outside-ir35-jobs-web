@@ -8,7 +8,7 @@ import dotenv from 'dotenv';
 // packages/db/prisma.config.ts reads.
 dotenv.config({ path: path.resolve(__dirname, '.env.local') });
 
-// E2E for the outsideir35.jobs web app. Boots a production build on a dedicated
+// E2E for the outsideir35jobs.com web app. Boots a production build on a dedicated
 // port and drives both the public flows (browse → open a listing → day-rates →
 // blog → legal, guarding regressions like the Maps-script 500) and the
 // authenticated happy paths (apply, post-a-job, alerts, premium). Authed tests

@@ -1,7 +1,7 @@
 import { Link, Section, Text } from '@react-email/components';
 import { COLORS } from './styles';
 
-const SITE = 'https://www.outsideir35.jobs';
+const SITE = 'https://www.outsideir35jobs.com';
 
 const footer = {
   marginTop: '32px',
@@ -78,7 +78,7 @@ const EmailFooter = ({
     ) : null}
 
     <Text style={copyright}>
-      © {new Date().getFullYear()} Chewy Bytes Limited · outsideir35.jobs
+      © {new Date().getFullYear()} Chewy Bytes Limited · outsideir35jobs.com
     </Text>
   </Section>
 );

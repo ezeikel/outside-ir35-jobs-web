@@ -4,16 +4,16 @@ import LegalPage, { H2, P, UL } from '@/components/Legal/LegalPage';
 import PageWrap from '@/components/PageWrap/PageWrap';
 
 export const metadata: Metadata = {
-  title: 'Terms and conditions — outsideir35.jobs',
+  title: 'Terms and conditions — outsideir35jobs.com',
   description:
-    'The terms and conditions for using outsideir35.jobs, the UK outside-IR35 contract job board and contractor-identity platform.',
+    'The terms and conditions for using outsideir35jobs.com, the UK outside-IR35 contract job board and contractor-identity platform.',
 };
 
 const TermsPage = () => (
   <PageWrap>
     <LegalPage title="Terms and conditions" updated="21 June 2026">
       <P>
-        These terms govern your use of outsideir35.jobs (the “service”),
+        These terms govern your use of outsideir35jobs.com (the “service”),
         operated by Chewy Bytes Limited (company number 16443347, registered at
         71-75 Shelton Street, London, WC2H 9JQ). By using the service you agree
         to these terms. If you do not agree, please do not use the service.
@@ -21,8 +21,8 @@ const TermsPage = () => (
 
       <H2>What the service is</H2>
       <P>
-        outsideir35.jobs is a job board and contractor-identity platform for UK
-        limited-company contractors who want outside-IR35 contracts. We
+        outsideir35jobs.com is a job board and contractor-identity platform for
+        UK limited-company contractors who want outside-IR35 contracts. We
         aggregate and host contract listings, let contractors build a verified
         profile and compliance pack, and provide market data such as day-rate
         benchmarks and editorial guidance.

@@ -3,20 +3,20 @@ import LegalPage, { H2, P, UL } from '@/components/Legal/LegalPage';
 import PageWrap from '@/components/PageWrap/PageWrap';
 
 export const metadata: Metadata = {
-  title: 'Privacy policy — outsideir35.jobs',
+  title: 'Privacy policy — outsideir35jobs.com',
   description:
-    'How outsideir35.jobs collects, uses, stores and protects your personal data, your lawful basis, retention, processors and your rights under UK GDPR.',
+    'How outsideir35jobs.com collects, uses, stores and protects your personal data, your lawful basis, retention, processors and your rights under UK GDPR.',
 };
 
 const PrivacyPage = () => (
   <PageWrap>
     <LegalPage title="Privacy policy" updated="21 June 2026">
       <P>
-        This privacy policy explains how outsideir35.jobs (“we”, “us”, “our”), a
-        service operated by Chewy Bytes Limited (company number 16443347,
-        registered at 71-75 Shelton Street, London, WC2H 9JQ), collects, uses
-        and protects your personal data. Chewy Bytes Limited is the data
-        controller.
+        This privacy policy explains how outsideir35jobs.com (“we”, “us”,
+        “our”), a service operated by Chewy Bytes Limited (company number
+        16443347, registered at 71-75 Shelton Street, London, WC2H 9JQ),
+        collects, uses and protects your personal data. Chewy Bytes Limited is
+        the data controller.
       </P>
       <P>
         We are committed to keeping your data safe and to being honest about

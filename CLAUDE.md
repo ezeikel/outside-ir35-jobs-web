@@ -1,6 +1,6 @@
 # Claude Code Context
 
-> outsideir35.jobs — a specialised job board + contractor-identity platform for
+> outsideir35jobs.com — a specialised job board + contractor-identity platform for
 > UK limited-company contractors who only want **outside-IR35** contracts.
 > Full platform docs live in [`docs/`](./docs/README.md) — read those for
 > product/strategy; this file is the engineering operating manual.

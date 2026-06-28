@@ -1,6 +1,6 @@
 # Mobile app (`apps/mobile`)
 
-> React Native / Expo app for outsideir35.jobs. Scaffolded to match the
+> React Native / Expo app for outsideir35jobs.com. Scaffolded to match the
 > conventions of the sibling Chewy Bytes apps (chunky-crayon, go-unbeaten):
 > Expo SDK 56, expo-router, NativeWind 5, TanStack Query, native Google/Apple
 > sign-in. This doc is the operating manual for the mobile track.
@@ -53,7 +53,7 @@ Supporting libs live in `apps/web/lib/mobile/`:
   tokens; `upsertUserForIdentity` (same find-or-create as the NextAuth `signIn`
   callback — first sign-in creates a provisional user with `role=null`).
 - `session.ts` — mint/verify the **mobile session token**: a JWT (HS256, signed
-  with `AUTH_SECRET`, 90-day TTL, aud `outsideir35.jobs/mobile`). Separate from
+  with `AUTH_SECRET`, 90-day TTL, aud `outsideir35jobs.com/mobile`). Separate from
   the NextAuth cookie so the two surfaces don't interfere.
 - `auth.ts` — `getMobileCaller(req)`: the mobile equivalent of `auth()`. Every
   authed `/api/mobile/*` route calls it; re-reads role/onboarded from the DB.
@@ -217,5 +217,5 @@ saved-searches route), and a web subscriber is recognised as premium on mobile.
 premium): `EXPO_PUBLIC_REVENUECAT_IOS_KEY` / `_ANDROID_KEY` (client), a RC
 project with an offering + the `premium` entitlement + App Store/Play
 subscription products, and `REVENUECAT_WEBHOOK_AUTH` on the web app's Vercel
-project (matched to the RC dashboard webhook auth header). outsideir35.jobs is
+project (matched to the RC dashboard webhook auth header). outsideir35jobs.com is
 not yet in the `store` CLI, so the RC project isn't provisioned.

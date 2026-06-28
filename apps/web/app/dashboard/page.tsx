@@ -6,7 +6,7 @@ import Dashboard from '@/components/Dashboard/Dashboard';
 import PageWrap from '@/components/PageWrap/PageWrap';
 
 export const metadata: Metadata = {
-  title: 'Your jobs & applicants — outsideir35.jobs',
+  title: 'Your jobs & applicants — outsideir35jobs.com',
 };
 
 const DashboardPage = async () => {

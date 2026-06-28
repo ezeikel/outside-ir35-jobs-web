@@ -35,7 +35,7 @@ export const generateMetadata = async ({
   const name = skillDisplay(skill);
   return {
     title: `${name} outside-IR35 contracts & day rates — Outside IR35 Jobs`,
-    description: `Live ${name} outside-IR35 contract roles and median day rates by IR35 position, aggregated on outsideir35.jobs.`,
+    description: `Live ${name} outside-IR35 contract roles and median day rates by IR35 position, aggregated on outsideir35jobs.com.`,
     alternates: { canonical: `/contracts/${slug}` },
   };
 };

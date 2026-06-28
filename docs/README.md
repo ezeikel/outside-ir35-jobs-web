@@ -1,4 +1,4 @@
-# outsideir35.jobs — Platform Docs
+# outsideir35jobs.com — Platform Docs
 
 > The specialised job board + contractor-identity platform for UK
 > limited-company contractors who only want **outside-IR35** contracts.

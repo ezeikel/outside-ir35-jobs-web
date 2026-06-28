@@ -45,7 +45,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <PlausibleProvider domain="outsideir35.jobs" />
+        <PlausibleProvider domain="outsideir35jobs.com" />
       </head>
       <body
         className={cn(

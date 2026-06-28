@@ -28,7 +28,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useViewMode } from "@/hooks/useViewMode";
 import type { ViewMode } from "@/stores/viewModeStore";
 
-const SITE = "https://www.outsideir35.jobs";
+const SITE = "https://www.outsideir35jobs.com";
 const SUPPORT_EMAIL = "hello@chewybytes.com";
 const ASC_APP_ID = "6784110879";
 

@@ -16,7 +16,7 @@ const LegalPage = ({
   <div className="mx-auto w-full max-w-2xl px-4 py-12 sm:px-6">
     <header className="mb-8">
       <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-        outsideir35.jobs
+        outsideir35jobs.com
       </p>
       <h1 className="mt-2 font-display text-4xl leading-none sm:text-5xl">
         {title}

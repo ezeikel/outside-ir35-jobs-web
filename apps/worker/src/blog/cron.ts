@@ -18,7 +18,7 @@ import { validatePost } from './validator.js';
 
 // The blog's AI author persona (a real Sanity author doc, for the byline/bio).
 const AUTHOR = {
-  name: 'The outsideir35.jobs Team',
+  name: 'The outsideir35jobs.com Team',
   title: 'Editorial',
   bio: 'Practical guidance for UK limited-company contractors who want outside-IR35 work. We surface what clients state and what is objectively checkable — we never determine IR35 status.',
 };

@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 
-const SITE = 'https://www.outsideir35.jobs';
+const SITE = 'https://www.outsideir35jobs.com';
 
 // Allow crawling of public pages; keep authed/poster/API surfaces out of the index.
 const robots = (): MetadataRoute.Robots => ({

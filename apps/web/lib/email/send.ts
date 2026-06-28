@@ -18,10 +18,10 @@ const getResend = (): Resend | null => {
 };
 
 // From address for transactional email. Override per-env via RESEND_FROM.
-// IMPORTANT: the FROM domain (outsideir35.jobs) MUST be verified in Resend
+// IMPORTANT: the FROM domain (outsideir35jobs.com) MUST be verified in Resend
 // (SPF/DKIM) or every send fails and the daily alert cron silently no-delivers.
 const FROM =
-  process.env.RESEND_FROM ?? 'outsideir35.jobs <alerts@outsideir35.jobs>';
+  process.env.RESEND_FROM ?? 'OutsideIR35 Jobs <alerts@outsideir35jobs.com>';
 
 export type SendEmailInput = {
   to: string;

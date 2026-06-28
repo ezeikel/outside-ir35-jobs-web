@@ -10,7 +10,7 @@ import { getSessionToken } from "@/lib/auth";
 // http://192.168.1.x:3000). EXPO_PUBLIC_API_URL also overrides for
 // preview/staging builds.
 const DEV_PORT = 3000;
-const PROD_BASE_URL = "https://www.outsideir35.jobs";
+const PROD_BASE_URL = "https://www.outsideir35jobs.com";
 const DEV_BASE_URL = Platform.select({
   ios: `http://127.0.0.1:${DEV_PORT}`,
   android: `http://10.0.2.2:${DEV_PORT}`,

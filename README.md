@@ -1,14 +1,14 @@
-# outsideir35.jobs
+# outsideir35jobs.com
 
 > The specialised job board + contractor-identity platform for UK
 > limited-company contractors who only want **outside-IR35** contracts.
 
-**[outsideir35.jobs](https://outsideir35.jobs)**
+**[outsideir35jobs.com](https://outsideir35jobs.com)**
 
 ## What it is
 
 A UK contractor shouldn't have to wade through LinkedIn / CWJobs / Jobserve
-filtering out inside-IR35 and permanent roles. **outsideir35.jobs** is one place
+filtering out inside-IR35 and permanent roles. **outsideir35jobs.com** is one place
 that only shows outside-IR35 contracts, with what actually matters up front —
 **day rate**, **remote / hybrid / on-site**, **contract length**, the role's
 **IR35 signal** (honestly attributed to the client, never asserted by us), and
