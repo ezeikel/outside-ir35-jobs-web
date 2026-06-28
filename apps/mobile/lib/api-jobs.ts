@@ -67,6 +67,20 @@ export const applyToJob = async (
   await api.post("/api/mobile/applications", { jobId, message });
 };
 
+// Per-application AI tailoring (premium). Returns a tailored cover note + "why
+// this fits" bullets grounded only in the contractor's parsed CV. The status
+// drives the UI (no CV / not premium / ok / transient error).
+export type PitchResult =
+  | { status: "no_cv" }
+  | { status: "not_premium" }
+  | { status: "error" }
+  | { status: "ok"; whyMatched: string[]; pitch: string };
+
+export const fetchJobPitch = async (jobId: string): Promise<PitchResult> => {
+  const { data } = await api.get<PitchResult>(`/api/mobile/jobs/${jobId}/pitch`);
+  return data;
+};
+
 // Posting a contract from mobile. The body mirrors POST /api/mobile/jobs (which
 // wraps the shared createUnpaidJob primitive). The job is created PENDING +
 // isActive=false; the returned jobId is then paid for via the native Stripe

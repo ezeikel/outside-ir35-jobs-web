@@ -597,14 +597,25 @@ export const getJobMatchAndPitch = async (
   if (!session?.userId || !session.onboarded) {
     return { status: 'no_cv' };
   }
+  return getJobMatchAndPitchForCaller(session.userId, jobId);
+};
 
+/**
+ * Caller-based variant (mobile wraps this with the bearer caller's id). Same
+ * premium-gated, honesty-constrained AI pitch — kept as the shared core so web
+ * (cookie session) and mobile (bearer) produce identical results.
+ */
+export const getJobMatchAndPitchForCaller = async (
+  userId: string,
+  jobId: string,
+): Promise<MatchPitchResult> => {
   const [user, sub] = await Promise.all([
     prisma.user.findUnique({
-      where: { id: session.userId },
+      where: { id: userId },
       select: { parsedProfile: true },
     }),
     prisma.subscription.findUnique({
-      where: { userId: session.userId },
+      where: { userId },
       select: { status: true, currentPeriodEnd: true },
     }),
   ]);

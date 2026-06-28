@@ -1,3 +1,5 @@
+import { faWandMagicSparkles } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
@@ -20,6 +22,7 @@ import {
   type ApplyEligibility,
   applyToJob,
   fetchJob,
+  fetchJobPitch,
 } from "@/lib/api-jobs";
 import { formatDayRate } from "@/lib/format";
 
@@ -162,6 +165,27 @@ const ApplyControl = ({
     },
   });
 
+  // "Draft with AI": fetch a tailored pitch from the contractor's CV + this role
+  // and drop it into the note. Premium-gated server-side; we route each status to
+  // the right nudge (add a CV / go premium / retry).
+  const pitch = useMutation({
+    mutationFn: () => fetchJobPitch(jobId),
+    onSuccess: (result) => {
+      if (result.status === "ok") {
+        setNote(result.pitch);
+        toast.success("Drafted from your CV. Edit it before you send.");
+      } else if (result.status === "not_premium") {
+        toast("AI pitch is a premium feature.");
+        router.push("/premium");
+      } else if (result.status === "no_cv") {
+        toast("Add a CV to your profile to draft a pitch.");
+      } else {
+        toast.error("Couldn’t draft a pitch. Try again.");
+      }
+    },
+    onError: () => toast.error("Couldn’t draft a pitch. Try again."),
+  });
+
   // Aggregated roles link out (no on-platform owner to receive an application).
   if (source === "AGGREGATED") {
     if (!sourceUrl) return null;
@@ -205,6 +229,27 @@ const ApplyControl = ({
   if (eligibility?.canApply) {
     return (
       <View className="mt-6">
+        <View className="mb-2 flex-row items-center justify-between">
+          <Text className="text-xs font-sans-medium text-muted-foreground">
+            Your note to the poster
+          </Text>
+          <Pressable
+            className="flex-row items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 active:opacity-70"
+            disabled={pitch.isPending}
+            onPress={() => pitch.mutate()}
+            accessibilityRole="button"
+            accessibilityLabel="Draft a pitch with AI from your CV"
+          >
+            {pitch.isPending ? (
+              <ActivityIndicator size="small" color="#17181a" />
+            ) : (
+              <FontAwesomeIcon icon={faWandMagicSparkles} size={12} color="#c2410c" />
+            )}
+            <Text className="text-xs font-sans-semibold text-foreground">
+              {pitch.isPending ? "Drafting…" : "Draft with AI"}
+            </Text>
+          </Pressable>
+        </View>
         <TextInput
           className="rounded-lg border border-border bg-card px-3 py-3 text-base text-foreground"
           placeholder="Add a short note to the poster (optional)"
