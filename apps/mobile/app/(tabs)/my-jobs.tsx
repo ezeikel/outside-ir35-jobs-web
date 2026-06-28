@@ -101,7 +101,13 @@ const MyJobsScreen = () => {
   const { mode } = useViewMode();
   const [tab, setTab] = useState<"saved" | "applications">("saved");
 
-  if (!isAuthenticated) return <SignedOut insetTop={insets.top} />;
+  // Signed-out HIRING gets the sign-in prompt (posting needs an account). A
+  // signed-out SEEKER, though, can have locally-saved jobs (frictionless deck
+  // triage) — so they fall through to the Saved tab below, which reads the local
+  // store. Applications still needs auth (handled inside ApplicationsTab).
+  if (!isAuthenticated && mode === "hiring") {
+    return <SignedOut insetTop={insets.top} />;
+  }
 
   // Hiring view — the user's listings.
   if (mode === "hiring") {
@@ -157,6 +163,7 @@ const MyJobsScreen = () => {
 // Applications list — jobs the contractor has applied to, with applied date and a
 // "Viewed" badge once the poster has opened the application.
 const ApplicationsTab = ({ bottomInset }: { bottomInset: number }) => {
+  const { isAuthenticated } = useAuth();
   const {
     data: applications = [],
     isLoading,
@@ -166,13 +173,27 @@ const ApplicationsTab = ({ bottomInset }: { bottomInset: number }) => {
   } = useQuery({
     queryKey: ["applications"],
     queryFn: fetchApplications,
+    // Applying needs an account, so the list is only fetched when signed in.
+    enabled: isAuthenticated,
   });
 
   useFocusEffect(
     useCallback(() => {
-      void refetch();
-    }, [refetch]),
+      if (isAuthenticated) void refetch();
+    }, [isAuthenticated, refetch]),
   );
+
+  // Applications require an account (you apply with your verified profile). This
+  // early-return comes AFTER all hooks so hook order stays stable.
+  if (!isAuthenticated) {
+    return (
+      <EmptyState
+        icon={faRectangleList}
+        title="Sign in to track applications"
+        body="Applying to contracts uses your verified profile. Sign in to apply and see your applications here."
+      />
+    );
+  }
 
   if (isLoading) {
     return (
@@ -245,6 +266,8 @@ const ApplicationsTab = ({ bottomInset }: { bottomInset: number }) => {
 // Saved jobs list — shares the React Query cache with the heart on JobCard, so
 // unsaving here (or anywhere) updates everywhere.
 const SavedTab = ({ bottomInset }: { bottomInset: number }) => {
+  const router = useRouter();
+  const { isAuthenticated } = useAuth();
   const {
     saved,
     savedIds,
@@ -304,6 +327,25 @@ const SavedTab = ({ bottomInset }: { bottomInset: number }) => {
       // Keying on the stable job id avoids a remount/flicker on that swap.
       keyExtractor={(item) => item.job.id}
       extraData={savedIds}
+      // Signed out: a soft "sync" nudge above the local saves. Not a wall — saving
+      // works without an account; signing in just syncs + backs them up.
+      ListHeaderComponent={
+        !isAuthenticated ? (
+          <Pressable
+            className="mb-3 flex-row items-center justify-between rounded-lg border border-border bg-card px-4 py-3 active:opacity-80"
+            onPress={() => router.push("/(tabs)/profile")}
+            accessibilityRole="button"
+            accessibilityLabel="Sign in to sync saved jobs"
+          >
+            <Text className="flex-1 text-sm text-muted-foreground">
+              Saved on this device. Sign in to sync across devices.
+            </Text>
+            <Text className="ml-3 font-sans-semibold text-sm text-foreground">
+              Sign in →
+            </Text>
+          </Pressable>
+        ) : null
+      }
       renderItem={({ item }) => (
         <JobCard
           job={item.job}

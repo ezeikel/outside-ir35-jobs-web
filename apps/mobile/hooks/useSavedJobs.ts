@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { toast } from "sonner-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useViewMode } from "@/hooks/useViewMode";
@@ -15,8 +15,18 @@ import {
   nextToggleAction,
   reverseOptimisticToggle,
 } from "@/lib/saved-jobs-cache";
+import { useLocalSavedJobsStore } from "@/stores/localSavedJobsStore";
 
 export const SAVED_JOBS_KEY = ["savedJobs"] as const;
+
+// Stamp used for local saves (Date.now is fine on-device; only ordering matters).
+const nowIso = () => new Date().toISOString();
+
+// Module-level guard so the local→server merge runs ONCE per sign-in across ALL
+// useSavedJobs instances (the hook is mounted by the board, the deck, the detail
+// screen and My Jobs simultaneously). Reset to false whenever we observe a
+// signed-out state, so the next sign-in merges again.
+let mergeInFlight = false;
 
 // Shared saved-jobs state. The heart on JobCard / the detail screen and the My
 // Jobs > Saved tab all read from ONE React Query cache (SAVED_JOBS_KEY), so a
@@ -31,7 +41,18 @@ export const useSavedJobs = () => {
   const { isAuthenticated } = useAuth();
   const { mode } = useViewMode();
 
-  const enabled = isAuthenticated && mode === "seeker";
+  // Saving is a seeker action, but it does NOT require an account: signed-out
+  // seekers save locally (frictionless deck triage) and we sync on sign-in.
+  const isSeeker = mode === "seeker";
+  // The SERVER query only runs when signed in; signed-out reads come from the
+  // local store.
+  const serverEnabled = isAuthenticated && isSeeker;
+
+  // Local (signed-out) saved jobs + actions.
+  const localItems = useLocalSavedJobsStore((s) => s.items);
+  const localSave = useLocalSavedJobsStore((s) => s.save);
+  const localUnsave = useLocalSavedJobsStore((s) => s.unsave);
+  const localClear = useLocalSavedJobsStore((s) => s.clear);
 
   const {
     data: saved = [],
@@ -42,7 +63,7 @@ export const useSavedJobs = () => {
   } = useQuery({
     queryKey: SAVED_JOBS_KEY,
     queryFn: fetchSavedJobs,
-    enabled,
+    enabled: serverEnabled,
     // The optimistic cache shows in-session saves/unsaves instantly. We also
     // refetch on toggle-settle (onSettled) to turn a synthetic save-row real, and
     // the My Jobs screen refetches on focus (useFocusEffect) so entering the tab
@@ -51,12 +72,53 @@ export const useSavedJobs = () => {
     staleTime: 1_000,
   });
 
-  // Derived directly from the cache — no effect, no second query (a prior version
-  // mirrored ids into a separate cache via useEffect and infinite-looped).
-  const savedIds = useMemo(
-    () => new Set(saved.map((s) => s.job.id)),
-    [saved],
+  // The unified saved list: server cache when signed in, local store when not.
+  // Everything downstream (savedIds, isSaved, My Jobs > Saved) reads `savedList`,
+  // so the two paths are interchangeable to callers.
+  const savedList: SavedJob[] = useMemo(
+    () =>
+      isAuthenticated
+        ? saved
+        : localItems.map((it) => ({
+            id: `local-${it.job.id}`,
+            savedAt: it.savedAt,
+            job: it.job,
+          })),
+    [isAuthenticated, saved, localItems],
   );
+
+  // Derived directly from the unified list — no effect, no second query (a prior
+  // version mirrored ids into a separate cache via useEffect and infinite-looped).
+  const savedIds = useMemo(
+    () => new Set(savedList.map((s) => s.job.id)),
+    [savedList],
+  );
+
+  // Sync-on-sign-in: when the user signs in, push any locally-saved jobs to their
+  // account (idempotent server upsert) then clear the local store, so a job saved
+  // while signed out is promoted to a synced save and never lost. Guarded by a ref
+  // so it runs once per sign-in transition, not on every render.
+  useEffect(() => {
+    if (!isAuthenticated) {
+      mergeInFlight = false; // re-arm for the next sign-in
+      return;
+    }
+    if (mergeInFlight) return;
+    const pending = useLocalSavedJobsStore.getState().items;
+    if (pending.length === 0) return;
+    mergeInFlight = true;
+    void (async () => {
+      // Best-effort: save each locally-saved job server-side, then clear local and
+      // refresh the server list. A failure leaves the local store intact to retry.
+      try {
+        await Promise.all(pending.map((it) => saveJob(it.job.id)));
+        localClear();
+        await queryClient.invalidateQueries({ queryKey: SAVED_JOBS_KEY });
+      } catch {
+        mergeInFlight = false; // allow a later retry
+      }
+    })();
+  }, [isAuthenticated, localClear, queryClient]);
 
   // Optimistic toggle. The cache is the source of truth between writes; we do NOT
   // refetch after a successful toggle. Refetching on success was the "job reappears
@@ -127,9 +189,15 @@ export const useSavedJobs = () => {
   );
 
   // Decide the direction from the CURRENT cache at tap time, then hand it to the
-  // mutation so the network call + optimistic update always agree.
+  // mutation so the network call + optimistic update always agree. Signed out, it
+  // toggles the local store instead (no network, no auth).
   const toggleJob = useCallback(
     (job: MobileJobCard) => {
+      if (!isAuthenticated) {
+        if (savedIds.has(job.id)) localUnsave(job.id);
+        else localSave(job, nowIso());
+        return;
+      }
       const wasSaved =
         nextToggleAction(
           queryClient.getQueryData<SavedJob[]>(SAVED_JOBS_KEY) ?? [],
@@ -137,29 +205,35 @@ export const useSavedJobs = () => {
         ) === "unsave";
       toggle.mutate({ job, wasSaved });
     },
-    [queryClient, toggle],
+    [isAuthenticated, savedIds, localUnsave, localSave, queryClient, toggle],
   );
 
   // Save only — never unsaves. The card deck's right-swipe uses this: swiping
   // right is unambiguously "save", so it must not toggle a save back off if the
-  // cache briefly disagrees with the server. saveJob is idempotent (upsert), so
-  // an already-saved job is a harmless no-op.
+  // cache briefly disagrees. Signed out, it saves into the local store; signed in,
+  // saveJob is idempotent (upsert), so an already-saved job is a harmless no-op.
   const saveJobAction = useCallback(
     (job: MobileJobCard) => {
       if (savedIds.has(job.id)) return;
+      if (!isAuthenticated) {
+        localSave(job, nowIso());
+        return;
+      }
       toggle.mutate({ job, wasSaved: false });
     },
-    [savedIds, toggle],
+    [isAuthenticated, savedIds, localSave, toggle],
   );
 
   return {
-    saved,
+    saved: savedList,
     savedIds,
-    isLoading,
-    isError,
-    isRefetching,
+    // Signed out, the local store is synchronous — never "loading".
+    isLoading: isAuthenticated ? isLoading : false,
+    isError: isAuthenticated ? isError : false,
+    isRefetching: isAuthenticated ? isRefetching : false,
     refetch,
-    canSave: enabled,
+    // Any seeker can save (signed-out saves go local + sync on sign-in).
+    canSave: isSeeker,
     isSaved,
     toggle: toggleJob,
     save: saveJobAction,
