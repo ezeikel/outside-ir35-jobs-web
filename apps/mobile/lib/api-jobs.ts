@@ -76,8 +76,17 @@ export type PitchResult =
   | { status: "error" }
   | { status: "ok"; whyMatched: string[]; pitch: string };
 
-export const fetchJobPitch = async (jobId: string): Promise<PitchResult> => {
-  const { data } = await api.get<PitchResult>(`/api/mobile/jobs/${jobId}/pitch`);
+// Optional adjustment to re-run the draft with: rephrase / shorten / make formal.
+export type PitchMode = "rephrase" | "shorten" | "formal";
+
+export const fetchJobPitch = async (
+  jobId: string,
+  mode?: PitchMode,
+): Promise<PitchResult> => {
+  const { data } = await api.get<PitchResult>(
+    `/api/mobile/jobs/${jobId}/pitch`,
+    { params: mode ? { mode } : undefined },
+  );
   return data;
 };
 

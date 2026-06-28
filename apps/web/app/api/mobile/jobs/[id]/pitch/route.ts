@@ -25,6 +25,12 @@ export const GET = async (
   }
 
   const { id } = await params;
-  const result = await getJobMatchAndPitchForCaller(caller.userId, id);
+  // Optional adjustment: rephrase / shorten / formal (re-draft with a tweak).
+  const raw = new URL(req.url).searchParams.get('mode');
+  const mode =
+    raw === 'rephrase' || raw === 'shorten' || raw === 'formal'
+      ? raw
+      : undefined;
+  const result = await getJobMatchAndPitchForCaller(caller.userId, id, mode);
   return NextResponse.json(result);
 };

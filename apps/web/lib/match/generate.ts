@@ -81,9 +81,23 @@ const profileText = (p: MatchProfile): string => {
   return lines.join('\n');
 };
 
+// Optional adjustment to the draft — re-runs with a tweak instruction. Still bound
+// by the same honesty rules (no new facts can be invented to satisfy the tweak).
+export type PitchMode = 'rephrase' | 'shorten' | 'formal';
+
+const MODE_INSTRUCTION: Record<PitchMode, string> = {
+  rephrase:
+    'Rephrase the pitch with fresh wording and a different opening, keeping the same facts and length.',
+  shorten:
+    'Make the pitch noticeably shorter and punchier (aim ~50–70 words), keeping only the strongest, most relevant points.',
+  formal:
+    'Make the pitch more formal and measured in tone (still first-person, British English, no stiffness for its own sake).',
+};
+
 export const generateMatchAndPitch = async (
   profile: MatchProfile,
   job: MatchJob,
+  mode?: PitchMode,
 ): Promise<MatchAndPitch> => {
   const jobLines = [
     `Role: ${job.position}`,
@@ -93,11 +107,15 @@ export const generateMatchAndPitch = async (
     `Description: ${stripHtml(job.description)}`,
   ].filter(Boolean);
 
+  const adjustment = mode
+    ? `\n\nADJUSTMENT: ${MODE_INSTRUCTION[mode]} Do NOT add any facts not in the CV.`
+    : '';
+
   const { object } = await generateObject({
     model: anthropic(MATCH_MODEL),
     schema: ResultSchema,
     system: SYSTEM,
-    prompt: `CONTRACTOR CV PROFILE (the only facts you may use about them):\n${profileText(profile)}\n\nCONTRACT LISTING:\n${jobLines.join('\n')}`,
+    prompt: `CONTRACTOR CV PROFILE (the only facts you may use about them):\n${profileText(profile)}\n\nCONTRACT LISTING:\n${jobLines.join('\n')}${adjustment}`,
   });
 
   return object;

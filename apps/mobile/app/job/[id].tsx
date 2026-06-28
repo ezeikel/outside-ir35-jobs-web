@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
+import AIPitchUpsell from "@/components/AIPitchUpsell";
 import RichText from "@/components/RichText";
 import SaveHeart from "@/components/SaveHeart";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,6 +24,7 @@ import {
   applyToJob,
   fetchJob,
   fetchJobPitch,
+  type PitchMode,
 } from "@/lib/api-jobs";
 import { formatDayRate } from "@/lib/format";
 
@@ -150,6 +152,12 @@ const ApplyControl = ({
   const { isAuthenticated } = useAuth();
   const queryClient = useQueryClient();
   const [note, setNote] = useState("");
+  // The note field grows with content (so the whole AI draft is readable) up to a
+  // cap, then scrolls internally.
+  const [noteHeight, setNoteHeight] = useState(96);
+  // True once an AI draft has been produced — reveals the Adjust actions.
+  const [hasDraft, setHasDraft] = useState(false);
+  const [upsellOpen, setUpsellOpen] = useState(false);
 
   const mutation = useMutation({
     mutationFn: () => applyToJob(jobId, note),
@@ -167,16 +175,16 @@ const ApplyControl = ({
 
   // "Draft with AI": fetch a tailored pitch from the contractor's CV + this role
   // and drop it into the note. Premium-gated server-side; we route each status to
-  // the right nudge (add a CV / go premium / retry).
+  // the right nudge (add a CV / premium upsell / retry). `mode` re-runs the draft
+  // with an adjustment (rephrase / shorten / formal) once a draft exists.
   const pitch = useMutation({
-    mutationFn: () => fetchJobPitch(jobId),
+    mutationFn: (mode?: PitchMode) => fetchJobPitch(jobId, mode),
     onSuccess: (result) => {
       if (result.status === "ok") {
         setNote(result.pitch);
-        toast.success("Drafted from your CV. Edit it before you send.");
+        setHasDraft(true);
       } else if (result.status === "not_premium") {
-        toast("AI pitch is a premium feature.");
-        router.push("/premium");
+        setUpsellOpen(true);
       } else if (result.status === "no_cv") {
         toast("Add a CV to your profile to draft a pitch.");
       } else {
@@ -233,33 +241,74 @@ const ApplyControl = ({
           <Text className="text-xs font-sans-medium text-muted-foreground">
             Your note to the poster
           </Text>
+          {/* Premium AI pill — a filled accent pill (not a plain text button), so
+              it reads as a feature. Shows a Generating… state while drafting. */}
           <Pressable
-            className="flex-row items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 active:opacity-70"
+            className="flex-row items-center gap-1.5 rounded-full bg-primary px-3.5 py-2 active:opacity-90"
             disabled={pitch.isPending}
-            onPress={() => pitch.mutate()}
+            onPress={() => pitch.mutate(undefined)}
             accessibilityRole="button"
             accessibilityLabel="Draft a pitch with AI from your CV"
           >
             {pitch.isPending ? (
-              <ActivityIndicator size="small" color="#17181a" />
+              <ActivityIndicator size="small" color="#fbfaf9" />
             ) : (
-              <FontAwesomeIcon icon={faWandMagicSparkles} size={12} color="#c2410c" />
+              <FontAwesomeIcon
+                icon={faWandMagicSparkles}
+                size={13}
+                color="#fbfaf9"
+              />
             )}
-            <Text className="text-xs font-sans-semibold text-foreground">
-              {pitch.isPending ? "Drafting…" : "Draft with AI"}
+            <Text className="text-xs font-sans-semibold text-primary-foreground">
+              {pitch.isPending ? "Generating…" : "Draft with AI"}
             </Text>
           </Pressable>
         </View>
+
         <TextInput
-          className="rounded-lg border border-border bg-card px-3 py-3 text-base text-foreground"
+          className="rounded-lg border border-border bg-card px-3 py-3 text-base leading-6 text-foreground"
           placeholder="Add a short note to the poster (optional)"
           placeholderTextColor="#a3a09e"
           value={note}
           onChangeText={setNote}
           multiline
-          numberOfLines={3}
-          style={{ minHeight: 72, textAlignVertical: "top" }}
+          // Grow with content so the whole AI draft is visible, capped then it
+          // scrolls internally (so a long pitch never gets clipped to 3 lines).
+          onContentSizeChange={(e) =>
+            setNoteHeight(
+              Math.min(Math.max(96, e.nativeEvent.contentSize.height + 24), 320),
+            )
+          }
+          style={{ height: noteHeight, textAlignVertical: "top" }}
+          scrollEnabled
         />
+
+        {/* Adjust actions — only after an AI draft exists (Spark Mail pattern). */}
+        {hasDraft ? (
+          <View className="mt-2 flex-row flex-wrap gap-2">
+            {(
+              [
+                { mode: "rephrase", label: "Rephrase" },
+                { mode: "shorten", label: "Shorten" },
+                { mode: "formal", label: "More formal" },
+              ] as const
+            ).map((a) => (
+              <Pressable
+                key={a.mode}
+                className="rounded-full border border-border bg-card px-3 py-1.5 active:opacity-70"
+                disabled={pitch.isPending}
+                onPress={() => pitch.mutate(a.mode)}
+                accessibilityRole="button"
+                accessibilityLabel={`${a.label} the draft`}
+              >
+                <Text className="text-xs font-sans-medium text-foreground">
+                  {a.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+
         <Pressable
           className="mt-3 rounded-lg bg-primary p-4 active:opacity-90"
           disabled={mutation.isPending}
@@ -276,6 +325,16 @@ const ApplyControl = ({
         <Text className="mt-2 text-center text-xs text-muted-foreground">
           One tap to share your verified compliance pack.
         </Text>
+
+        {/* Non-premium upsell when they tap Draft with AI. */}
+        <AIPitchUpsell
+          isOpen={upsellOpen}
+          onClose={() => setUpsellOpen(false)}
+          onUpgrade={() => {
+            setUpsellOpen(false);
+            router.push("/premium");
+          }}
+        />
       </View>
     );
   }

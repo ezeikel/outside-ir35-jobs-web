@@ -608,6 +608,7 @@ export const getJobMatchAndPitch = async (
 export const getJobMatchAndPitchForCaller = async (
   userId: string,
   jobId: string,
+  mode?: 'rephrase' | 'shorten' | 'formal',
 ): Promise<MatchPitchResult> => {
   const [user, sub] = await Promise.all([
     prisma.user.findUnique({
@@ -649,6 +650,7 @@ export const getJobMatchAndPitchForCaller = async (
         location:
           (job.location as { address?: string } | null)?.address ?? null,
       },
+      mode,
     );
     return { status: 'ok', ...result };
   } catch (err) {
