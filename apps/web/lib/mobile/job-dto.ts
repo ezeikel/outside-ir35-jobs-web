@@ -4,6 +4,7 @@ import type {
   JobSource,
   WorkMode,
 } from '@outside-ir35-jobs/db/types';
+import { IR35_LABELS, OUTSIDE_LEANING_SIGNALS } from '@/lib/ir35/labels';
 
 /**
  * Mobile-facing job DTOs. The RN app can't import the web's React components or
@@ -16,15 +17,8 @@ import type {
 // JobIR35Signal / WorkMode / JobSource are string enums (members === string
 // literals), so we key these maps by the raw string for simplicity.
 
-// Keep in sync with components/trust/JobMeta.tsx IR35 label map.
-const IR35_LABELS: Record<string, string> = {
-  SDS_ISSUED: 'Outside · SDS issued',
-  CONTRACT_REVIEW_HELD: 'Outside · contract reviewed',
-  CLIENT_INTENDS_OUTSIDE: 'Outside (client states)',
-  SMALL_CLIENT_EXEMPT: 'Outside · small-client',
-  UNKNOWN: 'IR35 not stated',
-  INSIDE: 'Inside IR35',
-};
+// IR35 labels come from the canonical map (lib/ir35/labels.ts) — single source
+// of truth shared with the web chip + email so they never drift.
 
 const WORK_MODE_LABELS: Record<string, string> = {
   REMOTE: 'Remote',
@@ -32,14 +26,8 @@ const WORK_MODE_LABELS: Record<string, string> = {
   ON_SITE: 'On-site',
 };
 
-// Signals that mean the CLIENT has stated/supported an outside position. Used to
-// decide whether to surface the attributed claim line (never an assertion).
-const OUTSIDE_LEANING: string[] = [
-  'CLIENT_INTENDS_OUTSIDE',
-  'SDS_ISSUED',
-  'CONTRACT_REVIEW_HELD',
-  'SMALL_CLIENT_EXEMPT',
-];
+// OUTSIDE_LEANING_SIGNALS (which signals mean the client has stated/supported an
+// outside position) is imported from the canonical lib/ir35/labels.ts.
 
 const locationAddress = (location: unknown): string => {
   if (
@@ -123,7 +111,9 @@ type JobDetailRow = JobCardRow & {
 
 export const toMobileJobDetail = (row: JobDetailRow): MobileJobDetail => {
   const card = toMobileJobCard(row);
-  const isOutsideLeaning = OUTSIDE_LEANING.includes(row.ir35Signal);
+  const isOutsideLeaning = OUTSIDE_LEANING_SIGNALS.includes(
+    row.ir35Signal as never,
+  );
   return {
     ...card,
     descriptionHtml: row.description ?? '',

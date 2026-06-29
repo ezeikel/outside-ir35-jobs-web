@@ -1,3 +1,5 @@
+import { faShieldHalved } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { Link } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 import SaveHeart from "@/components/SaveHeart";
@@ -48,9 +50,14 @@ const JobCard = ({
       </View>
 
       <View className="mt-3 flex-row flex-wrap items-center gap-2">
-        <Text className="rounded-full bg-secondary px-2 py-1 text-xs text-secondary-foreground">
-          {job.ir35Label}
-        </Text>
+        {/* IR35 reads as the board's trust signal (green + shield) here too, to
+            match the swipe deck — work mode / length stay neutral grey chips. */}
+        <View className="flex-row items-center gap-1.5 rounded-full bg-verified-muted px-2.5 py-1">
+          <FontAwesomeIcon icon={faShieldHalved} size={11} color="#1f5d43" />
+          <Text className="text-xs font-sans-semibold text-verified">
+            {job.ir35Label}
+          </Text>
+        </View>
         <Text className="rounded-full bg-secondary px-2 py-1 text-xs text-secondary-foreground">
           {job.workModeLabel}
         </Text>

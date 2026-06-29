@@ -34,14 +34,14 @@ const IR35_OPTIONS: { value: JobIR35Signal; label: string }[] = [
     value: JobIR35Signal.CLIENT_INTENDS_OUTSIDE,
     label: 'Client states: outside IR35',
   },
-  { value: JobIR35Signal.SDS_ISSUED, label: 'Outside — SDS issued by client' },
+  { value: JobIR35Signal.SDS_ISSUED, label: 'Outside · SDS issued by client' },
   {
     value: JobIR35Signal.CONTRACT_REVIEW_HELD,
-    label: 'Outside — IR35 contract review held',
+    label: 'Outside · IR35 contract review held',
   },
   {
     value: JobIR35Signal.SMALL_CLIENT_EXEMPT,
-    label: 'Small client — contractor self-determines',
+    label: 'Small client · contractor self-determines',
   },
   { value: JobIR35Signal.UNKNOWN, label: 'Not stated' },
   { value: JobIR35Signal.INSIDE, label: 'Inside IR35' },

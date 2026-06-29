@@ -24,7 +24,7 @@ type DayRateBenchmarkRow = {
 };
 
 const BUCKET_LABEL: Record<string, string> = {
-  OUTSIDE: 'Outside (client states)',
+  OUTSIDE: 'Outside IR35 · per client',
   INSIDE: 'Inside',
   UNKNOWN: 'Not stated',
 };

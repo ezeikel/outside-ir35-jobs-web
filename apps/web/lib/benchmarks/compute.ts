@@ -28,7 +28,7 @@ export const ir35Bucket = (signal: string): Ir35Bucket => {
 };
 
 export const IR35_BUCKET_LABEL: Record<Ir35Bucket, string> = {
-  OUTSIDE: 'Outside (client states)',
+  OUTSIDE: 'Outside IR35 · per client',
   INSIDE: 'Inside',
   UNKNOWN: 'Not stated',
 };

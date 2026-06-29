@@ -9,6 +9,7 @@ import {
   faCircleQuestion,
 } from '@fortawesome/pro-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { IR35_LABEL_META, type IR35Signal } from '@/lib/ir35/labels';
 import cn from '@/utils/cn';
 
 /**
@@ -52,36 +53,16 @@ export const DayRatePill = ({
 
 /* ── IR35 signal chip (the client's claim) ── */
 
-export type JobIR35Signal =
-  | 'CLIENT_INTENDS_OUTSIDE'
-  | 'SDS_ISSUED'
-  | 'SMALL_CLIENT_EXEMPT'
-  | 'CONTRACT_REVIEW_HELD'
-  | 'UNKNOWN'
-  | 'INSIDE';
+// Re-export the canonical signal type so existing imports of JobIR35Signal from
+// this module keep working.
+export type JobIR35Signal = IR35Signal;
 
-const IR35: Record<
-  JobIR35Signal,
-  {
-    label: string;
-    tone: 'verified' | 'neutral' | 'muted';
-    icon?: typeof faCircleCheck;
-  }
-> = {
-  SDS_ISSUED: {
-    label: 'Outside · SDS issued',
-    tone: 'verified',
-    icon: faCircleCheck,
-  },
-  CONTRACT_REVIEW_HELD: {
-    label: 'Outside · contract reviewed',
-    tone: 'verified',
-    icon: faCircleCheck,
-  },
-  CLIENT_INTENDS_OUTSIDE: { label: 'Outside (client states)', tone: 'neutral' },
-  SMALL_CLIENT_EXEMPT: { label: 'Outside · small-client', tone: 'neutral' },
-  UNKNOWN: { label: 'IR35 not stated', tone: 'muted', icon: faCircleQuestion },
-  INSIDE: { label: 'Inside IR35', tone: 'muted' },
+// Per-signal icons live here (React-specific); label + tone come from the
+// canonical lib/ir35/labels.ts so wording never drifts from mobile/email.
+const IR35_ICON: Partial<Record<IR35Signal, typeof faCircleCheck>> = {
+  SDS_ISSUED: faCircleCheck,
+  CONTRACT_REVIEW_HELD: faCircleCheck,
+  UNKNOWN: faCircleQuestion,
 };
 
 export const IR35SignalChip = ({
@@ -91,7 +72,8 @@ export const IR35SignalChip = ({
   signal: JobIR35Signal;
   className?: string;
 }) => {
-  const cfg = IR35[signal];
+  const cfg = IR35_LABEL_META[signal];
+  const icon = IR35_ICON[signal];
   return (
     <span
       className={cn(
@@ -103,7 +85,7 @@ export const IR35SignalChip = ({
         className,
       )}
     >
-      {cfg.icon && <FontAwesomeIcon icon={cfg.icon} className="h-3 w-3" />}
+      {icon && <FontAwesomeIcon icon={icon} className="h-3 w-3" />}
       {cfg.label}
     </span>
   );

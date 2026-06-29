@@ -60,7 +60,7 @@ const jobMeta = {
 };
 
 const DISCLAIMER =
-  'We surface what each client states about IR35 — we never determine or guarantee a role’s IR35 status.';
+  'We surface what each client states about IR35. We never determine or guarantee a role’s IR35 status.';
 
 const JobAlertEmail = ({
   jobs,
@@ -120,7 +120,7 @@ JobAlertEmail.PreviewProps = {
       companyName: 'Acme Digital Ltd',
       dayRate: [550, 650],
       location: 'London',
-      ir35Label: 'Outside (client states)',
+      ir35Label: 'Outside IR35 · per client',
     },
     {
       id: 'job2',
@@ -128,7 +128,7 @@ JobAlertEmail.PreviewProps = {
       companyName: 'Northwind Consulting',
       dayRate: [600],
       location: 'Remote',
-      ir35Label: 'Outside — SDS issued',
+      ir35Label: 'Outside IR35 · SDS issued',
     },
   ],
 } as JobAlertEmailProps;

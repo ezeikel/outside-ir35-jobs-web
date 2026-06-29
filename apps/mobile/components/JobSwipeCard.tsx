@@ -11,7 +11,7 @@ import { formatDayRate, postedLabel } from "@/lib/format";
 
 // The card a seeker swipes in the deck. It IS the whole decision surface, so it's
 // built like a poster: a calm body that leads with the role + the money, a quiet
-// company line, fact chips, and an always-true "Outside IR35 (client states)"
+// company line, fact chips, and the attributed "Outside IR35 · per client"
 // trust badge pinned to the footer. Generous padding, strong type hierarchy, one
 // clear focal point (the rate) — no dead space.
 //

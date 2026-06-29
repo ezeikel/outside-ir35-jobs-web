@@ -67,7 +67,7 @@ const JobPosts = async ({ params = {} }: { params?: SearchParams }) => {
               className={selectClass}
             >
               <option value="">IR35 signal</option>
-              <option value="outside">Outside (client states)</option>
+              <option value="outside">Outside IR35 · per client</option>
             </select>
             <select
               name="mode"

@@ -70,7 +70,7 @@ const SkillContractsPage = async ({
         </h1>
         <p className="mt-3 max-w-2xl text-muted-foreground">
           Live {name} contract roles and day-rate benchmarks, aggregated on this
-          board. We show the IR35 position each client states — we never
+          board. We show the IR35 position each client states. We never
           determine a role’s IR35 status.
         </p>
 
